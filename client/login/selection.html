@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Select Role - ASA Lost and Found</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      width: 100%;
+      font-family: 'Poppins', sans-serif;
+      background-color: #f5f6fa;
+    }
+
+    header {
+      height: 85px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 40px;
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      position: relative;
+      z-index: 10;
+    }
+
+    .main-logo {
+      height: 120px;
+      width: auto;
+      display: block;
+      object-fit: contain;
+    }
+
+    .nav-link {
+      text-decoration: none;
+      color: #374151;
+      font-weight: 600;
+      font-size: 14px;
+      padding: 8px 18px;
+      border-radius: 8px;
+      border: 1.5px solid #e5e7eb;
+      transition: all 0.2s ease;
+    }
+
+    .nav-link:hover {
+      background: #1a5c2a;
+      color: #fff;
+      border-color: #1a5c2a;
+    }
+
+    .hero-section {
+      height: calc(100vh - 115px);
+      display: flex;
+      align-items: center;
+      padding: 0 80px;
+    }
+
+    .container {
+      display: flex;
+      width: 100%;
+      justify-content: space-between;
+      align-items: center;
+      gap: 60px;
+    }
+
+    .hero-content {
+      flex: 1;
+      max-width: 560px;
+    }
+
+    .hero-title {
+      font-size: 46px;
+      font-weight: 800;
+      color: #1a5c2a;
+      line-height: 1.2;
+      margin-bottom: 18px;
+    }
+
+    .hero-title span {
+      color: #111827;
+    }
+
+    .hero-subtitle {
+      font-size: 15px;
+      color: #6b7280;
+      line-height: 1.75;
+    }
+
+    .login-frame {
+      width: 460px;
+      flex-shrink: 0;
+    }
+
+    .login-card-replica {
+      background: #fff;
+      border-radius: 20px;
+      padding: 40px 36px 36px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      border: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .login-card-replica::before {
+      content: '';
+      display: block;
+      height: 5px;
+      background: linear-gradient(90deg, #1a5c2a, #2d8a45);
+      border-radius: 6px 6px 0 0;
+      margin: -40px -36px 32px;
+      border-radius: 20px 20px 0 0;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: #6b7280;
+      text-transform: uppercase;
+      margin-bottom: 22px;
+    }
+
+    .role-selection-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .role-link-wrapper {
+      text-decoration: none;
+      display: block;
+    }
+
+    .role-option-btn {
+      width: 100%;
+      background: #fff;
+      border: 1.5px solid #d1d5db;
+      padding: 16px 20px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      outline: none;
+      text-align: left;
+    }
+
+    .role-option-btn span {
+      font-family: 'Poppins', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      color: #111827;
+      letter-spacing: 0.05em;
+    }
+
+    .role-icon {
+      font-size: 20px;
+      color: #1a5c2a;
+      width: 24px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .role-option-btn:hover {
+      background: #1a5c2a;
+      border-color: #1a5c2a;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(26,92,42,0.22);
+    }
+
+    .role-option-btn:hover span {
+      color: #fff;
+    }
+
+    .role-option-btn:hover .role-icon {
+      color: #f5c518;
+    }
+
+    .role-option-btn:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 6px rgba(26,92,42,0.15);
+    }
+
+    .replica-footer {
+      font-size: 12.5px;
+      margin-top: 28px;
+      color: #6b7280;
+      text-align: center;
+    }
+
+    .sign-in-link {
+      font-weight: 700;
+      color: #1a5c2a;
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    .sign-in-link:hover {
+      color: #111827;
+      text-decoration: underline;
+    }
+
+    .bottom-bar {
+      height: 30px;
+      background-color: #fff;
+      border-top: 1px solid #e5e7eb;
+      width: 100%;
+      position: fixed;
+      bottom: 0;
+    }
+
+    @media (max-width: 900px) {
+      .hero-section {
+        padding: 0 32px;
+        overflow-y: auto;
+        align-items: flex-start;
+        padding-top: 40px;
+        height: auto;
+      }
+
+      .container {
+        flex-direction: column;
+        align-items: center;
+        gap: 32px;
+      }
+
+      .hero-content {
+        text-align: center;
+        max-width: 100%;
+      }
+
+      .hero-title {
+        font-size: 34px;
+      }
+
+      .login-frame {
+        width: 100%;
+        max-width: 460px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      header {
+        padding: 0 20px;
+      }
+
+      .hero-title {
+        font-size: 28px;
+      }
+
+      .login-card-replica {
+        padding: 32px 24px 28px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-container">
+    <img src="/ASA_logo/Final logo.png" alt="ASA Logo" class="main-logo">
+  </div>
+  <div class="header-right">
+    <a href="/" class="nav-link">Home</a>
+  </div>
+</header>
+
+<main class="hero-section">
+  <div class="container">
+
+    <div class="hero-content">
+      <h1 class="hero-title">Join Our Community<br><span>Choose Your Role</span></h1>
+      <p class="hero-subtitle">
+        To provide you with the best experience, please select whether you are
+        currently a Student, a member of the CSU Staff, or a Visitor.
+      </p>
+    </div>
+
+    <div class="login-frame">
+      <div class="login-card-replica">
+
+        <h2 class="card-title">I AM A...</h2>
+
+        <div class="role-selection-container">
+
+  <a href="/login/signupStud.html" class="role-link-wrapper">
+    <button class="role-option-btn">
+      <i class="fa-solid fa-user-graduate role-icon"></i>
+      <span>STUDENT</span>
+    </button>
+  </a>
+
+  <a href="/login/signupStaff.html" class="role-link-wrapper">
+    <button class="role-option-btn">
+      <i class="fa-solid fa-user-tie role-icon"></i>
+      <span>STAFF</span>
+    </button>
+  </a>
+
+  <a href="/login/signupVisitor.html" class="role-link-wrapper">
+    <button class="role-option-btn">
+      <i class="fa-solid fa-person-walking-luggage role-icon"></i>
+      <span>VISITOR</span>
+    </button>
+  </a>
+
+</div>
+
+      
+ <p class="replica-footer">
+          Already have an account? <a href="/login/landing.html" class="sign-in-link">Login</a>
+        </p>
+
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer class="bottom-bar"></footer>
+
+</body>
+</html>

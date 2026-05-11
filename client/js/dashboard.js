@@ -1,0 +1,339 @@
+/* ============================================================
+   JAVASCRIPT – Admin header + Dashboard logic + Settings
+============================================================ */
+const PICKUP_LOCATIONS = ["CAA LSG Office","CCIS LSG Office","CED LSG Office","CEGS LSG Office","CHASS LSG Office","CMNS LSG Office","COFES LSG Office","Guard House - Main Gate","Guard House - Green Gate"];
+const DASH_API_BASE = window.ASA_API_BASE || `${window.location.origin}/api`;
+const DASH_TOKEN = localStorage.getItem('asa_token') || localStorage.getItem('token');
+let buildingPhotos = {};
+
+// ── Header dropdowns (Admin style) ──
+const headerNotifBtn = document.getElementById('headerNotifBtn');
+const headerNotifDropdown = document.getElementById('headerNotifDropdown');
+const headerProfileBtn = document.getElementById('headerProfileBtn');
+const headerProfileDropdown = document.getElementById('headerProfileDropdown');
+const headerMarkRead = document.getElementById('headerMarkRead');
+
+headerNotifBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  headerNotifDropdown.classList.toggle('show');
+  headerProfileDropdown.classList.remove('show');
+});
+headerProfileBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  headerProfileDropdown.classList.toggle('show');
+  headerNotifDropdown.classList.remove('show');
+});
+headerMarkRead.addEventListener('click', () => {
+  document.querySelectorAll('.notif-item.unread').forEach(el => el.classList.remove('unread'));
+  document.querySelectorAll('.status-dot').forEach(el => el.style.display = 'none');
+  document.getElementById('headerNotifDot').classList.add('hidden');
+});
+window.addEventListener('click', () => {
+  headerNotifDropdown.classList.remove('show');
+  headerProfileDropdown.classList.remove('show');
+});
+
+function closeAllDropdowns() {
+  headerNotifDropdown?.classList.remove('show');
+  headerProfileDropdown?.classList.remove('show');
+}
+
+// ── Mobile nav toggle ──
+function toggleMobileNav() {
+  document.getElementById('mobileNav')?.classList.toggle('open');
+}
+function closeMobileNav() {
+  document.getElementById('mobileNav')?.classList.remove('open');
+}
+
+// ── SPA page switcher (Dashboard + Settings + Reports) ──
+function switchPage(page) {
+  const mainContainer = document.getElementById('mainContainer');
+  const settingsPage = document.getElementById('page-settings');
+
+  if (page === 'settings') {
+    mainContainer.style.display = 'none';
+    settingsPage.style.display = 'block';
+    document.querySelectorAll('.menu-item').forEach(a => a.classList.remove('active'));
+  } else {
+    mainContainer.style.display = 'flex';
+    settingsPage.style.display = 'none';
+    document.querySelectorAll('.dash-page').forEach(p => p.classList.remove('active'));
+    const el = document.getElementById('page-' + page);
+    if (el) el.classList.add('active');
+    document.querySelectorAll('.menu-item').forEach(a => a.classList.remove('active'));
+    const sl = document.getElementById('slink-' + page);
+    if (sl) sl.classList.add('active');
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── Settings tabs switching ──
+function switchSettingsTab(tab, btn) {
+  document.querySelectorAll('.settings-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.s-nav-btn').forEach(b => b.classList.remove('active'));
+  const section = document.getElementById(`set-${tab}`);
+  if (section) section.classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+// ── Building photos ──
+function buildBuildingGrid() {
+  const grid = document.getElementById('buildingGrid');
+  if (!grid) return;
+  grid.innerHTML = PICKUP_LOCATIONS.map(loc =>
+    `<div class="building-card">
+      <div class="building-photo-wrap" onclick="triggerBuildingUpload('${loc}')">
+        ${buildingPhotos[loc] ? `<img src="${buildingPhotos[loc]}">` : '<span style="font-size:36px">🏢</span>'}
+        <div class="building-overlay"><i class="fa-solid fa-camera"></i> ${buildingPhotos[loc] ? 'Change' : 'Add'}</div>
+      </div>
+      <div class="building-card-info">
+        <p>${loc}</p>
+        ${buildingPhotos[loc] ? '<span style="color:green">✓ Photo set</span>' : '<span>No photo</span>'}
+      </div>
+    </div>`
+  ).join('');
+}
+
+function triggerBuildingUpload(loc) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = ev => {
+        buildingPhotos[loc] = ev.target.result;
+        buildBuildingGrid();
+        showToast('success', 'Photo Updated', `Photo for "${loc}" saved.`);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  input.click();
+}
+
+function handleAvatarChange(input) {
+  if (input.files && input.files[0]) {
+    document.getElementById('avatarFileName').textContent = input.files[0].name;
+  }
+}
+
+// ── Toast ──
+function showToast(type, title, msg) {
+  const c = document.getElementById('toast-container');
+  const icons = {
+    success: '<i class="fa-solid fa-circle-check"></i>',
+    error:   '<i class="fa-solid fa-circle-xmark"></i>',
+    info:    '<i class="fa-solid fa-circle-info"></i>'
+  };
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.innerHTML = `
+    <div class="toast-icon">${icons[type] || icons.info}</div>
+    <div class="toast-body">
+      <div class="toast-title">${title}</div>
+      <div class="toast-msg">${msg}</div>
+    </div>
+    <button class="toast-close" onclick="killToast(this.parentElement)"><i class="fa-solid fa-xmark"></i></button>
+    <div class="toast-progress"></div>`;
+  c.appendChild(t);
+  setTimeout(() => killToast(t), 4200);
+}
+
+function killToast(t) {
+  if (!t || !t.parentElement) return;
+  t.style.animation = 'toastOut .3s ease forwards';
+  setTimeout(() => t.remove(), 300);
+}
+
+// ── Settings form submissions (dummy) ──
+async function dashFetch(endpoint, options = {}) {
+  const res = await fetch(`${DASH_API_BASE}${endpoint}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(DASH_TOKEN ? { Authorization: `Bearer ${DASH_TOKEN}` } : {}),
+      ...(options.headers || {})
+    }
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || data.message || 'Request failed');
+  return data;
+}
+
+async function submitAccountInfo(e) {
+  e.preventDefault();
+  const userName = `${document.getElementById('accFirstName')?.value.trim() || ''} ${document.getElementById('accLastName')?.value.trim() || ''}`.trim()
+    || document.getElementById('accUsername')?.value.trim();
+  try {
+    await dashFetch('/users/profile', { method: 'PUT', body: JSON.stringify({ userName }) });
+    showToast('success', 'Account Updated', 'Information saved to the database.');
+  } catch (err) {
+    showToast('error', 'Update Failed', err.message);
+  }
+}
+
+async function submitPasswordChange(e) {
+  e.preventDefault();
+  const currentPassword = document.getElementById('currentPass')?.value;
+  const newPassword = document.getElementById('newPass')?.value;
+  const confirm = document.getElementById('confirmPass')?.value;
+  if (!currentPassword || !newPassword || newPassword !== confirm) {
+    showToast('error', 'Invalid Password', 'Please complete the password fields correctly.');
+    return;
+  }
+  try {
+    await dashFetch('/users/change-password', { method: 'PUT', body: JSON.stringify({ currentPassword, newPassword }) });
+    ['currentPass','newPass','confirmPass'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    showToast('success', 'Password Updated', 'Password changed in the database.');
+  } catch (err) {
+    showToast('error', 'Password Failed', err.message);
+  }
+}
+
+// ── Search / filter ──
+function searchTable(tbodyId, query) {
+  const q = query.toLowerCase();
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  tbody.querySelectorAll('tr').forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+// ── Delete popup ──
+let pendingDelRow = null;
+function confirmDel(btn) {
+  pendingDelRow = btn.closest('tr');
+  document.getElementById('deletePopup').classList.add('active');
+}
+function closeDelPopup() {
+  document.getElementById('deletePopup').classList.remove('active');
+  pendingDelRow = null;
+}
+function execDelete() {
+  if (pendingDelRow) {
+    const name = pendingDelRow.querySelector('td:nth-child(2)')?.textContent || 'Item';
+    pendingDelRow.style.animation = 'toastOut .3s ease forwards';
+    setTimeout(() => pendingDelRow?.remove(), 300);
+    showToast('info', 'Deleted', `"${name}" has been removed.`);
+  }
+  closeDelPopup();
+}
+document.getElementById('deletePopup').addEventListener('click', function(e) {
+  if (e.target === this) closeDelPopup();
+});
+
+// ── Filter reset helpers ──
+document.querySelectorAll('.filter-reset').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const bar = btn.closest('.filter-bar');
+    bar.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
+    bar.querySelectorAll('input[type=date]').forEach(i => i.value = '');
+  });
+});
+
+// Initialize building grid on page load
+document.addEventListener('DOMContentLoaded', () => {
+  loadDashboardData();
+  buildBuildingGrid();
+});
+
+function dashBadge(status) {
+  const cls = status === 'approved' ? 'badge-approved' : status === 'claimed' ? 'badge-claimed' : status === 'rejected' ? 'badge-danger' : 'badge-pending';
+  return `<span class="badge ${cls}">${String(status || 'pending')}</span>`;
+}
+
+async function loadDashboardData() {
+  if (!DASH_TOKEN) return;
+  try {
+    const [stats, items, claims, users, appeals] = await Promise.all([
+      dashFetch('/admin/stats'),
+      dashFetch('/admin/items'),
+      dashFetch('/admin/claims'),
+      dashFetch('/admin/users'),
+      dashFetch('/admin/appeals').catch(() => [])
+    ]);
+    document.getElementById('countLost').textContent = stats.totalLost ?? 0;
+    document.getElementById('countFound').textContent = stats.totalFound ?? 0;
+    document.getElementById('countPending').textContent = items.filter(i => i.itemStatus === 'pending').length;
+    document.getElementById('countUsers').textContent = users.length;
+    document.getElementById('countClaimed').textContent = items.filter(i => i.itemStatus === 'claimed').length;
+    document.getElementById('countApproved').textContent = items.filter(i => i.itemStatus === 'approved').length;
+    renderItemRows('lost-tbody', items.filter(i => i.itemType === 'lost'));
+    renderItemRows('found-tbody', items.filter(i => i.itemType === 'found'));
+    renderItemRows('pending-tbody', items.filter(i => i.itemStatus === 'pending'));
+    renderItemRows('claimed-tbody', items.filter(i => i.itemStatus === 'claimed'));
+    renderItemRows('approved-tbody', items.filter(i => i.itemStatus === 'approved'));
+    renderUpdates(items);
+    renderClaims(claims);
+    renderUsers(users);
+    renderReports(appeals);
+  } catch (err) {
+    showToast('error', 'Dashboard Error', err.message || 'Could not load dashboard data.');
+  }
+}
+
+function renderItemRows(tbodyId, items) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  tbody.innerHTML = items.length ? items.map(i => `
+    <tr data-item-id="${i.itemID}">
+      <td><div style="width:40px;height:40px;background:${i.itemType === 'lost' ? '#dbeafe' : '#dcfce7'};border-radius:8px;display:flex;align-items:center;justify-content:center">${i.itemType === 'lost' ? 'L' : 'F'}</div></td>
+      <td>${i.title}</td>
+      <td>${i.category || 'General'}</td>
+      <td>${new Date(i.createdAt || i.dateOccured).toLocaleDateString()}</td>
+      <td>${i.locationDetail || i.location || ''}</td>
+      <td>${dashBadge(i.itemStatus)}</td>
+      <td><button class="list-btn" onclick="deleteDashboardItem(${i.itemID})"><i class="fa-solid fa-trash"></i></button></td>
+    </tr>
+  `).join('') : `<tr><td colspan="7" style="text-align:center;padding:24px;color:#9ca3af">No records found.</td></tr>`;
+}
+
+function renderClaims(claims) {
+  const tbody = document.getElementById('overview-pending-body');
+  if (!tbody) return;
+  const pending = claims.filter(c => c.claimStatus === 'pending');
+  tbody.innerHTML = pending.length ? pending.map(c => `
+    <tr><td>${c.itemTitle}</td><td>${c.userName}</td><td>${c.itemType}</td><td>${new Date(c.createdAt).toLocaleDateString()}</td><td>${dashBadge(c.claimStatus)}</td><td></td></tr>
+  `).join('') : `<tr><td colspan="6" style="text-align:center;padding:24px;color:#9ca3af">No pending claims.</td></tr>`;
+}
+
+function renderUpdates(items) {
+  const rows = items.slice(0, 10).map(i => `<tr><td>${i.itemID}</td><td>${i.title}</td><td>${i.category || 'General'}</td><td>${new Date(i.createdAt).toLocaleDateString()}</td><td>${dashBadge(i.itemStatus)}</td></tr>`).join('');
+  ['overview-updates-body','updates-tbody'].forEach(id => { const tbody = document.getElementById(id); if (tbody) tbody.innerHTML = rows; });
+}
+
+function renderUsers(users) {
+  const tbody = document.getElementById('users-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = users.map(u => `<tr><td></td><td>${u.userName}</td><td>${u.email}</td><td>${u.role}</td><td></td><td>${dashBadge(u.userStatus)}</td><td></td></tr>`).join('');
+}
+
+function renderReports(appeals) {
+  const tbody = document.getElementById('reports-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = appeals.length ? appeals.map(a => `
+    <tr>
+      <td>${a.appealID}</td>
+      <td>${a.itemTitle}</td>
+      <td>${a.role} (${a.userName})</td>
+      <td>${a.reason}</td>
+      <td>${new Date(a.createdAt).toLocaleDateString()}</td>
+      <td>${dashBadge(a.itemStatus)}</td>
+      <td></td>
+    </tr>
+  `).join('') : `<tr><td colspan="7" style="text-align:center;padding:24px;color:#9ca3af">No item reports found.</td></tr>`;
+}
+
+async function deleteDashboardItem(itemID) {
+  try {
+    await dashFetch(`/admin/items/${itemID}`, { method: 'DELETE' });
+    showToast('info', 'Deleted', 'Item deleted from the database.');
+    await loadDashboardData();
+  } catch (err) {
+    showToast('error', 'Delete Failed', err.message);
+  }
+}

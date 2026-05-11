@@ -1,0 +1,888 @@
+const express = require('express');
+const cors = require('cors');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const path = require('path');
+require('dotenv').config();
+
+const db = require('./db');
+const transporter = require('./mailer');
+
+const app = express();
+
+const ASA_EMAIL_FROM = `"ASA" <${process.env.EMAIL_USER}>`;
+
+function escapeEmailHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  }[ch]));
+}
+
+function buildVerificationEmail({ code, name = 'there', intro = 'Use this code to verify your email address.' }) {
+  const safeCode = escapeEmailHtml(code);
+  const safeName = escapeEmailHtml(name);
+  const safeIntro = escapeEmailHtml(intro);
+
+  return `
+<!doctype html>
+<html>
+  <body style="margin:0;padding:0;background:#f4f7f2;font-family:Arial,Helvetica,sans-serif;color:#172016;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f7f2;padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #dfe7dc;box-shadow:0 12px 32px rgba(26,92,42,0.12);">
+            <tr>
+              <td style="background:#1a5c2a;padding:24px 28px;color:#ffffff;">
+                <div style="font-size:13px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700;color:#f5c518;">ASA</div>
+                <h1 style="margin:8px 0 0;font-size:24px;line-height:1.25;font-weight:800;">Verify your email address</h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:30px 28px;">
+                <p style="margin:0 0 12px;font-size:15px;line-height:1.7;color:#2f3b2d;">Hi ${safeName},</p>
+                <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#2f3b2d;">${safeIntro}</p>
+                <div style="background:#f8faf5;border:1px solid #e1eadf;border-radius:16px;padding:22px;text-align:center;margin:0 0 24px;">
+                  <div style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#66735f;font-weight:700;margin-bottom:10px;">Your verification code</div>
+                  <div style="font-size:36px;line-height:1;letter-spacing:0.22em;font-weight:800;color:#1a5c2a;">${safeCode}</div>
+                </div>
+                <p style="margin:0 0 18px;font-size:14px;line-height:1.7;color:#4b5b45;">This code expires in <strong>10 minutes</strong>. For your security, do not share it with anyone.</p>
+                <p style="margin:0;font-size:13px;line-height:1.7;color:#6b7667;">If you did not create an ASA account, you can safely ignore this email.</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="background:#fbfcf8;border-top:1px solid #e8efe5;padding:18px 28px;text-align:center;">
+                <p style="margin:0;font-size:12px;line-height:1.6;color:#778274;">ASA Lost and Found Tracker</p>
+                <p style="margin:3px 0 0;font-size:12px;line-height:1.6;color:#9aa495;">Helping the CSU community return lost items safely.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
+app.use(cors({
+  origin: process.env.FRONTEND_URL || '*',
+  credentials: true
+}));
+app.use(express.json());
+
+const clientDir = path.resolve(__dirname, '../client');
+app.use(express.static(clientDir, { index: false }));
+
+
+
+
+
+
+
+
+
+
+
+
+
+const PORT = process.env.PORT || 5000;
+
+/* ================= AUTH MIDDLEWARE ================= */
+
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) return res.sendStatus(401);
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
+  });
+}
+
+function authenticateAdmin(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) return res.sendStatus(401);
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) return res.sendStatus(403);
+
+    if (String(user.role || '').toLowerCase() !== 'admin') {
+      return res.status(403).json({ error: "Admin only" });
+    }
+
+    req.admin = user;
+    req.user = user;
+    next();
+  });
+}
+
+/* ================= ROUTE MODULES ================= */
+const adminRoutes = require('./routes/admin');
+app.use('/api/admin', authenticateAdmin, adminRoutes);
+
+const notificationRoutes = require('./routes/notifications');
+app.use('/api/notifications', notificationRoutes);
+
+async function ensureStoragePhotoColumn() {
+  try {
+    await db.execute(`
+      ALTER TABLE STORAGE_LOCATIONS
+      ADD COLUMN photoData LONGTEXT NULL
+    `);
+  } catch (err) {
+    if (err.code !== 'ER_DUP_FIELDNAME') {
+      console.warn('Could not ensure STORAGE_LOCATIONS.photoData:', err.message);
+    }
+  }
+}
+
+ensureStoragePhotoColumn();
+
+/* ================= AUTH ================= */
+
+app.post('/api/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const [users] = await db.execute(
+      'SELECT * FROM USERS WHERE email = ?',
+      [email]
+    );
+
+   if (users.length === 0)
+  return res.status(401).json({ error: "Invalid credentials" });
+
+const user = users[0];
+
+/* ================= USER STATUS CHECK ================= */
+
+if (user.userStatus === "pending") {
+  return res.status(403).json({
+    error: "Please verify your email first."
+  });
+}
+
+if (user.userStatus === "suspended") {
+  return res.status(403).json({
+    error: "Your account has been suspended."
+  });
+}
+
+const match = await bcrypt.compare(password, user.password);
+
+    if (!match)
+      return res.status(401).json({ error: "Invalid credentials" });
+
+    const token = jwt.sign(
+      {
+        userID: user.userID,
+        role: user.role,
+        userName: user.userName
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
+    res.json({
+      token,
+      role: user.role,
+      userName: user.userName
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ================= POST ITEM ================= */
+
+app.post('/api/items/post', authenticateToken, async (req, res) => {
+  const {
+    title,
+    description,
+    dateOccured,
+    itemType,
+    categoryID,
+    locationID,
+    locationDetail
+  } = req.body;
+
+  const userID = req.user.userID;
+
+  if (!title || !description || !dateOccured || !itemType || !categoryID || !locationDetail) {
+    return res.status(400).json({ error: "All fields are required." });
+  }
+
+  try {
+    const [result] = await db.execute(`
+      INSERT INTO ITEMS
+      (userID, title, description, dateOccured, itemType, categoryID, locationID, locationDetail, itemStatus)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+    `, [
+      userID,
+      title,
+      description,
+      dateOccured,
+      itemType,
+      categoryID,
+      locationID || null,
+      locationDetail
+    ]);
+
+    const [users] = await db.execute(
+  'SELECT userName FROM USERS WHERE userID = ?',
+  [userID]
+);
+
+const userName = users[0]?.userName || "Someone";
+
+await db.execute(`
+  INSERT INTO NOTIFICATIONS (userID, itemID, message)
+  VALUES (?, ?, ?)
+`, [
+  userID,
+  result.insertId,
+  `${userName} reported a ${itemType} item: "${title}".`
+]);
+
+    res.status(201).json({
+      message: "Item posted successfully.",
+      itemID: result.insertId
+    });
+
+  } catch (err) {
+    console.error("POST ITEM ERROR:", err);
+    res.status(500).json({
+      error: "Failed to post item.",
+      details: err.message
+    });
+  }
+});
+
+/* ================= CLAIM ITEM ================= */
+
+app.post('/api/claims', authenticateToken, async (req, res) => {
+  const { itemID, proof } = req.body;
+  const userID = req.user.userID;
+
+  try {
+    await db.execute(`
+      INSERT INTO CLAIMS (userID, itemID, proof, claimStatus)
+      VALUES (?, ?, ?, 'pending')
+    `, [userID, itemID, proof || '']);
+
+    await db.execute(`
+      INSERT INTO NOTIFICATIONS (userID, itemID, message)
+      VALUES (?, ?, ?)
+    `, [
+      userID,
+      itemID,
+      `Your claim request has been submitted.`
+    ]);
+
+    res.json({ message: "Claim submitted" });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ================= APPEAL SYSTEM ================= */
+
+app.post('/api/appeals', authenticateToken, async (req, res) => {
+  const { itemID, reason } = req.body;
+  const userID = req.user.userID;
+
+  try {
+    const [items] = await db.execute(
+      'SELECT * FROM ITEMS WHERE itemID = ?',
+      [itemID]
+    );
+
+    if (items.length === 0) {
+      return res.status(404).json({ error: "Item not found." });
+    }
+
+    await db.execute(`
+      INSERT INTO ITEM_APPEALS (userID, itemID, reason)
+      VALUES (?, ?, ?)
+    `, [userID, itemID, reason]);
+
+    await db.execute(`
+      INSERT INTO NOTIFICATIONS (userID, itemID, message)
+      VALUES (?, ?, ?)
+    `, [
+      userID,
+      itemID,
+      `Your appeal has been submitted.`
+    ]);
+
+    res.json({ message: "Appeal submitted" });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ================= NOTIFICATIONS ================= */
+
+app.get('/api/notifications', authenticateToken, async (req, res) => {
+  const userID = req.user.userID;
+
+  try {
+    const [rows] = await db.execute(
+      'SELECT * FROM NOTIFICATIONS WHERE userID = ? ORDER BY createdAt DESC',
+      [userID]
+    );
+
+    res.json(rows);
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/notifications/:id/read', authenticateToken, async (req, res) => {
+  const notifID = req.params.id;
+  const userID = req.user.userID;
+
+  await db.execute(
+    'UPDATE NOTIFICATIONS SET isRead = 1 WHERE notifID = ? AND userID = ?',
+    [notifID, userID]
+  );
+
+  res.json({ message: "Marked as read" });
+});
+
+app.put('/api/notifications/read-all', authenticateToken, async (req, res) => {
+  const userID = req.user.userID;
+
+  await db.execute(
+    'UPDATE NOTIFICATIONS SET isRead = 1 WHERE userID = ?',
+    [userID]
+  );
+
+  res.json({ message: "All notifications marked as read" });
+});
+
+/* ================= SERVER ================= */
+
+app.get('/api/items/browse', async (req, res) => {
+  try {
+    const [items] = await db.execute(`
+      SELECT
+        i.itemID,
+        i.title,
+        i.description,
+        i.itemType,
+        i.locationDetail,
+        i.dateOccured,
+        i.itemStatus,
+        c.categoryName,
+        sl.photoData AS locationPhoto
+      FROM ITEMS i
+      JOIN CATEGORIES c ON i.categoryID = c.categoryID
+      LEFT JOIN STORAGE_LOCATIONS sl ON i.locationID = sl.locationID
+      WHERE i.itemStatus IN ('pending', 'approved')
+      ORDER BY i.createdAt DESC
+    `);
+
+    res.json(items);
+
+  } catch (err) {
+    console.error("BROWSE ITEMS ERROR:", err);
+
+    res.status(500).json({
+      error: "Could not fetch items.",
+      details: err.message
+    });
+  }
+});
+
+/* ================= CATEGORIES & LOCATIONS ================= */
+
+app.get('/api/categories', async (req, res) => {
+  try {
+    const [categories] = await db.execute(`
+      SELECT categoryID, categoryName 
+      FROM CATEGORIES
+      ORDER BY categoryName ASC
+    `);
+
+    res.json(categories);
+  } catch (err) {
+    console.error("CATEGORIES ERROR:", err);
+    res.status(500).json({
+      error: "Could not fetch categories.",
+      details: err.message
+    });
+  }
+});
+
+app.get('/api/locations', async (req, res) => {
+  try {
+    const [locations] = await db.execute(`
+      SELECT locationID, storageName, building, photoData
+      FROM STORAGE_LOCATIONS
+      ORDER BY storageName ASC
+    `);
+
+    res.json(locations);
+  } catch (err) {
+    console.error("LOCATIONS ERROR:", err);
+    res.status(500).json({
+      error: "Could not fetch locations.",
+      details: err.message
+    });
+  }
+});
+
+/* ================= REGISTER WITH OTP ================= */
+
+app.post('/api/register', async (req, res) => {
+  const { name, email, password, role } = req.body;
+
+  const campusEmailPattern = /^[a-zA-Z]+(\.[a-zA-Z]+)+@carsu\.edu\.ph$/;
+  const visitorEmailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!name || !email || !password || !role) {
+    return res.status(400).json({ error: "All fields are required." });
+  }
+
+  if (["Student", "Staff"].includes(role) && !campusEmailPattern.test(email)) {
+    return res.status(400).json({
+      error: "Email must follow firstname.lastname@carsu.edu.ph format."
+    });
+  }
+
+  if (role === "Visitor" && !visitorEmailPattern.test(email)) {
+    return res.status(400).json({
+      error: "Please enter a valid email address."
+    });
+  }
+
+  if (!["Student", "Staff", "Visitor"].includes(role)) {
+    return res.status(400).json({ error: "Invalid role." });
+  }
+
+  try {
+    const [existing] = await db.execute(
+      "SELECT userID FROM USERS WHERE email = ?",
+      [email]
+    );
+
+    if (existing.length > 0) {
+      return res.status(400).json({ error: "Email already registered." });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await db.execute(`
+      INSERT INTO USERS (userName, email, password, role, userStatus)
+      VALUES (?, ?, ?, ?, 'pending')
+    `, [name, email, hashedPassword, role]);
+
+    await db.execute(`
+      INSERT INTO OTP_VERIFICATIONS (email, otpCode, expiresAt)
+      VALUES (?, ?, ?)
+    `, [email, otp, expiresAt]);
+
+    await transporter.sendMail({
+      from: ASA_EMAIL_FROM,
+      to: email,
+      subject: "ASA Email Verification Code",
+      text: `Hi ${name}, your ASA verification code is ${otp}. This code expires in 10 minutes.`,
+      html: buildVerificationEmail({
+        code: otp,
+        name,
+        intro: 'Welcome to ASA. Use this code to verify your email address and activate your lost and found account.'
+      })
+    });
+
+    res.status(201).json({
+      message: "Account created. Please verify your email.",
+      email
+    });
+
+  } catch (err) {
+    console.error("REGISTER ERROR:", err);
+    res.status(500).json({
+      error: "Registration failed.",
+      details: err.message
+    });
+  }
+});
+
+
+/* ================= VERIFY OTP ================= */
+
+app.post('/api/verify-otp', async (req, res) => {
+  const { email, otpCode } = req.body;
+
+  if (!email || !otpCode) {
+    return res.status(400).json({ error: "Email and OTP are required." });
+  }
+
+  try {
+    const [users] = await db.execute(
+      "SELECT * FROM USERS WHERE email = ?",
+      [email]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    const user = users[0];
+
+    if (user.userStatus === "active") {
+      return res.status(400).json({ error: "Account already verified." });
+    }
+
+    const [otps] = await db.execute(`
+      SELECT *
+      FROM OTP_VERIFICATIONS
+      WHERE email = ?
+      ORDER BY createdAt DESC
+      LIMIT 1
+    `, [email]);
+
+    if (otps.length === 0) {
+      return res.status(400).json({ error: "No OTP found. Please register again." });
+    }
+
+    const otp = otps[0];
+
+    if (otp.attempts >= 5) {
+      return res.status(400).json({ error: "Too many attempts. Please register again." });
+    }
+
+    if (new Date(otp.expiresAt) < new Date()) {
+      return res.status(400).json({ error: "OTP expired. Please register again." });
+    }
+
+    if (otp.otpCode !== otpCode) {
+      await db.execute(
+        "UPDATE OTP_VERIFICATIONS SET attempts = attempts + 1 WHERE otpID = ?",
+        [otp.otpID]
+      );
+
+      return res.status(400).json({ error: "Invalid OTP." });
+    }
+
+    await db.execute(
+      "UPDATE USERS SET userStatus = 'active' WHERE email = ?",
+      [email]
+    );
+
+    await db.execute(
+      "DELETE FROM OTP_VERIFICATIONS WHERE email = ?",
+      [email]
+    );
+
+    res.json({ message: "Email verified successfully. You can now login." });
+
+  } catch (err) {
+    console.error("VERIFY OTP ERROR:", err);
+    res.status(500).json({
+      error: "OTP verification failed.",
+      details: err.message
+    });
+  }
+});
+
+
+/* ================= RESEND OTP ================= */
+
+app.post('/api/resend-otp', async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ error: "Email is required." });
+  }
+
+  try {
+    const [users] = await db.execute(
+      "SELECT * FROM USERS WHERE email = ?",
+      [email]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    if (users[0].userStatus === "active") {
+      return res.status(400).json({ error: "Account already verified." });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await db.execute(
+      "DELETE FROM OTP_VERIFICATIONS WHERE email = ?",
+      [email]
+    );
+
+    await db.execute(`
+      INSERT INTO OTP_VERIFICATIONS (email, otpCode, expiresAt)
+      VALUES (?, ?, ?)
+    `, [email, otp, expiresAt]);
+
+    await transporter.sendMail({
+      from: ASA_EMAIL_FROM,
+      to: email,
+      subject: "ASA New Verification Code",
+      text: `Hi ${users[0].userName || 'there'}, your new ASA verification code is ${otp}. This code expires in 10 minutes.`,
+      html: buildVerificationEmail({
+        code: otp,
+        name: users[0].userName || 'there',
+        intro: 'Here is your new ASA verification code. Use it to finish activating your account.'
+      })
+    });
+
+    res.json({ message: "New OTP sent to your email." });
+
+  } catch (err) {
+    console.error("RESEND OTP ERROR:", err);
+    res.status(500).json({
+      error: "Could not resend OTP.",
+      details: err.message
+    });
+  }
+});
+
+/* ================= ADMIN LOGIN ================= */
+
+app.post('/api/admin/login', async (req, res) => {
+  const { managedBy, password } = req.body;
+
+  try {
+    const [users] = await db.execute(
+      "SELECT * FROM USERS WHERE (userName = ? OR email = ?) AND LOWER(role) = 'admin'",
+      [managedBy, managedBy]
+    );
+
+    if (users.length === 0)
+      return res.status(401).json({ error: "Invalid admin credentials" });
+
+    const user = users[0];
+
+    if (user.userStatus === "suspended")
+      return res.status(403).json({ error: "Account suspended." });
+
+    const match = await bcrypt.compare(password, user.password);
+    if (!match)
+      return res.status(401).json({ error: "Invalid admin credentials" });
+
+    const token = jwt.sign(
+      { userID: user.userID, role: user.role, userName: user.userName },
+      process.env.JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
+    res.json({ token, role: user.role, userName: user.userName, managedBy: user.userName });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ================= MY CLAIMS ================= */
+
+app.get('/api/claims/my', authenticateToken, async (req, res) => {
+  const userID = req.user.userID;
+  try {
+    const [rows] = await db.execute(`
+      SELECT
+        c.claimID,
+        c.claimStatus,
+        c.createdAt,
+        i.title AS itemTitle,
+        i.itemType,
+        i.description
+      FROM CLAIMS c
+      JOIN ITEMS i ON c.itemID = i.itemID
+      WHERE c.userID = ?
+      ORDER BY c.createdAt DESC
+    `, [userID]);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ================= ITEM DETAILS ================= */
+
+app.get('/api/items/details/:id', async (req, res) => {
+  try {
+    const [rows] = await db.execute(`
+      SELECT
+        i.*,
+        c.categoryName,
+        u.userName AS reporterName,
+        u.role AS reporterRole,
+        sl.storageName AS locationName,
+        sl.photoData AS locationPhoto
+      FROM ITEMS i
+      LEFT JOIN CATEGORIES c ON i.categoryID = c.categoryID
+      LEFT JOIN USERS u ON i.userID = u.userID
+      LEFT JOIN STORAGE_LOCATIONS sl ON i.locationID = sl.locationID
+      WHERE i.itemID = ?
+    `, [req.params.id]);
+
+    if (rows.length === 0) return res.status(404).json({ error: "Item not found" });
+    res.json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ================= CHANGE PASSWORD ================= */
+
+app.get('/api/users/me', authenticateToken, async (req, res) => {
+  try {
+    const [rows] = await db.execute(
+      'SELECT userID, userName, email, role, userStatus FROM USERS WHERE userID = ?',
+      [req.user.userID]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    res.json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/locations/photo', authenticateAdmin, async (req, res) => {
+  const { storageName, photoData } = req.body;
+
+  if (!storageName || typeof storageName !== 'string') {
+    return res.status(400).json({ error: "Pick-up location is required." });
+  }
+
+  if (!photoData || typeof photoData !== 'string' || !photoData.startsWith('data:image/')) {
+    return res.status(400).json({ error: "A valid image is required." });
+  }
+
+  if (photoData.length > 6_000_000) {
+    return res.status(413).json({ error: "Image is too large. Please upload a smaller photo." });
+  }
+
+  try {
+    const cleanName = storageName.trim();
+    const [existing] = await db.execute(
+      `SELECT locationID FROM STORAGE_LOCATIONS WHERE storageName = ? OR building = ? LIMIT 1`,
+      [cleanName, cleanName]
+    );
+
+    let locationID;
+    if (existing.length) {
+      locationID = existing[0].locationID;
+      await db.execute(
+        `UPDATE STORAGE_LOCATIONS SET photoData = ? WHERE locationID = ?`,
+        [photoData, locationID]
+      );
+    } else {
+      const [result] = await db.execute(
+        `INSERT INTO STORAGE_LOCATIONS (storageName, building, photoData) VALUES (?, ?, ?)`,
+        [cleanName, cleanName, photoData]
+      );
+      locationID = result.insertId;
+    }
+
+    res.json({ message: "Building photo saved.", locationID, storageName: cleanName, photoData });
+  } catch (err) {
+    console.error("LOCATION PHOTO SAVE ERROR:", err);
+    res.status(500).json({ error: "Could not save building photo.", details: err.message });
+  }
+});
+
+app.put('/api/users/change-password', authenticateToken, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  const userID = req.user.userID;
+
+  try {
+    const [users] = await db.execute('SELECT * FROM USERS WHERE userID = ?', [userID]);
+    if (users.length === 0) return res.status(404).json({ error: "User not found." });
+
+    const match = await bcrypt.compare(currentPassword, users[0].password);
+    if (!match) return res.status(401).json({ error: "Current password is incorrect." });
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await db.execute('UPDATE USERS SET password = ? WHERE userID = ?', [hashed, userID]);
+
+    res.json({ message: "Password updated successfully." });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ================= UPDATE PROFILE ================= */
+
+app.put('/api/users/profile', authenticateToken, async (req, res) => {
+  const { userName } = req.body;
+  const userID = req.user.userID;
+
+  try {
+    if (!userName || !userName.trim()) {
+      return res.status(400).json({ error: "Name is required." });
+    }
+
+    await db.execute('UPDATE USERS SET userName = ? WHERE userID = ?', [userName.trim(), userID]);
+    res.json({ message: "Profile updated successfully." });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ================= CLIENT ROUTES ================= */
+
+const pageRoutes = {
+  '/login': 'login/landing.html',
+  '/selection': 'login/selection.html',
+  '/signup/student': 'login/signupStud.html',
+  '/signup/staff': 'login/signupStaff.html',
+  '/signup/visitor': 'login/signupVisitor.html',
+  '/student': 'user/student.html',
+  '/staff': 'user/staff.html',
+  '/visitor': 'user/visitor.html',
+  '/admin': 'user/admin.html',
+  '/guest': 'user/guest.html',
+  '/dashboard': 'user/dashboard .html',
+  '/privacy': 'ASA_details/info.html',
+  '/terms': 'ASA_details/info.html',
+  '/about': 'ASA_details/about.html'
+};
+
+Object.entries(pageRoutes).forEach(([route, file]) => {
+  app.get(route, (req, res) => {
+    res.sendFile(path.join(clientDir, file));
+  });
+});
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(clientDir, 'login/index.html'));
+});
+
+// Catch-all: return index for any unmatched route
+app.get('*', (req, res) => {
+  res.sendFile(path.join(clientDir, 'login/index.html'));
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+

@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>ASA - About | Team Grid - No Border Radius, 2px Gap</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-family: 'Poppins', 'Inter', system-ui, -apple-system, sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            color: #1f2937;
+            line-height: 1.5;
+            background-color: #ffffff;
+        }
+
+        /* ----- NAVBAR - COMPACT, NO EXTRA SPACE ----- */
+        nav {
+            height: 60px;
+            background-color: white;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            z-index: 1000;
+            width: 100%;
+            position: sticky;
+            top: 0;
+            transition: none; /* removed transition to avoid any shifting */
+            border-bottom: 1px solid #eef2e6;
+        }
+
+        .link-container {
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+        }
+
+        nav a{
+            height: 100%;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: black;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .log-in-link {
+            margin: 0 0 0 auto ;
+            text-decoration: none;
+            padding: 0;
+        }
+
+        .log-in {
+            background-color: yellow;
+            color: black;
+            padding: 10px 25px 10px 25px;
+            border: none;
+            border-radius: 20px;
+            margin-right: 30px;
+            margin-left: auto;
+        }
+
+        .log-in:hover {
+            background-color: green;
+            color: white;
+        }
+
+        nav .logo {
+            margin-right: auto;
+            margin-left: 30px;
+        }
+
+        nav a:hover {
+            color: green;   
+        }
+
+        .logo {
+            width: 80px;
+        }
+
+        nav svg {
+            fill: black;
+        }
+        
+        #sidebar-active {
+            display: none;
+        }
+        
+        .open-sidebar-button,
+        .close-sidebar-button {
+            display: none;
+        }
+
+        .logo-side {
+            width: 50px;
+            display: none;
+            margin-right: auto;
+            margin-left: 30px;
+        }
+
+        nav a {
+            position: relative;
+            display: flex;
+            align-items: center;
+            height: 100%;
+            padding: 0 20px;
+            text-decoration: none;
+            color: black;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .text::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 0;
+            height: 2px;
+            background-color: #80ea66;
+            transition: width 0.3s ease;
+            z-index: 5;
+        }
+
+        .text:hover::after {
+            width: 100%;
+        }
+
+        @media(max-width: 533px) {
+            .link-container{
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                position: fixed;
+                top: 0;
+                right: -100%;
+                z-index: 10;
+                width: 230px;
+                height: 100%;
+                background-color: green;
+                box-shadow: -5px 0 5px rgba(0, 0, 0, 0.25);
+                transition: 0.75s ease-out;
+            }
+
+            nav {
+                width: 100%;
+                position: sticky;
+            }
+
+            nav a {
+                box-sizing: border-box;
+                height: auto;
+                font-weight: 600;
+                width: 100%;
+                padding: 20px 30px;
+                justify-content: flex-start;
+            }
+            
+            nav a:hover {
+                color: white;
+            }
+
+            .log-in {
+                margin: 20px 30px;
+                background-color: green;
+                border-style: none;
+                padding: 0;
+                font-size: 16px;
+            }
+
+            .log-in:hover {
+                color: white;
+            }
+
+            .logo-side {
+                display: block;
+                width: 70px;
+            }
+
+            .open-sidebar-button,
+            .close-sidebar-button {
+                padding: 20px;
+                display: block;
+            }
+
+            #sidebar-active:checked ~ .link-container {
+                right: 0;
+            }
+
+            #sidebar-active:checked ~ #overlay {
+                height: 100%;
+                width: 100%;
+                position: fixed;
+                top: 0;
+                left: 0;
+                z-index: 9;
+                background: rgba(0,0,0,0.3);
+            }
+        }
+
+        /* ----- SPLIT HERO SECTION - REMOVED EXCESS TOP MARGIN (NO TOP MARGIN) ----- */
+        .hero-split {
+            display: flex;
+            height: 380px; /* slightly adjusted height for better proportion */
+            max-width: 1400px;
+            margin: 20px 20px 10px 20px; /* REMOVED top margin (was 90px) - now 0 */
+            background: linear-gradient(135deg, #ffffff 0%, #f8faf5 100%);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06);
+        }
+
+        .hero-left {
+            flex: 1;
+            background: #eef3e9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .hero-left img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.4s ease;
+        }
+
+        .hero-left:hover img {
+            transform: scale(1.02);
+        }
+
+        .image-placeholder {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(120deg, #c8e6c9, #a5d6a7);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #2e5c2e;
+            text-align: center;
+        }
+
+        .hero-right {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 30px 48px;
+        }
+
+        .hero-header {
+            max-width: 550px;
+            width: 100%;
+        }
+
+        .hero-header h1 {
+            font-size: 2.3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #035c03 0%, #0f8f0f 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            line-height: 1.2;
+            margin-bottom: 16px;
+        }
+
+        .tagline {
+            color: #2d5a2c;
+            font-size: 1rem;
+            font-weight: 500;
+            border-left: 5px solid #eab308;
+            padding-left: 16px;
+            display: inline-block;
+            padding: 8px 18px;
+            border-radius: 60px;
+            margin-top: 6px;
+        }
+
+        .hero-desc {
+            margin-top: 20px;
+            color: #2d4a2e;
+            font-size: 0.95rem;
+            background: white;
+            padding: 16px 22px;
+            border: 2px solid green;
+            border-radius: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        }
+
+        .hero-buttons {
+            margin-top: 24px;
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            background-color: #15803d;
+            color: white;
+            padding: 10px 28px;
+            border-radius: 40px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: inline-block;
+        }
+
+        .btn-primary:hover {
+            background-color: #fcf806;
+            color: #035c03;
+            transform: translateY(-2px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid #15803d;
+            color: #15803d;
+            padding: 8px 26px;
+            border-radius: 40px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-outline:hover {
+            background-color: #fcf806;
+            color: #15803d;
+            border-color: #fcf806;
+        }
+
+        /* MAIN LAYOUT - reduced top margin to eliminate any gap */
+        .main-wrapper {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            margin-top: 10px; /* reduced from 25px to 10px for tighter spacing */
+            padding: 0 24px;
+        }
+
+        .container {
+            max-width: 1400px;
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            gap: 40px;
+            align-items: flex-start;
+        }
+
+        .content-area {
+            flex: 2;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 48px;
+        }
+
+        .sidebar-card {
+            flex: 1;
+            max-width: 320px;
+            position: sticky;
+            top: 80px; /* adjusted sticky offset for compact navbar */
+            align-self: flex-start;
+            background: white;
+            border-radius: 32px;
+            padding: 28px 20px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+        }
+
+        .menu-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .menu-item {
+            display: block;
+            padding: 12px 18px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.95rem;
+            color: #2d3e2f;
+            border-radius: 40px;
+            background: #f0f4ef;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .menu-item:hover {
+            background-color: #15803d;
+            color: white;
+            transform: translateX(-4px);
+        }
+
+        .menu-item.active {
+            background-color: #15803d;
+            color: white;
+            box-shadow: 0 4px 10px rgba(21, 128, 61, 0.25);
+        }
+
+        /* Info cards */
+        .info-card {
+            background: white;
+            border: 2px solid green;
+            border-radius: 32px;
+            padding: 32px 34px 32px 34px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+            scroll-margin-top: 85px; /* reduced to match compact navbar */
+            position: relative;
+            margin-top: 28px;
+        }
+
+        .info-card h2 {
+            font-size: 1.65rem;
+            font-weight: 700;
+            color: green;
+            background-color: white;
+            display: inline-block;
+            padding: 0 28px;
+            margin: 0;
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            white-space: nowrap;
+            text-align: center;
+            border-radius: 60px;
+            background-color: white;
+        }
+
+        @media (max-width: 680px) {
+            .info-card h2 {
+                font-size: 1.2rem;
+                padding: 0 18px;
+                white-space: nowrap;
+            }
+            .info-card {
+                padding: 28px 20px 24px 20px;
+                margin-top: 24px;
+            }
+        }
+
+        .info-card p {
+            font-size: 1rem;
+            margin-bottom: 16px;
+            color: #2c3e2f;
+        }
+
+        /* ========== 2x2 RECTANGULAR TEAM GRID - NO BORDER RADIUS, 2px GAP - COMPACT ========== */
+        .team-grid-rect {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2px;
+            margin: 0;  /* zero margin, no extra space */
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            background-color: transparent;
+            border: none;
+        }
+
+        .team-card {
+            background: #ffffff;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: default;
+            position: relative;
+            margin: 0;
+            padding: 0;
+            border-radius: 0px;
+        }
+
+        .team-card:hover {
+            transform: translateY(-4px);
+            z-index: 5;
+            box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.2);
+        }
+
+        .img-rect-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            background-color: #eef2e6;
+            overflow: hidden;
+            border-radius: 0px;
+        }
+
+        .img-rect-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: filter 0.4s ease, transform 0.4s ease;
+            border-radius: 0px;
+        }
+
+        .img-rect-wrapper::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(234, 179, 8, 0) 0%, rgba(234, 179, 8, 0) 25%, rgba(245, 200, 40, 0.92) 100%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            pointer-events: none;
+            z-index: 2;
+            border-radius: 0px;
+        }
+
+        .team-card:hover .img-rect-wrapper::after {
+            opacity: 1;
+        }
+
+        .team-card:hover .img-rect-wrapper img {
+            filter: brightness(1.02) contrast(1.04);
+            transform: scale(1.02);
+        }
+
+        .member-name-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(26, 189, 11, 0.85), rgba(255, 255, 255, 0.4) 70%, transparent);
+            padding: 22px 12px 18px 12px;
+            transform: translateY(100%);
+            transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            text-align: center;
+            z-index: 5;
+            backdrop-filter: blur(2px);
+            border-radius: 0px;
+        }
+
+        .member-name-overlay span {
+            display: inline-block;
+            font-weight: 300;
+            font-size: 25px;
+            color: #ffffff;
+            padding: 7px 18px;
+            border-radius: 40px;
+            letter-spacing: 0.3px;
+            transition: all 0.2s;
+        }
+
+        .team-card:hover .member-name-overlay {
+            transform: translateY(0);
+        }
+
+        .team-card {
+            display: flex;
+            flex-direction: column;
+            border-radius: 0px;
+        }
+
+        .img-rect-wrapper {
+            flex-shrink: 0;
+        }
+
+        .team-grid-rect,
+        .team-grid-rect > * {
+            margin: 0;
+        }
+
+        @media (max-width: 700px) {
+            .member-name-overlay span {
+                font-size: 0.85rem;
+                padding: 5px 14px;
+            }
+            .member-name-overlay {
+                padding: 16px 10px 12px 10px;
+            }
+        }
+
+        @media (max-width: 560px) {
+            .member-name-overlay span {
+                font-size: 0.75rem;
+                padding: 4px 10px;
+            }
+            .member-name-overlay {
+                padding: 12px 8px 10px 8px;
+            }
+        }
+
+        .team-caption {
+            text-align: center;
+            font-size: 0.85rem;
+            margin-top: 16px;
+            color: #b45309;
+            font-weight: 500;
+            background: #fffbeb;
+            display: inline-block;
+            padding: 6px 20px;
+            border-radius: 60px;
+            width: auto;
+        }
+
+        hr {
+            margin: 28px 0 20px;
+            width: 60px;
+            border: none;
+            height: 2px;
+            background: #eab308;
+            border-radius: 4px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 36px 24px 40px;
+            color: #6c757d;
+            font-size: 0.85rem;
+            border-top: 1px solid #e4e7ec;
+            margin-top: 40px;
+        }
+
+        /* Responsive adjustments for compact layout */
+        @media (max-width: 1000px) {
+            .hero-split {
+                flex-direction: column;
+                height: auto;
+                margin: 0 20px 10px 20px; /* keep top margin zero */
+            }
+            .hero-left {
+                min-height: 200px;
+                height: 200px;
+            }
+            .hero-right {
+                padding: 28px 32px;
+            }
+            .hero-header h1 {
+                font-size: 1.9rem;
+            }
+            .main-wrapper {
+                margin-top: 8px;
+            }
+        }
+        
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+            }
+            .sidebar-card {
+                position: relative;
+                top: 0;
+                max-width: 100%;
+                order: 2;
+                margin-top: 20px;
+            }
+            .content-area {
+                order: 1;
+            }
+            .menu-list {
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .main-wrapper {
+                padding: 0 16px;
+                margin-top: 6px;
+            }
+            .hero-header h1 {
+                font-size: 1.5rem;
+            }
+            .hero-split {
+                margin: 0 12px 8px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+        <input type="checkbox" id="sidebar-active">
+        <img src="/ASA_logo/final logo 1.png" alt="" class="logo-side">
+        <label for="sidebar-active" class="open-sidebar-button">
+            <svg xmlns="http://www.w3.org/2000/svg" height="32px" viewBox="0 -960 960 960" width="32px" fill="#e3e3e3"><path d="M120-240v-80h720v80H120Zm0-200v-80h720v80H120Zm0-200v-80h720v80H120Z"/></svg>
+        </label>
+        <label id="overlay" for="sidebar-active"></label>
+        <div class="link-container">
+            <label for="sidebar-active" class="close-sidebar-button">
+                <svg xmlns="http://www.w3.org/2000/svg" height="32px" viewBox="0 -960 960 960" width="32px" fill="#e3e3e3"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
+            </label>
+            <img src="/ASA_logo/final logo 1.png" alt="" class="logo">
+            <a href="/" class="text">Home</a>
+            <a href="" class="text">Contact</a>
+            <a href="/ASA_details/about.html" class="text">About</a>
+            <a href="/login/landing.html" class="log-in-link">
+                <button class="log-in">Log-in</button>
+            </a>
+        </div>
+    </nav>
+
+<!-- HERO SPLIT SECTION - now with zero top margin, directly below navbar -->
+<section class="hero-split">
+    <div class="hero-left">
+        <img src="/ASA_logo/csubu.jpg" 
+             alt="CSU Campus" 
+             style="width:100%; height:100%; object-fit:cover;"
+             onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'image-placeholder\'><svg viewBox=\'0 0 24 24\' width=\'60\' height=\'60\'><path d=\'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5\'/></svg><p>CSU Main Campus</p></div>'">
+    </div>
+    <div class="hero-right">
+        <div class="hero-header">
+            <h1>ASA: Where lost meets found.</h1>
+            <div class="tagline">Web-based Lost & Found Tracking System for CSU Main Campus</div>
+            <div class="hero-desc">
+                <p>ASA (Cebuano for "Where") replaces manual bulletin boards and scattered online posts — offering one trusted platform to report, claim, and reunite lost belongings with their owners.</p>
+            </div>
+
+            <div class="hero-buttons">
+    <button 
+        class="btn-primary"
+        onclick="window.location.href='../login/landing.html'">
+        Post Item
+    </button>
+
+    <button 
+        class="btn-primary"
+        onclick="window.location.href='../user/guest.html'">
+        Browse
+    </button>
+
+</div>
+        </div>
+    </div>
+</section>
+
+<div class="main-wrapper">
+    <div class="container">
+        <div class="content-area">
+            <div id="about-asa" class="info-card">
+                <h2>About ASA</h2>
+                <p>Developed to solve inefficiencies in the current lost-and-found process at CSU Main Campus, ASA digitizes everything from lost item reporting to ownership verification. Whether you're a student, staff, or visitor, the system provides real-time item listings, claim workflows, and administrative oversight to ensure each item is tracked responsibly.</p>
+                <p>In <strong>Version 1.0</strong>, ASA implements a centralized digital solution that reduces unrecovered items, improves transparency, and empowers campus security to manage claims with structured guidelines.</p>
+            </div>
+
+            <div id="mission" class="info-card">
+                <h2>Mission & Vision</h2>
+                <p><strong>Mission:</strong> To provide an efficient, user-centric lost and found platform that bridges the gap between loss and recovery, fostering a responsible and honest campus environment.</p>
+                <p><strong>Vision:</strong> A campus where every lost item has a digital footprint, every claimant is verified fairly, and no item remains unrecovered due to lack of communication.</p>
+                <div style="border-left: 5px solid #eab308; padding: 14px 20px; border-radius: 24px; margin-top: 16px;">
+                    "Efficiency. Transparency. Accountability. The core behind ASA."
+                </div>
+            </div>
+
+            <!-- TEAM SECTION: Compact, no extra top/bottom margins -->
+            <div id="team" class="info-card">
+                <h2>Development Team</h2>
+                <p>Meet the creators behind ASA 1.0 — <strong>hover over any rectangular panel</strong> to see the golden gradient glow and reveal each member's name.</p>
+                
+                <div class="team-grid-rect">
+                    <div class="team-card">
+                        <div class="img-rect-wrapper">
+                            <img src="/ASA_logo/angela.jpg" 
+                                 alt="Angela C. Cerna"
+                                 onerror="this.onerror=null; this.src='https://placehold.co/600x600/d9e6cf/2d5a2c?text=👩‍💻+Angela'">
+                            <div class="member-name-overlay">
+                                <span>Angela C. Cerna</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="team-card">
+                        <div class="img-rect-wrapper">
+                            <img src="/ASA_logo/rex.jpg" 
+                                 alt="Rexil L. Dator"
+                                 onerror="this.onerror=null; this.src='https://placehold.co/600x600/d9e6cf/2d5a2c?text=👨‍💻+Rexil'">
+                            <div class="member-name-overlay">
+                                <span>Rexil L. Dator</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="team-card">
+                        <div class="img-rect-wrapper">
+                            <img src="/ASA_logo/bro.jpg" 
+                                 alt="Elia Kim S. Evanoso"
+                                 onerror="this.onerror=null; this.src='https://placehold.co/600x600/d9e6cf/2d5a2c?text=👩‍🎨+Elia'">
+                            <div class="member-name-overlay">
+                                <span>Elia Kim S. Evanoso</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="team-card">
+                        <div class="img-rect-wrapper">
+                            <img src="/ASA_logo/Mypic.jpg" 
+                                 alt="Genrey M. Plaza"
+                                 onerror="this.onerror=null; this.src='https://placehold.co/600x600/d9e6cf/2d5a2c?text=👨‍🔧+Genrey'">
+                            <div class="member-name-overlay">
+                                <span>Genrey M. Plaza</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="technology" class="info-card">
+                <h2>Technology Stack</h2>
+                <ul style="margin: 20px 0 20px 28px;">
+                    <li><strong>Frontend:</strong> React, HTML5, CSS3, JavaScript – responsive, mobile-friendly UI.</li>
+                    <li><strong>Backend:</strong> Node.js + Express.js – REST API architecture.</li>
+                    <li><strong>Database:</strong> MySQL 9.x – stores users, items, claims, and logs.</li>
+                    <li><strong>Deployment:</strong> Ubuntu 24.04 LTS cloud server.</li>
+                    <li><strong>Security:</strong> bcrypt password hashing, HTTPS, parameterized queries.</li>
+                </ul>
+                <p>The system is designed to scale within existing free hosting constraints while maintaining fast performance under normal campus usage.</p>
+            </div>
+
+            <div id="contact" class="info-card">
+                <h2>Contact & Support</h2>
+                <p><strong>Location:</strong> Caraga State University – Main Campus, Butuan City<br>
+                <strong>Email:</strong> asa.support@csu.edu.ph<br>
+                <strong>Admin hours:</strong> Monday – Friday, 8:00 AM – 5:00 PM</p>
+                <div style="border-left: 5px solid #eab308; padding: 14px 20px; border-radius: 24px; margin: 18px 0 8px;">
+                    💡 Tip: Registered users can directly report items and track claim status in real-time. Create your free account today!
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-card">
+            <div class="menu-list">
+                <a href="#about-asa" class="menu-item" data-section="about-asa">About ASA</a>
+                <a href="#mission" class="menu-item" data-section="mission">Mission & Vision</a>
+                <a href="#team" class="menu-item" data-section="team">Development Team</a>
+                <a href="#technology" class="menu-item" data-section="technology">Tech Stack</a>
+                <a href="#contact" class="menu-item" data-section="contact">Contact & Support</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Navbar scroll handler - natural behavior
+    let lastScroll = 0;
+    const navbar = document.querySelector("nav");
+    
+    function handleNavbarScroll() {
+        if (!navbar) return;
+        
+        let currentScroll = window.pageYOffset;
+        
+        if (currentScroll <= 10) {
+            // At top - navbar is relative (takes up space naturally)
+            navbar.classList.remove('fixed');
+            navbar.style.position = "relative";
+            navbar.style.top = "0";
+        } else {
+            // Scrolled - navbar becomes fixed
+            navbar.classList.add('fixed');
+            navbar.style.position = "fixed";
+            
+            if (currentScroll > lastScroll && currentScroll > 60) {
+                // Scrolling down - hide
+                navbar.style.top = "-60px";
+            } else {
+                // Scrolling up - show
+                navbar.style.top = "0";
+            }
+        }
+        
+        lastScroll = currentScroll;
+    }
+    
+    window.addEventListener("scroll", handleNavbarScroll);
+    
+    // Reset on SPA navigation
+    document.addEventListener('spa:route-change', () => {
+        lastScroll = 0;
+        if (navbar) {
+            navbar.classList.remove('fixed');
+            navbar.style.position = "relative";
+            navbar.style.top = "0";
+        }
+        handleNavbarScroll();
+    });
+</script>
+</body>
+</html>

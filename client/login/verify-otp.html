@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify OTP — ASA Lost & Found</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: linear-gradient(135deg, #1a4d2e 0%, #2d7a47 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .card { background: #fff; border-radius: 24px; padding: 48px 40px; max-width: 420px; width: 90%; box-shadow: 0 25px 60px rgba(0,0,0,0.25); text-align: center; }
+    .logo { width: 72px; height: 72px; background: linear-gradient(135deg,#1a4d2e,#2d7a47); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 32px; }
+    h1 { font-size: 24px; color: #111; margin-bottom: 8px; }
+    p { color: #6b7280; font-size: 14px; margin-bottom: 28px; }
+    .otp-input { display: flex; gap: 10px; justify-content: center; margin-bottom: 24px; }
+    .otp-input input { width: 48px; height: 56px; border: 2px solid #d1d5db; border-radius: 12px; text-align: center; font-size: 22px; font-weight: 700; color: #111; outline: none; transition: border-color 0.2s; }
+    .otp-input input:focus { border-color: #1a4d2e; }
+    .btn { width: 100%; padding: 14px; background: #1a4d2e; color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+    .btn:hover { background: #14402a; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .resend { margin-top: 20px; font-size: 13px; color: #6b7280; }
+    .resend a { color: #1a4d2e; font-weight: 600; cursor: pointer; text-decoration: none; }
+    .toast { position: fixed; top: 24px; right: 24px; padding: 14px 22px; border-radius: 14px; font-weight: 700; font-size: 14px; color: #fff; z-index: 9999; opacity: 0; transform: translateY(-12px); transition: 0.3s ease; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.success { background: #166534; }
+    .toast.error { background: #b91c1c; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">📧</div>
+    <h1>Verify your email</h1>
+    <p>We sent a 6-digit code to <strong id="emailDisplay">your email</strong>. Enter it below to activate your account.</p>
+    <div class="otp-input">
+      <input type="text" maxlength="1" id="o1" inputmode="numeric">
+      <input type="text" maxlength="1" id="o2" inputmode="numeric">
+      <input type="text" maxlength="1" id="o3" inputmode="numeric">
+      <input type="text" maxlength="1" id="o4" inputmode="numeric">
+      <input type="text" maxlength="1" id="o5" inputmode="numeric">
+      <input type="text" maxlength="1" id="o6" inputmode="numeric">
+    </div>
+    <button class="btn" id="verifyBtn" onclick="verifyOtp()">Verify & Continue</button>
+    <div class="resend">Didn't receive it? <a onclick="resendOtp()">Resend code</a></div>
+  </div>
+
+  <script>
+    const API = window.ASA_API_BASE || `${window.location.origin}/api`;
+    const email = localStorage.getItem('pendingEmail') || '';
+    if (email) document.getElementById('emailDisplay').textContent = email;
+
+    // Auto-focus next input
+    const inputs = ['o1','o2','o3','o4','o5','o6'].map(id => document.getElementById(id));
+    inputs.forEach((inp, i) => {
+      inp.addEventListener('input', () => {
+        if (inp.value && i < 5) inputs[i+1].focus();
+      });
+      inp.addEventListener('keydown', e => {
+        if (e.key === 'Backspace' && !inp.value && i > 0) inputs[i-1].focus();
+      });
+    });
+
+    function toast(msg, type = 'success') {
+      const t = document.createElement('div');
+      t.className = `toast ${type}`;
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => t.classList.add('show'), 10);
+      setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 3000);
+    }
+
+    async function verifyOtp() {
+      const otpCode = inputs.map(i => i.value).join('');
+      if (otpCode.length < 6) { toast('Please enter the full 6-digit code.', 'error'); return; }
+
+      const btn = document.getElementById('verifyBtn');
+      btn.disabled = true; btn.textContent = 'Verifying…';
+
+      try {
+        const res = await fetch(`${API}/verify-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, otpCode })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Verification failed');
+
+        toast('Email verified! Redirecting to login…', 'success');
+        setTimeout(() => { window.location.href = '/login/landing.html'; }, 1800);
+      } catch (err) {
+        toast(err.message, 'error');
+        btn.disabled = false; btn.textContent = 'Verify & Continue';
+      }
+    }
+
+    async function resendOtp() {
+      try {
+        const res = await fetch(`${API}/resend-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to resend');
+        toast('A new code has been sent to your email.', 'success');
+      } catch (err) {
+        toast(err.message, 'error');
+      }
+    }
+  </script>
+</body>
+</html>

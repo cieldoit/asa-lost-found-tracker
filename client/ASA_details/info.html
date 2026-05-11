@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/ASA_logo/logo-asa-top.png">
+    <title>ASA - Privacy Policy & Terms</title>
+
+    <style>
+        html {
+            font-family: Poppins, 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        nav {
+            height: 60px;
+            background-color: white;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            z-index: 1000;
+            width: 100%;
+            position: fixed;
+            top: 0;
+            transition: top 0.3s;
+        }
+
+        .link-container {
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            margin: 0 auto;
+        }
+
+        nav a{
+            height: 100%;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: black;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .log-in-link {
+            margin: 0 0 0 auto ;
+            text-decoration: none;
+            padding: 0;
+        }
+
+        .log-in {
+            background-color: yellow;
+            color: black;
+            padding: 10px 25px 10px 25px;
+            border: none;
+            border-radius: 20px;
+            margin-right: 30px;
+            margin-left: auto;
+        }
+
+        .log-in:hover {
+            background-color: green;
+            color: white;
+        }
+
+        nav .logo {
+            margin-right: auto;
+            margin-left: 30px;
+        }
+
+        nav a:hover {
+            color: green;   
+        }
+
+        .logo {
+            width: 80px;
+        }
+
+        nav svg {
+            fill: black;
+        }
+        
+        #sidebar-active {
+            display: none;
+        }
+        
+        .open-sidebar-button,
+        .close-sidebar-button {
+            display: none;
+        }
+
+        .logo-side {
+            width: 50px;
+            display: none;
+            margin-right: auto;
+            margin-left: 30px;
+        }
+
+        nav a {
+            position: relative;
+            display: flex;
+            align-items: center;
+            height: 100%;
+            padding: 0 20px;
+            text-decoration: none;
+            color: black;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .text::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 0;
+            height: 2px;
+            background-color: #80ea66;
+            transition: width 0.3s ease;
+            z-index: 5;
+        }
+
+        .text:hover::after {
+            width: 100%;
+        }
+
+        @media(max-width: 533px) {
+            body {
+                padding: 0 20px;
+            }
+            
+            .link-container{
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                position: fixed;
+                top: 0;
+                right: -100%;
+                z-index: 10;
+                width: 230px;
+                height: 100%;
+                background-color: green;
+                box-shadow: -5px 0 5px rgba(0, 0, 0, 0.25);
+                transition: 0.75s ease-out;
+            }
+
+            nav {
+                width: 100%;
+            }
+
+            nav a {
+                box-sizing: border-box;
+                height: auto;
+                font-weight: 600;
+                width: 100%;
+                padding: 20px 30px;
+                justify-content: flex-start;
+            }
+            
+            nav a:hover {
+                color: white;
+            }
+
+            .log-in {
+                margin: 20px 30px;
+                background-color: green;
+                border-style: none;
+                padding: 0;
+                font-size: 16px;
+            }
+
+            .log-in:hover {
+                color: white;
+            }
+
+            .logo-side {
+                display: block;
+                width: 70px;
+            }
+
+            .open-sidebar-button,
+            .close-sidebar-button {
+                padding: 20px;
+                display: block;
+            }
+
+            #sidebar-active:checked ~ .link-container {
+                right: 0;
+            }
+
+            #sidebar-active:checked ~ #overlay {
+                height: 100%;
+                width: 100%;
+                position: fixed;
+                top: 0;
+                left: 0;
+                z-index: 9;
+                background: rgba(0,0,0,0.3);
+            }
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            grid-template-rows: auto auto;
+            margin: 20px 30px 20px 30px;
+            gap: 1em;
+            grid-template-areas: 
+                "box-1 box-2"
+                "box-1 box-3";
+        }
+
+        .Item-1 {
+            grid-area: box-1;
+            position: sticky;
+            top: 80px;
+            align-self: start;
+            padding: 20px 10px 20px 10px;
+            background-color: #fff;
+            border-radius: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .menu {
+            /* Layout */
+            display: block;
+            width: 100%;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+
+            
+            /* Text Styling */
+            text-decoration: none;
+            color: #333;
+            font-size: 0.9rem;
+            font-weight: 500;
+            
+            /* Visuals */
+            border-radius: 10px;
+            
+            /* Wrap logic to prevent text from going outside */
+            box-sizing: border-box;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            
+            transition: all 0.3s ease;
+        }
+
+        .menu:hover {
+            white-space: normal;
+            word-wrap: break-word;
+            background-color: green;
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .menu.active {
+            background-color: green;
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .Item-2 {
+            grid-area: box-2;
+            background: #fff;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-top: 60px;
+        }
+
+        .Item-3 {
+            grid-area: box-3;
+            background: #fff;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .main-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a5c2a;
+            margin-bottom: 10px;
+        }
+
+        .last-updated {
+            color: #6b7280;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .policy-row {
+            margin-bottom: 50px;
+            scroll-margin-top: 80px;
+        }
+
+        .left-col h2 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #1a5c2a;
+        }
+
+        .right-col p, 
+        .right-col {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #374151;
+            line-height: 1.6;
+        }
+
+        .right-col ul {
+            list-style: disc;
+            padding-left: 20px;
+            margin: 10px 0;
+        }
+
+        .right-col li {
+            font-size: 16px;
+            margin-bottom: 8px;
+            color: #374151;
+            line-height: 1.5;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            margin-bottom: 15px;
+        }
+
+        .highlight {
+            color: #1a5c2a;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-areas: 
+                    "box-2"
+                    "box-1"
+                    "box-3";
+                margin: 20px 15px;
+            }
+            
+            .Item-1 {
+                position: relative;
+                top: 0;
+            }
+            
+            .main-title {
+                font-size: 22px;
+            }
+            
+            .left-col h2 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <input type="checkbox" id="sidebar-active">
+    <img src="/ASA_logo/final logo 1.png" alt="" class="logo-side">
+    <label for="sidebar-active" class="open-sidebar-button">
+        <svg xmlns="http://www.w3.org/2000/svg" height="32px" viewBox="0 -960 960 960" width="32px" fill="#e3e3e3"><path d="M120-240v-80h720v80H120Zm0-200v-80h720v80H120Zm0-200v-80h720v80H120Z"/></svg>
+    </label>
+    <label id="overlay" for="sidebar-active"></label>
+    <div class="link-container">
+        <label for="sidebar-active" class="close-sidebar-button">
+            <svg xmlns="http://www.w3.org/2000/svg" height="32px" viewBox="0 -960 960 960" width="32px" fill="#e3e3e3"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
+        </label>
+        <img src="/ASA_logo/final logo 1.png" alt="" class="logo">
+        <a href="/" class="text">Home</a>
+        <a href="/ASA_details/about.html#contact" class="text">Contact</a>
+        <a href="/ASA_details/about.html" class="text">About</a>
+        <a href="/login/landing.html" class="log-in-link">
+            <button class="log-in">Log-in</button>
+        </a>
+    </div>
+</nav>
+
+<div id="content">
+    <main class="container">
+        <div class="Item-1">
+            <a class="menu" href="#privacy">Privacy And Policy</a>
+            <a class="menu" href="#terms">Terms of Services</a>
+            <a class="menu" href="#docs">Documentation</a>
+            <a class="menu" href="">Help Center</a>
+            <a class="menu" href="">Community</a>
+            <a class="menu" href="">Contact</a>
+        </div>
+
+        <div class="Item-2">
+            <h1 class="main-title">Privacy Policy & Community Safety</h1>
+            <p class="last-updated">Last Updated: April 6, 2026</p>
+        </div>
+
+        <div class="Item-3">
+            <section id="privacy" class="policy-row">
+                <div class="left-col">
+                    <h2>Information We Collect</h2>
+                </div>
+                <div class="right-col">
+                    <p class="subtitle">We may collect the following information when you use ASA:</p>
+                    <ul>
+                        <li>Name or username</li>
+                        <li>Email address</li>
+                        <li>Details of lost or found items you post</li>
+                        <li>Messages between users</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section id="terms" class="policy-row">
+                <div class="left-col">
+                    <h2>How We Use Your Information</h2>
+                </div>
+                <div class="right-col">
+                    <ul>
+                        <li>Help users find lost items or return found items</li>
+                        <li>Communicate important updates</li>
+                        <li>Improve our website and services</li>
+                        <li>Keep the platform safe and secure</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section class="policy-row">
+                <div class="left-col">
+                    <h2 class="highlight">Prohibited Content</h2>
+                </div>
+                <div class="right-col">
+                    <p class="subtitle">The following are <strong>not allowed</strong> on the platform:</p>
+                    <ul>
+                        <li>Spam or unrelated posts</li>
+                        <li>Fake or misleading information</li>
+                        <li>Offensive, abusive, or harmful content</li>
+                        <li>Selling products or advertisements</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section class="policy-row">
+                <div class="left-col">
+                    <h2 class="highlight">Enforcement</h2>
+                </div>
+                <div class="right-col">
+                    <p class="subtitle">To keep ASA safe, we apply the following rules:</p>
+                    <p><strong>Warning:</strong> For first violations.</p>
+                    <p><strong>Suspension:</strong> For repeated violations.</p>
+                    <p><strong>Permanent Ban:</strong> For serious or repeated abuse.</p>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+
+<script>
+    // Navbar scroll handler
+    let lastScroll = 0;
+    const navbar = document.querySelector("nav");
+
+    window.addEventListener("scroll", () => {
+        let currentScroll = window.pageYOffset;
+        if (currentScroll > lastScroll && currentScroll > 60) {
+            navbar.style.top = "-60px";
+        } else {
+            navbar.style.top = "0";
+        }
+        lastScroll = currentScroll;
+    });
+
+    // Active menu highlighting based on scroll
+    const observerOptions = {
+        root: null,
+        rootMargin: '-20% 0px -70% 0px',
+        threshold: 0
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const id = entry.target.getAttribute('id');
+                document.querySelectorAll('.menu').forEach(link => {
+                    link.classList.remove('active');
+                });
+                const activeLink = document.querySelector(`.menu[href$="#${id}"]`);
+                if (activeLink) {
+                    activeLink.classList.add('active');
+                }
+            }
+        });
+    }, observerOptions);
+
+    document.querySelectorAll('.policy-row[id]').forEach((section) => {
+        observer.observe(section);
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ASA Lost &amp; Found — Visitor</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='10' fill='%231a5c2a'/><circle cx='32' cy='22' r='10' fill='%23f5c518'/><circle cx='32' cy='22' r='4' fill='white'/><rect x='30' y='31' width='4' height='16' rx='2' fill='%23f5c518'/><circle cx='30' cy='36' r='11' fill='none' stroke='%23f5c518' stroke-width='3'/></svg>" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="./css/script.css" />
+</head>
+
+<body>
+
+<div id="toast-container"></div>
+
+<visitor-header id="siteHeader"></visitor-header>
+
+<div class="page active" id="page-dashboard">
+  <div class="home-container">
+    <div class="welcome-banner">
+      <div class="welcome-text">
+        <h1>Welcome back, <span class="welcome-name" id="welcomeName">Visitor</span> 👋</h1>
+        <p>Here's what's happening with your reported items.</p>
+      </div>
+      <div class="action-btns">
+        <button class="btn-report-lost" onclick="showPage('report-lost')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+          Report Lost
+        </button>
+        <button class="btn-report-found" onclick="showPage('report-found')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          Report Found
+        </button>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon yellow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#ca8a04" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div><div class="stat-label">Lost Items</div><div class="stat-value" id="statLost">0</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </div>
+        <div><div class="stat-label">Found Items</div><div class="stat-value" id="statFound">0</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <div><div class="stat-label">Claimed</div><div class="stat-value" id="statClaimed">0</div></div>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <h2>Recently Updated</h2>
+      <span class="explore-link" onclick="showPage('lost')">Explore All →</span>
+    </div>
+
+    <div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="56" height="56"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+      <h3>No Recent Updates</h3>
+      <p>Looks like everyone is holding onto their belongings right now. Be a hero and report an item if you find one!</p>
+    </div>
+
+    <div class="tip-card">
+      <div class="tip-content">
+        <h3>How to recover items faster?</h3>
+        <p>Adding clear photos and specific locations significantly increases the chance of finding your item. Our automated matching system will notify you as soon as a potential match is found.</p>
+        <div class="tip-tags">
+          <div class="tip-tag">📸 Add Photos</div>
+          <div class="tip-tag">📍 Be Specific</div>
+          <div class="tip-tag">🔄 Update Daily</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-lost">
+  <div class="home-container">
+    <div class="dir-header">
+      <h1>Lost Items Directory</h1>
+      <p>Browse through items reported lost across the campus. If you have found any of these items, please help by turning them in or contacting the owner.</p>
+    </div>
+    <div class="dir-controls">
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" placeholder="Search Lost Items..." id="lostSearch" oninput="filterItems('lost')">
+      </div>
+      <select class="filter-select" id="lostCatFilter" onchange="filterItems('lost')">
+        <option value="">All Categories</option>
+        <option>Electronics</option><option>Clothing</option><option>Accessories</option>
+        <option>Documents</option><option>Books</option><option>Keys</option><option>Others</option>
+      </select>
+    </div>
+    <div class="items-grid" id="lostItemsGrid">
+      <div class="item-card" data-title="Blue Wallet" data-cat="Accessories" data-desc="Small blue leather wallet with student ID inside." data-loc="Library Floor 2" data-date="April 15, 2026" data-type="lost" onclick="openItemModal(this)">
+        <div class="card-img-wrap">
+          <div style="width:100%;height:100%;background:linear-gradient(135deg,#dbeafe,#bfdbfe);display:flex;align-items:center;justify-content:center;font-size:48px;">👛</div>
+          <span class="badge badge-lost">LOST</span>
+          <span class="badge badge-pending">PENDING</span>
+        </div>
+        <div class="card-info">
+          <h3>Blue Wallet</h3>
+          <span class="category-tag">Accessories</span>
+          <p class="card-desc">Small blue leather wallet with student ID inside.</p>
+          <div class="card-footer-row">
+            <span>📍 Library Floor 2</span>
+            <span class="view-link">VIEW DETAILS</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-found">
+  <div class="home-container">
+    <div class="dir-header">
+      <h1>Found Items Directory</h1>
+      <p>Items safely turned in by our community. Have you lost something recently? Check if it has been found here to reclaim your property.</p>
+    </div>
+    <div class="dir-controls">
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" placeholder="Search Found Items..." id="foundSearch" oninput="filterItems('found')">
+      </div>
+      <select class="filter-select" id="foundCatFilter" onchange="filterItems('found')">
+        <option value="">All Categories</option>
+        <option>Electronics</option><option>Clothing</option><option>Accessories</option>
+        <option>Documents</option><option>Books</option><option>Keys</option><option>Others</option>
+      </select>
+    </div>
+    <div class="items-grid" id="foundItemsGrid">
+      <div class="item-card" data-title="Textbook" data-cat="Books" data-desc="Engineering Mathematics textbook, has a name written on the first page." data-loc="CCIS LSG Office" data-date="April 18, 2026" data-type="found" onclick="openItemModal(this)">
+        <div class="card-img-wrap">
+          <div style="width:100%;height:100%;background:linear-gradient(135deg,#dcfce7,#bbf7d0);display:flex;align-items:center;justify-content:center;font-size:48px;">📚</div>
+          <span class="badge badge-found">FOUND</span>
+          <span class="badge badge-pending">PENDING</span>
+        </div>
+        <div class="card-info">
+          <h3>Textbook</h3>
+          <span class="category-tag">Books</span>
+          <p class="card-desc">Engineering Mathematics textbook, has a name written on the first page.</p>
+          <div class="card-footer-row">
+            <span>📍 CCIS LSG Office</span>
+            <span class="view-link">VIEW DETAILS</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-post">
+  <div class="home-container">
+    <div class="post-wrap">
+      <h2>Post Item</h2>
+      <p>Lost something important or found an item that doesn't belong to you? Start by selecting whether the item is lost or found.</p>
+      <div class="post-choices">
+        <button class="choice-btn choice-lost" onclick="showPage('report-lost')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20" style="margin-bottom:8px"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg><br>
+          Lost Item
+        </button>
+        <button class="choice-btn choice-found" onclick="showPage('report-found')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20" style="margin-bottom:8px"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><br>
+          Found Item
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-report-lost">
+  <div class="home-container">
+    <button class="form-back-btn" onclick="showPage('post')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Report Lost Item
+    </button>
+    <div class="form-layout">
+      <div class="form-card">
+        <div class="form-group">
+          <label class="form-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/></svg>
+            Item Title <span style="color:var(--red-text)">*</span>
+          </label>
+          <input class="form-input" type="text" id="lostTitle" placeholder="Ex: Blue Leather Wallet" oninput="syncPreviewTitle()">
+          <span class="field-error" id="lostTitleErr" style="display:none">Item title is required.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+            Category <span style="color:var(--red-text)">*</span>
+          </label>
+          <div class="form-select-wrap">
+            <select class="form-select" id="lostCat">
+              <option value="">Select Category</option>
+              <option>Electronics</option><option>Clothing</option><option>Accessories</option>
+              <option>Documents</option><option>Books</option><option>Keys</option><option>Others</option>
+            </select>
+            <div class="select-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg></div>
+          </div>
+          <span class="field-error" id="lostCatErr" style="display:none">Please select a category.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Last Seen Location <span style="color:var(--red-text)">*</span>
+          </label>
+          <div class="form-select-wrap">
+            <select class="form-select" id="lostLoc" onchange="toggleOtherLoc('lostLocOther', this)">
+              <option value="">Select Location</option>
+              <option>Guard House</option><option>Overpass</option><option>CSU Milk Processing Facility</option>
+              <option>CED Building</option><option>CHED Caraga Regional Office</option><option>Gasoline Station</option>
+              <option>Food Tech. Building</option><option>Food Innovation Center</option><option>Agro-Workshop/ CAA TESDA</option>
+              <option>Tissue Culture Laboratory</option><option>CAA Building</option><option>Green House</option>
+              <option>H.E.R.O Learning Commons</option><option>S &amp; T Building</option>
+              <option>Hostel Building (e.i Clinic Office)</option><option>Executive House</option>
+              <option>Diagnostic Laboratory</option><option>Farm Mechanization Center</option>
+              <option>New Administration Building</option><option>Old Administration Building</option>
+              <option>Oval</option><option>ORGMS Office/ Bookstore</option><option>Annex 3/ Senior High School</option>
+              <option>University Gymnasium &amp; Cultural Center</option><option>Physical Fitness Office</option>
+              <option>Old CAS Building</option><option>Kinaadman Building</option><option>CEIT Annex Building</option>
+              <option>Hiraya Building</option><option>Hinang Building</option><option>Chapel</option>
+              <option>Eco-Lodge</option><option>Old Farm Mechanization Center</option><option>Old Gents' Dormitory</option>
+              <option>Pig Pens</option><option>Native Chicken House</option><option>OATC</option>
+              <option>Vermi House/ Nursery/ Poultry</option><option>Botanical Garden</option><option>COFES Annex</option>
+              <option>Annex 2 Building</option><option>DOST Building</option><option>COFES Building</option>
+              <option>COFES Classroom/ Hostel</option><option>New Gents' Dormitory</option><option>Micoriza Office</option>
+              <option>Wood Workshop/ Tech Voc Building</option><option>Rooting Recovery Facility</option>
+              <option>New Ladies' Dormitory</option>
+              <option value="Others">Others (please specify)</option>
+            </select>
+            <div class="select-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg></div>
+          </div>
+          <input class="form-input" type="text" id="lostLocOther" placeholder="Please specify the location..." style="display:none;margin-top:8px">
+          <span class="field-error" id="lostLocErr" style="display:none">Please select or specify the last seen location.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Detailed Description <span style="color:var(--red-text)">*</span>
+          </label>
+          <textarea class="form-textarea" id="lostDesc" placeholder="Describe specific marks, contents, or circumstances..."></textarea>
+          <span class="field-error" id="lostDescErr" style="display:none">Please describe the item.</span>
+        </div>
+      </div>
+      <div>
+        <div class="form-card">
+          <div class="img-title-preview" id="lostPreviewTitle">Item Title</div>
+          <div id="lostImgArea">
+            <div class="img-upload-area" onclick="document.getElementById('lostImgInput').click()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9l4-4 4 4 4-4 4 4"/><path d="M3 15l4 4 4-4 4 4 4-4"/></svg>
+              <p><strong>Drop photos here</strong><br>or click to browse</p>
+              <input type="file" id="lostImgInput" accept="image/*" style="display:none" onchange="previewImage(this,'lostImgArea')">
+            </div>
+          </div>
+        </div>
+        <button class="btn-submit" onclick="submitLostItem()">
+          Submit Report
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-report-found">
+  <div class="home-container">
+    <button class="form-back-btn" onclick="showPage('post')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Report Found Item
+    </button>
+    <div class="form-card" style="max-width:640px;margin:0 auto;">
+      <div class="form-group">
+        <label class="form-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/></svg>
+          Item Title <span style="color:var(--red-text)">*</span>
+        </label>
+        <input class="form-input" type="text" id="foundTitle" placeholder="Ex: Key with a red Keychain">
+        <span class="field-error" id="foundTitleErr" style="display:none">Item title is required.</span>
+      </div>
+      <div class="two-col">
+        <div class="form-group">
+          <label class="form-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><rect x="2" y="7" width="20" height="14" rx="2"/></svg>
+            Category <span style="color:var(--red-text)">*</span>
+          </label>
+          <div class="form-select-wrap">
+            <select class="form-select" id="foundCat">
+              <option value="">Select Category</option>
+              <option>Electronics</option><option>Clothing</option><option>Accessories</option>
+              <option>Documents</option><option>Books</option><option>Keys</option><option>Others</option>
+            </select>
+            <div class="select-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg></div>
+          </div>
+          <span class="field-error" id="foundCatErr" style="display:none">Please select a category.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Location Found <span style="color:var(--red-text)">*</span>
+          </label>
+          <div class="form-select-wrap">
+            <select class="form-select" id="foundLoc" onchange="toggleOtherLoc('foundLocOther', this)">
+              <option value="">Select Location</option>
+              <option>Guard House</option><option>Overpass</option><option>CSU Milk Processing Facility</option>
+              <option>CED Building</option><option>CHED Caraga Regional Office</option><option>Gasoline Station</option>
+              <option>Food Tech. Building</option><option>Food Innovation Center</option><option>Agro-Workshop/ CAA TESDA</option>
+              <option>Tissue Culture Laboratory</option><option>CAA Building</option><option>Green House</option>
+              <option>H.E.R.O Learning Commons</option><option>S &amp; T Building</option>
+              <option>Hostel Building (e.i Clinic Office)</option><option>Executive House</option>
+              <option>Diagnostic Laboratory</option><option>Farm Mechanization Center</option>
+              <option>New Administration Building</option><option>Old Administration Building</option>
+              <option>Oval</option><option>ORGMS Office/ Bookstore</option><option>Annex 3/ Senior High School</option>
+              <option>University Gymnasium &amp; Cultural Center</option><option>Physical Fitness Office</option>
+              <option>Old CAS Building</option><option>Kinaadman Building</option><option>CEIT Annex Building</option>
+              <option>Hiraya Building</option><option>Hinang Building</option><option>Chapel</option>
+              <option>Eco-Lodge</option><option>Old Farm Mechanization Center</option><option>Old Gents' Dormitory</option>
+              <option>Pig Pens</option><option>Native Chicken House</option><option>OATC</option>
+              <option>Vermi House/ Nursery/ Poultry</option><option>Botanical Garden</option><option>COFES Annex</option>
+              <option>Annex 2 Building</option><option>DOST Building</option><option>COFES Building</option>
+              <option>COFES Classroom/ Hostel</option><option>New Gents' Dormitory</option><option>Micoriza Office</option>
+              <option>Wood Workshop/ Tech Voc Building</option><option>Rooting Recovery Facility</option>
+              <option>New Ladies' Dormitory</option>
+              <option value="Others">Others (please specify)</option>
+            </select>
+            <div class="select-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg></div>
+          </div>
+          <input class="form-input" type="text" id="foundLocOther" placeholder="Please specify the location..." style="display:none;margin-top:8px">
+          <span class="field-error" id="foundLocErr" style="display:none">Please select or specify where you found it.</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          Pick-Up Location <span style="color:var(--red-text)">*</span>
+        </label>
+        <div class="form-select-wrap">
+          <select class="form-select" id="foundPickup">
+            <option value="">Where is the item kept now?</option>
+            <option>CAA LSG Office</option><option>CCIS LSG Office</option>
+            <option>CED LSG Office</option><option>CEGS LSG Office</option>
+            <option>CHASS LSG Office</option><option>CMNS LSG Office</option>
+            <option>COFES LSG Office</option><option>Guard House - Main Gate</option><option>Guard House - Green Gate</option>
+          </select>
+          <div class="select-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg></div>
+        </div>
+        <span class="field-error" id="foundPickupErr" style="display:none">Please select a pick-up location.</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Detailed Description <span style="color:var(--red-text)">*</span>
+        </label>
+        <textarea class="form-textarea" id="foundDesc" placeholder="Be descriptive but don't give away secret identifying marks (let the owner prove it)..."></textarea>
+        <span class="field-error" id="foundDescErr" style="display:none">Please describe the item.</span>
+      </div>
+      <!-- Photo upload removed -->
+      <button class="btn-submit" onclick="submitFoundItem()">
+        Submit Report
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-settings">
+  <div class="settings-page-wrap">
+    <div class="settings-sidebar-panel">
+      <div>
+        <h2>Settings</h2>
+        <div class="settings-nav">
+          <button class="s-nav-btn active" onclick="switchSettingsTab('account',this)">
+            <i class="fa-solid fa-user-circle"></i> Account Information
+          </button>
+          <button class="s-nav-btn" onclick="switchSettingsTab('security',this)">
+            <i class="fa-solid fa-lock"></i> Password &amp; Security
+          </button>
+        </div>
+      </div>
+      <a href="/" class="sidebar-logout-btn">
+        <i class="fa-solid fa-right-from-bracket"></i> Log Out
+      </a>
+    </div>
+
+    <div class="settings-content-area">
+      <div class="settings-section active" id="set-account">
+        <h1>Account Information</h1>
+        <div class="account-card">
+          <div class="fb-profile-container">
+            <div class="avatar-view">
+              <div class="main-avatar"><i class="fa-solid fa-user"></i></div>
+              <label for="avatarUpload" class="camera-icon-btn">
+                <i class="fa-solid fa-camera"></i>
+              </label>
+              <input type="file" id="avatarUpload" accept="image/*" hidden onchange="handleAvatarChange(this)">
+            </div>
+            <div class="profile-info-text">
+              <h3>Upload New Photo</h3>
+              <p id="avatarFileName">No file chosen</p>
+              <button type="button" class="yellow-btn-small" onclick="document.getElementById('avatarUpload').click()">Update</button>
+            </div>
+          </div>
+          <hr class="form-divider">
+          <form onsubmit="submitAccountInfo(event)">
+            <div class="settings-form-grid">
+              <div class="settings-form-group">
+                <label>First Name *</label>
+                <div class="input-wrapper">
+                  <input type="text" class="form-input" id="accFirstName" placeholder="First Name" value="John">
+                  <i class="fa-solid fa-lock lock-icon"></i>
+                </div>
+              </div>
+              <div class="settings-form-group">
+                <label>Last Name *</label>
+                <div class="input-wrapper">
+                  <input type="text" class="form-input" id="accLastName" placeholder="Last Name" value="Doe">
+                  <i class="fa-solid fa-lock lock-icon"></i>
+                </div>
+              </div>
+              <div class="settings-form-group full">
+                <label>Username *</label>
+                <div class="input-wrapper">
+                  <input type="text" class="form-input" id="accUsername" placeholder="Username" value="johndoe123">
+                  <i class="fa-solid fa-lock lock-icon"></i>
+                </div>
+              </div>
+              <div class="settings-form-group full">
+                <label>Email *</label>
+                <div class="input-wrapper">
+                  <input type="email" class="form-input" id="accEmail" placeholder="Email Address" value="visitor@example.com">
+                  <i class="fa-solid fa-lock lock-icon"></i>
+                </div>
+              </div>
+              <div class="settings-form-group full">
+                <label>Role</label>
+                <div class="input-wrapper">
+                  <input type="text" class="form-input" value="Visitor" readonly style="background:#f9f9f9;color:#666">
+                  <i class="fa-solid fa-lock lock-icon"></i>
+                </div>
+              </div>
+              <div class="full">
+                <button type="submit" class="btn-update-main">Update Information</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="settings-section" id="set-security">
+        <h1>Password &amp; Security</h1>
+        <div class="account-card">
+          <form onsubmit="submitPasswordChange(event)">
+            <div style="display:flex;flex-direction:column;gap:18px;">
+              <div class="settings-form-group">
+                <label>Current Password *</label>
+                <div class="input-wrapper">
+                  <input type="password" class="form-input" id="currentPass" placeholder="Enter current password">
+                </div>
+                <span class="field-error" id="currentPassErr" style="display:none">Current password is required.</span>
+              </div>
+              <div class="settings-form-group">
+                <label>New Password *</label>
+                <div class="input-wrapper">
+                  <input type="password" class="form-input" id="newPass" placeholder="Enter new password (min. 8 characters)">
+                </div>
+                <span class="field-error" id="newPassErr" style="display:none">New password must be at least 8 characters.</span>
+              </div>
+              <div class="settings-form-group">
+                <label>Confirm Password *</label>
+                <div class="input-wrapper">
+                  <input type="password" class="form-input" id="confirmPass" placeholder="Confirm new password">
+                </div>
+                <span class="field-error" id="confirmPassErr" style="display:none">Passwords do not match.</span>
+              </div>
+              <div class="settings-form-group">
+                <label>Role</label>
+                <div class="input-wrapper">
+                  <input type="text" class="form-input" value="Visitor" readonly style="background:#f9f9f9;color:#666">
+                  <i class="fa-solid fa-lock lock-icon"></i>
+                </div>
+              </div>
+              <button type="submit" class="btn-update-main">Update Password</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ ITEM DETAIL MODAL (with report button) -->
+<div class="modal-overlay" id="itemModal">
+  <div class="modal-container">
+    <!-- ✅ Report Icon (upper right) -->
+    <button class="modal-report-btn" id="reportItemBtn" title="Report this item" onclick="openReportItemForm()">
+      <i class="fa-solid fa-flag"></i>
+    </button>
+
+    <button class="modal-close-btn" onclick="closeItemModal()">← Back</button>
+    <div class="modal-content-layout">
+      <div class="modal-image-sec" id="modalImgSec"></div>
+      <div class="modal-info-sec">
+        <div class="modal-badges">
+          <span class="badge" id="modalTypeBadge"></span>
+          <span class="badge badge-pending">PENDING</span>
+        </div>
+        <h2 id="modalTitle">Item Name</h2>
+        <div class="modal-meta">
+          <span id="modalCat"></span>
+          <span id="modalLoc"></span>
+          <span id="modalDate"></span>
+        </div>
+        <div class="modal-description">
+          <h4>Description</h4>
+          <p id="modalDesc">—</p>
+        </div>
+        <button class="btn-claim" id="claimBtn" onclick="openClaimForm()">Request Claim</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CLAIM FORM POPUP -->
+<div class="popup-overlay" id="claimFormPopup">
+  <div class="popup-box claim-popup">
+    <h3>Claim Verification Process</h3>
+    <p>Provide detailed identifiable proof that you are the rightful owner.</p>
+    <div class="form-group" style="margin-top:16px">
+      <textarea class="form-textarea" id="claimEvidence" placeholder="Describe specific details only the owner would know (e.g., contents, serial numbers, markings)..."></textarea>
+      <span class="field-error" id="claimEvidenceErr" style="display:none">Please provide your proof of ownership.</span>
+    </div>
+    <div class="form-group">
+      <label class="form-label" style="margin-bottom:8px">
+        <i class="fa-solid fa-paperclip" style="color:var(--green)"></i> Upload Proof (Receipt/Photo)
+      </label>
+      <input type="file" class="form-input" id="claimFile" accept="image/*,.pdf">
+    </div>
+    <div class="popup-actions">
+      <button class="btn-cancel" onclick="closeClaimForm()">Cancel</button>
+      <button class="btn-submit-evidence" onclick="submitClaim()">Submit Evidence</button>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ REPORT ITEM POPUP -->
+<div class="popup-overlay" id="reportItemPopup">
+  <div class="popup-box report-popup">
+    <button class="popup-close-btn" onclick="closeReportItemForm()" style="position:absolute;top:16px;right:16px;background:none;border:none;cursor:pointer;font-size:18px;color:var(--text-muted)">&times;</button>
+    <h3>Report This Item</h3>
+    <p>If you believe this item belongs to you (even if it has already been claimed), please submit a report so an admin can review your ownership.
+      After that please proceed to the to the Pick-Up Location of this item.
+    </p>
+    <div class="form-group" style="margin-top:16px">
+      <textarea class="form-textarea" id="reportReason" placeholder="Explain why you think this item is yours. Include any specific details or proof..."></textarea>
+      <span class="field-error" id="reportReasonErr" style="display:none">Please provide a reason for your report.</span>
+    </div>
+    <div class="popup-actions">
+      <button class="btn-cancel" onclick="closeReportItemForm()">Cancel</button>
+      <button class="btn-submit-evidence" onclick="submitItemReport()">Submit Report</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUCCESS POPUP -->
+<div class="popup-overlay" id="successPopup">
+  <div class="popup-box">
+    <div class="popup-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" width="36" height="36"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    </div>
+    <h3 id="successTitle">Report Submitted!</h3>
+    <p id="successMsg">Your report has been successfully submitted and is now under review.</p>
+    <button class="popup-close" onclick="closeSuccessPopup()">Got it!</button>
+  </div>
+</div>
+
+<footer class="bottom-bar"></footer>
+<script src="../js/api.js"></script>
+<script src="../js/visitor.js"></script>
+</body>
+</html>

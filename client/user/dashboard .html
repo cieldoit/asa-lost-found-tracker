@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - ASA Lost and Found</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/user/css/dashboard.css">
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<!-- ============================================================
+     ADMIN-STYLE HEADER
+============================================================ -->
+<header class="home-header">
+    <a href="/admin" class="logo-link">
+        <img src="/ASA_logo/Final logo.png" alt="ASA Lost and Found Logo" class="main-logo">
+    </a>
+    <nav class="main-nav">
+        <a href="/admin" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            Home
+        </a>
+        <a href="/admin" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+            Lost Items
+        </a>
+        <a href="/admin" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            Found Items
+        </a>
+        <a href="/admin" class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+            Post Item
+        </a>
+    </nav>
+    <div class="header-right">
+        <div class="notif-container">
+            <button class="notif-btn" id="headerNotifBtn" title="Notifications">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                <div class="notif-badge-dot hidden" id="headerNotifDot">1</div>
+            </button>
+            <div class="notif-dropdown" id="headerNotifDropdown">
+                <div class="notif-panel-header"><h3>Notifications</h3><span class="mark-read" id="headerMarkRead">Mark all as read</span></div>
+                <div class="notif-list" id="headerNotifList">
+                    <div class="notif-item unread">
+                        <div class="notif-icon-box admin-bg"><i class="fa-solid fa-shield-halved"></i></div>
+                        <div class="notif-text"><p><strong>Welcome, Admin!</strong> Dashboard is ready.</p><span class="notif-time">Just now</span></div>
+                        <div class="status-dot"></div>
+                    </div>
+                </div>
+                <div class="notif-panel-footer"><a href="#">See all notifications</a></div>
+            </div>
+        </div>
+        <div class="profile-wrap">
+            <button class="profile-btn" id="headerProfileBtn">
+                <div class="profile-avatar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                    </svg>
+                </div>
+                <span class="profile-name" id="headerProfileName">CCIS Admin</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="dropdown-content" id="headerProfileDropdown">
+                <div class="user-info"><div class="pd-name">CCIS Admin</div><div class="pd-role">Administrator</div></div>
+                <div class="dropdown-divider"></div>
+                <a href="/dashboard" class="dropdown-item"><i class="fa-solid fa-chart-line" style="width:16px;color:var(--text-muted)"></i> Dashboard</a>
+                <button class="dropdown-item" onclick="switchPage('settings');closeAllDropdowns();"><i class="fa-solid fa-gear" style="width:16px;color:var(--text-muted)"></i> Settings</button>
+                <div class="dropdown-divider"></div>
+                <a href="/login" class="dropdown-item logout-item"><i class="fa-solid fa-right-from-bracket" style="width:16px"></i> Log Out</a>
+            </div>
+        </div>
+        <button class="mobile-nav-toggle" onclick="toggleMobileNav()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+        </button>
+    </div>
+</header>
+<div class="mobile-nav" id="mobileNav">
+    <a href="/admin" class="mnav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Home
+    </a>
+    <a href="/admin" class="mnav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+        Lost Items
+    </a>
+    <a href="/admin" class="mnav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Found Items
+    </a>
+    <a href="/admin" class="mnav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+        Post Item
+    </a>
+</div>
+
+<!-- ============================================================
+     LAYOUT (Dashboard content)
+============================================================ -->
+<div class="main-container" id="mainContainer">
+    <aside class="sidebar">
+        <div class="sidebar-content">
+            <h2 class="sidebar-category">Options</h2>
+            <nav class="menu">
+                <a href="#" class="menu-item active" id="slink-overview" onclick="switchPage('overview');return false">Dashboard</a>
+                <a href="#" class="menu-item"         id="slink-lost"      onclick="switchPage('lost');return false">Lost Items</a>
+                <a href="#" class="menu-item"         id="slink-found"     onclick="switchPage('found');return false">Found Items</a>
+                <a href="#" class="menu-item"         id="slink-pending"   onclick="switchPage('pending');return false">Pending Items</a>
+                <a href="#" class="menu-item"         id="slink-claimed"   onclick="switchPage('claimed');return false">Claimed Items</a>
+                <a href="#" class="menu-item"         id="slink-approved"  onclick="switchPage('approved');return false">Approved Items</a>
+                <a href="#" class="menu-item"         id="slink-users"     onclick="switchPage('users');return false">Users</a>
+                <a href="#" class="menu-item"         id="slink-updates"   onclick="switchPage('updates');return false">Recently Updated</a>
+                <a href="#" class="menu-item"         id="slink-logs"      onclick="switchPage('logs');return false">Activity Logs</a>
+                <a href="#" class="menu-item"         id="slink-reports"   onclick="switchPage('reports');return false">Reports</a>
+            </nav>
+        </div>
+        <div class="sidebar-footer">
+            <a href="#" class="menu-item" onclick="switchPage('settings');return false">Settings</a>
+            <a href="/login" class="logout">Log Out</a>
+        </div>
+    </aside>
+    <main class="content">
+        <!-- PAGE: OVERVIEW -->
+        <div class="dash-page active" id="page-overview">
+            <div class="content-header"><h1 class="page-title">DASHBOARD</h1></div>
+            <div class="stats-grid">
+                <div class="stats-card"><h3>Lost Items</h3><p class="count" id="countLost">0</p><a href="#" class="view-all-btn yellow-btn" onclick="switchPage('lost');return false">View All</a></div>
+                <div class="stats-card"><h3>Found Items</h3><p class="count" id="countFound">0</p><a href="#" class="view-all-btn yellow-btn" onclick="switchPage('found');return false">View All</a></div>
+                <div class="stats-card"><h3>Pending</h3><p class="count" id="countPending">0</p><a href="#" class="view-all-btn yellow-btn" onclick="switchPage('pending');return false">View All</a></div>
+                <div class="stats-card"><h3>Users</h3><p class="count" id="countUsers">0</p><a href="#" class="view-all-btn yellow-btn" onclick="switchPage('users');return false">View All</a></div>
+            </div>
+            <section class="dashboard-section">
+                <h2 class="section-title">Pending Claims</h2>
+                <div class="table-card taller-table">
+                    <table class="dashboard-table">
+                        <thead><tr><th>Item Name</th><th>Claimant</th><th>Category</th><th>Submitted</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody id="overview-pending-body">
+                            <tr>
+                                <td>Blue Wallet</td>
+                                <td>John D.</td>
+                                <td>Accessories</td>
+                                <td>Apr 20, 2026</td>
+                                <td><span class="badge badge-pending">Pending</span></td>
+                                <td>
+                                    <button class="list-btn" title="View Details"><i class="fa-solid fa-eye"></i></button>
+                                    <button class="list-btn" title="Approve"><i class="fa-solid fa-check"></i></button>
+                                    <button class="list-btn" title="Reject"><i class="fa-solid fa-xmark"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="empty-state" id="overview-pending-empty" style="display:none"><p>No pending claims to display.</p></div>
+                </div>
+            </section>
+            <section class="dashboard-section">
+                <h2 class="section-title">Recently Updated</h2>
+                <div class="table-card taller-table">
+                    <table class="dashboard-table">
+                        <thead><tr><th>Item ID</th><th>Item Name</th><th>Category</th><th>Last Update</th><th>Status</th></tr></thead>
+                        <tbody id="overview-updates-body">
+                            <tr>
+                                <td>L-001</td>
+                                <td>Blue Wallet</td>
+                                <td>Accessories</td>
+                                <td>Apr 20, 2026</td>
+                                <td><span class="badge badge-pending">Pending</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="empty-state"><p>No recent updates to display.</p></div>
+                </div>
+            </section>
+            <div class="bottom-grid">
+                <div class="activity-log-container">
+                    <div class="activity-header">Recent Activity</div>
+                    <div class="activity-list" id="activityList">
+                        <div class="act-item"><div class="act-dot dot-green"></div><div class="act-text"><strong>Key Ring</strong> — marked as Resolved.</div><span class="act-time">Today</span></div>
+                        <div class="act-item"><div class="act-dot dot-blue"></div><div class="act-text"><strong>Textbook</strong> — found item turned in at CCIS LSG Office.</div><span class="act-time">Apr 18</span></div>
+                        <div class="act-item"><div class="act-dot dot-yellow"></div><div class="act-text"><strong>Blue Wallet</strong> — lost item reported at Library Floor 2.</div><span class="act-time">Apr 15</span></div>
+                        <div class="act-item"><div class="act-dot dot-red"></div><div class="act-text"><strong>Old Umbrella</strong> — listing deleted by admin.</div><span class="act-time">Apr 14</span></div>
+                    </div>
+                </div>
+                <div class="extra-stats-column">
+                    <div class="stats-card small-card"><h3>Claimed</h3><p class="count" id="countClaimed">0</p><a href="#" class="view-all-btn yellow-btn" onclick="switchPage('claimed');return false">View All</a></div>
+                    <div class="stats-card small-card"><h3>Approved</h3><p class="count" id="countApproved">0</p><a href="#" class="view-all-btn yellow-btn" onclick="switchPage('approved');return false">View All</a></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE: LOST -->
+        <div class="dash-page" id="page-lost">
+            <div class="content-header"><h1 class="page-title">LOST ITEM LISTS</h1><div class="table-actions"><div class="mini-search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search lost items..." oninput="searchTable('lost-tbody',this.value)"></div><button class="list-btn"><i class="fa-solid fa-list-ul"></i></button></div></div>
+            <div class="filter-bar">
+                <div class="filter-item"><label>Category</label><select><option value="">All Categories</option><option>Electronics</option><option>Documents</option><option>Accessories</option><option>Others</option></select></div>
+                <div class="filter-item"><label>Status</label><select><option value="">All Status</option><option>Approved</option><option>Claimed</option><option>Pending</option><option>Rejected</option></select></div>
+                <div class="filter-item"><label>Submission Date</label><input type="date"></div>
+                <div class="filter-actions"><button class="filter-apply">Filter</button><button class="filter-reset">Reset</button></div>
+            </div>
+            <div class="table-card taller-table">
+                <table class="dashboard-table">
+                    <thead><tr><th>Image</th><th>Item Name</th><th>Category</th><th>Lost Submitted</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody id="lost-tbody">
+                        <tr>
+                            <td><div style="width:40px;height:40px;background:#dbeafe;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;">👛</div></td>
+                            <td>Blue Wallet</td>
+                            <td>Accessories</td>
+                            <td>Apr 15, 2026</td>
+                            <td><span class="badge badge-pending">Pending</span></td>
+                            <td>
+                                <button class="list-btn" title="View Details"><i class="fa-solid fa-eye"></i></button>
+                                <button class="list-btn" title="Approve"><i class="fa-solid fa-check"></i></button>
+                                <button class="list-btn" title="Delete" onclick="confirmDel(this)"><i class="fa-solid fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="empty-state"><p>No lost items currently listed.</p></div>
+            </div>
+            <div class="pagination"><a href="#" class="page-nav"><i class="fa-solid fa-arrow-left"></i> Prev</a><a href="#" class="page-num active">1</a><a href="#" class="page-num">2</a><a href="#" class="page-num">3</a><span>...</span><a href="#" class="page-num">8</a><a href="#" class="page-nav">Next <i class="fa-solid fa-arrow-right"></i></a></div>
+        </div>
+
+        <!-- PAGE: FOUND -->
+        <div class="dash-page" id="page-found">
+            <div class="content-header"><h1 class="page-title">FOUND ITEM LISTS</h1><div class="table-actions"><div class="mini-search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search found items..." oninput="searchTable('found-tbody',this.value)"></div><button class="list-btn"><i class="fa-solid fa-list-ul"></i></button></div></div>
+            <div class="filter-bar">
+                <div class="filter-item"><label>Category</label><select><option value="">All Categories</option><option>Electronics</option><option>Documents</option><option>Accessories</option><option>Others</option></select></div>
+                <div class="filter-item"><label>Pick-up Place</label><select><option value="">All Locations</option><option>CAA LSG Office</option><option>CCIS LSG Office</option><option>CED LSG Office</option><option>CEGS LSG Office</option><option>CHASS LSG Office</option><option>CMNS LSG Office</option><option>COFES LSG Office</option><option>Guard House - Main Gate</option><option>Guard House - Green Gate</option></select></div>
+                <div class="filter-item"><label>Status</label><select><option value="">All Status</option><option>Approved</option><option>Claimed</option><option>Pending</option><option>Rejected</option></select></div>
+                <div class="filter-item"><label>Date Found</label><input type="date"></div>
+                <div class="filter-actions"><button class="filter-apply">Filter</button><button class="filter-reset">Reset</button></div>
+            </div>
+            <div class="table-card taller-table">
+                <table class="dashboard-table">
+                    <thead><tr><th>Image</th><th>Item Name</th><th>Category</th><th>Found Submitted</th><th>Pick-up Place</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody id="found-tbody">
+                        <tr>
+                            <td><div style="width:40px;height:40px;background:#dcfce7;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;">📚</div></td>
+                            <td>Textbook</td>
+                            <td>Books</td>
+                            <td>Apr 18, 2026</td>
+                            <td>CCIS LSG Office</td>
+                            <td><span class="badge badge-pending">Pending</span></td>
+                            <td>
+                                <button class="list-btn" title="View Details"><i class="fa-solid fa-eye"></i></button>
+                                <button class="list-btn" title="Approve"><i class="fa-solid fa-check"></i></button>
+                                <button class="list-btn" title="Delete" onclick="confirmDel(this)"><i class="fa-solid fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="empty-state"><p>No found items currently listed.</p></div>
+            </div>
+            <div class="pagination"><a href="#" class="page-nav"><i class="fa-solid fa-arrow-left"></i> Prev</a><a href="#" class="page-num active">1</a><a href="#" class="page-num">2</a><span>...</span><a href="#" class="page-num">8</a><a href="#" class="page-nav">Next <i class="fa-solid fa-arrow-right"></i></a></div>
+        </div>
+
+        <!-- PAGE: PENDING -->
+        <div class="dash-page" id="page-pending">
+            <div class="content-header"><h1 class="page-title">CLAIM ITEM LISTS</h1><div class="table-actions"><div class="mini-search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search claims..." oninput="searchTable('pending-tbody',this.value)"></div><button class="list-btn"><i class="fa-solid fa-list-ul"></i></button></div></div>
+            <div class="filter-bar">
+                <div class="filter-item"><label>Claimant Type</label><select><option value="">All Types</option><option>Student</option><option>Faculty</option><option>Staff</option><option>Visitor</option></select></div>
+                <div class="filter-item"><label>Status</label><select><option value="">All Status</option><option>Approved</option><option>Pending</option><option>Claim</option><option>Rejected</option></select></div>
+                <div class="filter-item"><label>Date Submitted</label><input type="date"></div>
+                <div class="filter-actions"><button class="filter-apply">Filter</button><button class="filter-reset">Reset</button></div>
+            </div>
+            <div class="table-card taller-table">
+                <table class="dashboard-table">
+                    <thead><tr><th>Proof</th><th>Claimant</th><th>Item Name</th><th>Claim Submitted</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody id="pending-tbody">
+                        <tr>
+                            <td><i class="fa-solid fa-paperclip" style="color:var(--green)"></i> (1 file)</td>
+                            <td>John D. (Student)</td>
+                            <td>Blue Wallet</td>
+                            <td>Apr 20, 2026</td>
+                            <td><span class="badge badge-pending">Pending</span></td>
+                            <td>
+                                <button class="list-btn" title="View Proof"><i class="fa-solid fa-eye"></i></button>
+                                <button class="list-btn" title="Approve"><i class="fa-solid fa-check"></i></button>
+                                <button class="list-btn" title="Reject"><i class="fa-solid fa-xmark"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="empty-state"><p>No claims available to display.</p></div>
+            </div>
+            <div class="pagination"><a href="#" class="page-nav"><i class="fa-solid fa-arrow-left"></i> Prev</a><a href="#" class="page-num active">1</a><a href="#" class="page-num">2</a><span>...</span><a href="#" class="page-num">8</a><a href="#" class="page-nav">Next <i class="fa-solid fa-arrow-right"></i></a></div>
+        </div>
+
+        <!-- PAGE: CLAIMED -->
+        <div class="dash-page" id="page-claimed">
+            <div class="content-header"><h1 class="page-title">CLAIMED ITEM LISTS</h1><div class="table-actions"><div class="mini-search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search claimed items..." oninput="searchTable('claimed-tbody',this.value)"></div><button class="list-btn"><i class="fa-solid fa-list-ul"></i></button></div></div>
+            <div class="filter-bar">
+                <div class="filter-item"><label>Category</label><select><option value="">All Categories</option><option>Electronics</option><option>Documents</option><option>Personal Items</option></select></div>
+                <div class="filter-item"><label>Handled By</label><select><option value="">All Staff</option><option>CAA LSG Admin</option><option>CCIS LSG Admin</option><option>CED LSG Admin</option><option>CEGS LSG Admin</option><option>CHASS LSG Admin</option><option>CMNS LSG Admin</option><option>COFES LSG Admin</option><option>Guard Admin</option></select></div>
+                <div class="filter-item"><label>Date Claimed</label><input type="date"></div>
+                <div class="filter-actions"><button class="filter-apply">Filter</button><button class="filter-reset">Reset</button></div>
+            </div>
+            <div class="table-card taller-table">
+                <table class="dashboard-table"><thead><tr><th>Image</th><th>Item Name</th><th>Category</th><th>Date Claimed</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="claimed-tbody">
+                    <tr>
+                        <td><div style="width:40px;height:40px;background:#dbeafe;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;">🔑</div></td>
+                        <td>Key Ring</td>
+                        <td>Keys</td>
+                        <td>Apr 19, 2026</td>
+                        <td><span class="badge badge-claimed">Claimed</span></td>
+                        <td>
+                            <button class="list-btn" title="View Details"><i class="fa-solid fa-eye"></i></button>
+                            <button class="list-btn" title="Delete" onclick="confirmDel(this)"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                </tbody></table>
+                <div class="empty-state"><p>No claimed items to display.</p></div>
+            </div>
+            <div class="pagination"><a href="#" class="page-nav"><i class="fa-solid fa-arrow-left"></i> Prev</a><a href="#" class="page-num active">1</a><a href="#" class="page-num">2</a><span>...</span><a href="#" class="page-num">8</a><a href="#" class="page-nav">Next <i class="fa-solid fa-arrow-right"></i></a></div>
+        </div>
+
+        <!-- PAGE: APPROVED -->
+        <div class="dash-page" id="page-approved">
+            <div class="content-header"><h1 class="page-title">APPROVED ITEM LISTS</h1><div class="table-actions"><div class="mini-search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search approved items..." oninput="searchTable('approved-tbody',this.value)"></div><button class="list-btn"><i class="fa-solid fa-list-ul"></i></button></div></div>
+            <div class="filter-bar">
+                <div class="filter-item"><label>Category</label><select><option value="">All Categories</option><option>Electronics</option><option>Documents</option><option>Accessories</option></select></div>
+                <div class="filter-item"><label>Pick-up Place</label><select><option value="">All Locations</option><option>CAA LSG Office</option><option>CCIS LSG Office</option><option>CED LSG Office</option><option>CEGS LSG Office</option><option>CHASS LSG Office</option><option>CMNS LSG Office</option><option>COFES LSG Office</option><option>Guard House - Main Gate</option><option>Guard House - Green Gate</option></select></div>
+                <div class="filter-item"><label>Date Approved</label><input type="date"></div>
+                <div class="filter-actions"><button class="filter-apply">Filter</button><button class="filter-reset">Reset</button></div>
+            </div>
+            <div class="table-card taller-table">
+                <table class="dashboard-table"><thead><tr><th>Image</th><th>Item Name</th><th>Category</th><th>Date Approved</th><th>Pick-up Place</th><th>Status</th></tr></thead>
+                <tbody id="approved-tbody">
+                    <tr>
+                        <td><div style="width:40px;height:40px;background:#dcfce7;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;">📱</div></td>
+                        <td>Smartphone</td>
+                        <td>Electronics</td>
+                        <td>Apr 20, 2026</td>
+                        <td>CED LSG Office</td>
+                        <td><span class="badge badge-approved">Approved</span></td>
+                    </tr>
+                </tbody></table>
+                <div class="empty-state"><p>No approved items to display.</p></div>
+            </div>
+            <div class="pagination"><a href="#" class="page-nav"><i class="fa-solid fa-arrow-left"></i> Prev</a><a href="#" class="page-num active">1</a><a href="#" class="page-num">2</a><span>...</span><a href="#" class="page-num">8</a><a href="#" class="page-nav">Next <i class="fa-solid fa-arrow-right"></i></a></div>
+        </div>
+
+        <!-- PAGE: USERS -->
+        <div class="dash-page" id="page-users">
+            <div class="content-header"><h1 class="page-title">USER MANAGEMENT</h1><div class="table-actions"><div class="mini-search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search users..." oninput="searchTable('users-tbody',this.value)"></div><button class="list-btn"><i class="fa-solid fa-list-ul"></i></button></div></div>
+            <div class="filter-bar">
+                <div class="filter-item"><label>Account Role</label><select><option value="">All Roles</option><option>Admin</option><option>Student</option><option>Faculty</option><option>Staff</option><option>Visitor</option></select></div>
+                <div class="filter-item"><label>Account Status</label><select><option value="">All Status</option><option>Active</option><option>Suspended</option></select></div>
+                <div class="filter-item"><label>Registration Date</label><input type="date"></div>
+                <div class="filter-actions"><button class="filter-apply">Filter</button><button class="filter-reset">Reset</button></div>
+            </div>
+            <div class="table-card taller-table">
+                <table class="dashboard-table"><thead><tr><th>Image</th><th>Name</th><th>Email</th><th>Role</th><th>Created</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="users-tbody">
+                    <tr>
+                        <td><div class="notif-icon-box admin-bg" style="width:40px;height:40px;margin:0"><i class="fa-solid fa-user"></i></div></td>
+                        <td>John Doe</td>
+                        <td>john@example.com</td>
+                        <td>Student</td>
+                        <td>Mar 15, 2026</td>
+                        <td><span class="badge badge-active">Active</span></td>
+                        <td>
+                            <button class="list-btn" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button class="list-btn" title="Suspend"><i class="fa-solid fa-ban"></i></button>
+                            <button class="list-btn" title="Delete" onclick="confirmDel(this)"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                </tbody></table>
+                <div class="empty-state"><p>No users to display.</p></div>
+            </div>
+            <div class="pagination"><a href="#" class="page-nav"><i class="fa-solid fa-arrow-left"></i> Prev</a><a href="#" class="page-num active">1</a><a href="#" class="page-num">2</a><span>...</span><a href="#" class="page-num">8</a><a href="#" class="page-nav">Next <i class="fa-solid fa-arrow-right"></i></a></div>
+        </div>
+
+        <!-- PAGE: UPDATES -->
+        <div class="dash-page" id="page-updates">
+            <div class="content-header"><h1 class="page-title">RECENTLY UPDATED LIST</h1><div class="table-actions"><div class="mini-search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search updates..." oninput="searchTable('updates-tbody',this.value)"></div><button class="list-btn"><i class="fa-solid fa-list-ul"></i></button></div></div>
+            <div class="filter-bar">
+                <div class="filter-item"><label>Update Type</label><select><option value="">All Types</option><option>Lost Item</option><option>Found Item</option></select></div>
+                <div class="filter-item"><label>Status</label><select><option value="">All Status</option><option>Approved</option><option>Claimed</option><option>Pending</option><option>Rejected</option></select></div>
+                <div class="filter-item"><label>Activity Date</label><input type="date"></div>
+                <div class="filter-actions"><button class="filter-apply">Filter</button><button class="filter-reset">Reset</button></div>
+            </div>
+            <div class="table-card taller-table">
+                <table class="dashboard-table"><thead><tr><th>Item Name</th><th>Claimant</th><th>Category</th><th>Type</th><th>Status</th><th>Last Updated</th></tr></thead>
+                <tbody id="updates-tbody">
+                    <tr>
+                        <td>Blue Wallet</td>
+                        <td>John D.</td>
+                        <td>Accessories</td>
+                        <td>Lost</td>
+                        <td><span class="badge badge-pending">Pending</span></td>
+                        <td>Apr 20, 2026</td>
+                    </tr>
+                </tbody></table>
+                <div class="empty-state"><p>No recent updates to display.</p></div>
+            </div>
+            <div class="pagination"><a href="#" class="page-nav"><i class="fa-solid fa-arrow-left"></i> Prev</a><a href="#" class="page-num active">1</a><a href="#" class="page-num">2</a><span>...</span><a href="#" class="page-num">8</a><a href="#" class="page-nav">Next <i class="fa-solid fa-arrow-right"></i></a></div>
+        </div>
+
+        <!-- PAGE: LOGS -->
+        <div class="dash-page" id="page-logs">
+            <div class="content-header"><h1 class="page-title">ACTIVITY LOGS</h1><div class="table-actions"><div class="mini-search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search logs..." oninput="searchTable('logs-tbody',this.value)"></div><button class="list-btn"><i class="fa-solid fa-list-ul"></i></button></div></div>
+            <div class="table-card" style="min-height:520px">
+                <table class="dashboard-table">
+                    <thead><tr><th>Log ID</th><th>User</th><th>Action</th><th>Item</th><th>Date Submitted</th></tr></thead>
+                    <tbody id="logs-tbody">
+                        <tr><td>001</td><td>Elia E.</td><td>Submitted Lost Item</td><td>Wallet</td><td>21/03/26 10:45 AM</td></tr>
+                        <tr style="background:#e9e9e9"><td>002</td><td>Genrey P.</td><td>Claim Lost Item</td><td>Payong</td><td>21/03/26 10:45 AM</td></tr>
+                        <tr><td>003</td><td>Rexil D.</td><td>Submitted Found Item</td><td>Ballpen</td><td>21/03/26 10:45 AM</td></tr>
+                        <tr style="background:#e9e9e9"><td>004</td><td>Angela C.</td><td>Claim Lost Item</td><td>ID Card</td><td>21/03/26 10:45 AM</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination"><a href="#" class="page-nav"><i class="fa-solid fa-arrow-left"></i> Prev</a><a href="#" class="page-num active">1</a><a href="#" class="page-num">2</a><a href="#" class="page-num">3</a><span>...</span><a href="#" class="page-num">67</a><a href="#" class="page-num">68</a><a href="#" class="page-nav">Next <i class="fa-solid fa-arrow-right"></i></a></div>
+        </div>
+
+        <!-- PAGE: REPORTS -->
+        <div class="dash-page" id="page-reports">
+            <div class="content-header"><h1 class="page-title">ITEM REPORTS</h1><div class="table-actions"><div class="mini-search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search reports..." oninput="searchTable('reports-tbody',this.value)"></div><button class="list-btn"><i class="fa-solid fa-list-ul"></i></button></div></div>
+            <div class="filter-bar">
+                <div class="filter-item"><label>Item Type</label><select><option value="">All Types</option><option>Lost</option><option>Found</option></select></div>
+                <div class="filter-item"><label>Status</label><select><option value="">All Status</option><option>Pending</option><option>Reviewed</option><option>Resolved</option></select></div>
+                <div class="filter-item"><label>Date Reported</label><input type="date"></div>
+                <div class="filter-actions"><button class="filter-apply">Filter</button><button class="filter-reset">Reset</button></div>
+            </div>
+            <div class="table-card taller-table">
+                <table class="dashboard-table">
+                    <thead><tr><th>Report ID</th><th>Item Name</th><th>Reporter</th><th>Reason</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody id="reports-tbody">
+                        <tr>
+                            <td>RPT-001</td>
+                            <td>Textbook</td>
+                            <td>Student (John D.)</td>
+                            <td>Believes this is his book, lost earlier with similar description.</td>
+                            <td>Apr 20, 2026</td>
+                            <td><span class="badge badge-pending">Pending</span></td>
+                            <td>
+                                <button class="list-btn" title="View Details"><i class="fa-solid fa-eye"></i></button>
+                                <button class="list-btn" title="Resolve"><i class="fa-solid fa-check"></i></button>
+                                <button class="list-btn" title="Delete" onclick="confirmDel(this)"><i class="fa-solid fa-trash"></i></button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>RPT-002</td>
+                            <td>Blue Wallet</td>
+                            <td>Visitor (Maria S.)</td>
+                            <td>Claims the wallet is hers, described contents precisely.</td>
+                            <td>Apr 19, 2026</td>
+                            <td><span class="badge badge-pending">Pending</span></td>
+                            <td>
+                                <button class="list-btn" title="View Details"><i class="fa-solid fa-eye"></i></button>
+                                <button class="list-btn" title="Resolve"><i class="fa-solid fa-check"></i></button>
+                                <button class="list-btn" title="Delete" onclick="confirmDel(this)"><i class="fa-solid fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="empty-state"><p>No reports to display.</p></div>
+            </div>
+            <div class="pagination"><a href="#" class="page-nav"><i class="fa-solid fa-arrow-left"></i> Prev</a><a href="#" class="page-num active">1</a><a href="#" class="page-num">2</a><span>...</span><a href="#" class="page-num">8</a><a href="#" class="page-nav">Next <i class="fa-solid fa-arrow-right"></i></a></div>
+        </div>
+    </main>
+</div>
+
+<!-- ============================================================
+     SETTINGS PAGE
+============================================================ -->
+<div class="page" id="page-settings" style="display:none;">
+    <div class="settings-page-wrap">
+        <div class="settings-sidebar-panel">
+            <div>
+                <h2>Settings</h2>
+                <div class="settings-nav">
+                    <button class="s-nav-btn active" onclick="switchSettingsTab('account',this)"><i class="fa-solid fa-user-circle"></i> Account Information</button>
+                    <button class="s-nav-btn" onclick="switchSettingsTab('security',this)"><i class="fa-solid fa-lock"></i> Password &amp; Security</button>
+                    <button class="s-nav-btn" onclick="switchSettingsTab('buildings',this)"><i class="fa-solid fa-building"></i> Building Photos</button>
+                </div>
+            </div>
+            <a href="/login" class="sidebar-logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
+        </div>
+        <div class="settings-content-area">
+            <div class="settings-section active" id="set-account">
+                <h1>Account Information</h1>
+                <div class="account-card">
+                    <div class="fb-profile-container">
+                        <div class="avatar-view">
+                            <div class="main-avatar"><i class="fa-solid fa-user"></i></div>
+                            <label for="avatarUpload" class="camera-icon-btn"><i class="fa-solid fa-camera"></i></label>
+                            <input type="file" id="avatarUpload" accept="image/*" hidden onchange="handleAvatarChange(this)">
+                        </div>
+                        <div class="profile-info-text">
+                            <h3>Upload New Photo</h3>
+                            <p id="avatarFileName">No file chosen</p>
+                            <button type="button" class="yellow-btn-small" onclick="document.getElementById('avatarUpload').click()">Update</button>
+                        </div>
+                    </div>
+                    <hr class="form-divider">
+                    <form onsubmit="submitAccountInfo(event)">
+                        <div class="settings-form-grid">
+                            <div class="settings-form-group">
+                                <label>First Name *</label>
+                                <div class="input-wrapper"><input type="text" class="form-input" id="accFirstName" value="CCIS" placeholder="First Name"><i class="fa-solid fa-lock lock-icon"></i></div>
+                            </div>
+                            <div class="settings-form-group">
+                                <label>Last Name *</label>
+                                <div class="input-wrapper"><input type="text" class="form-input" id="accLastName" value="Admin" placeholder="Last Name"><i class="fa-solid fa-lock lock-icon"></i></div>
+                            </div>
+                            <div class="settings-form-group full">
+                                <label>Username *</label>
+                                <div class="input-wrapper"><input type="text" class="form-input" id="accUsername" value="ccisadmin" placeholder="Username"><i class="fa-solid fa-lock lock-icon"></i></div>
+                            </div>
+                            <div class="settings-form-group full">
+                                <label>Email *</label>
+                                <div class="input-wrapper"><input type="email" class="form-input" id="accEmail" value="admin@carsu.edu.ph" placeholder="Email"><i class="fa-solid fa-lock lock-icon"></i></div>
+                            </div>
+                            <div class="settings-form-group full">
+                                <label>Role</label>
+                                <div class="input-wrapper"><input type="text" class="form-input" value="Administrator" readonly style="background:#f9f9f9;color:#666"><i class="fa-solid fa-lock lock-icon"></i></div>
+                            </div>
+                            <div class="full"><button type="submit" class="btn-update-main">Update Information</button></div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="settings-section" id="set-security">
+                <h1>Password &amp; Security</h1>
+                <div class="account-card">
+                    <form onsubmit="submitPasswordChange(event)">
+                        <div style="display:flex;flex-direction:column;gap:18px;">
+                            <div class="settings-form-group">
+                                <label>Current Password *</label>
+                                <div class="input-wrapper"><input type="password" class="form-input" id="currentPass" placeholder="Enter current password"></div>
+                                <span class="field-error" id="currentPassErr" style="display:none">Current password is required.</span>
+                            </div>
+                            <div class="settings-form-group">
+                                <label>New Password *</label>
+                                <div class="input-wrapper"><input type="password" class="form-input" id="newPass" placeholder="Enter new password (min. 8 characters)"></div>
+                                <span class="field-error" id="newPassErr" style="display:none">Password must be at least 8 characters.</span>
+                            </div>
+                            <div class="settings-form-group">
+                                <label>Confirm Password *</label>
+                                <div class="input-wrapper"><input type="password" class="form-input" id="confirmPass" placeholder="Confirm new password"></div>
+                                <span class="field-error" id="confirmPassErr" style="display:none">Passwords do not match.</span>
+                            </div>
+                            <div class="settings-form-group">
+                                <label>Role</label>
+                                <div class="input-wrapper"><input type="text" class="form-input" value="Administrator" readonly style="background:#f9f9f9;color:#666"><i class="fa-solid fa-lock lock-icon"></i></div>
+                            </div>
+                            <button type="submit" class="btn-update-main">Update Password</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="settings-section" id="set-buildings">
+                <h1>Building Photos</h1>
+                <p style="font-size:14px;color:var(--text-muted);margin-bottom:20px">Upload photos for each pick-up location. These appear in the item detail view to help claimants find the office.</p>
+                <div class="building-grid" id="buildingGrid"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CONFIRM DELETE POPUP -->
+<div class="popup-overlay" id="deletePopup">
+    <div class="popup-box">
+        <h3><i class="fa-solid fa-triangle-exclamation"></i> Delete this item?</h3>
+        <p>This will permanently remove the listing. This action cannot be undone.</p>
+        <div class="popup-actions">
+            <button class="btn-cancel" onclick="closeDelPopup()">Cancel</button>
+            <button class="btn-confirm-del" onclick="execDelete()">Yes, Delete</button>
+        </div>
+    </div>
+</div>
+
+<script src="../js/api.js"></script>
+<script src="../js/dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ASA Lost & Found — Student</title>
+  <link rel="icon" href="/ASA_logo/logo-asa-top.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="./css/script.css" />
+</head>
+<body>
+  <div id="toast-container"></div>
+  <student-header id="siteHeader"></student-header>
+
+  <div class="page active" id="page-dashboard">
+    <div class="home-container">
+      <div class="welcome-banner">
+        <div class="welcome-text">
+          <h1>Welcome back, <span class="welcome-name" id="welcomeName">Student</span> 👋</h1>
+          <p>Here's what's happening with your reported items.</p>
+        </div>
+        <div class="action-btns">
+          <button class="btn-report-lost" onclick="showPage('report-lost')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+            Report Lost
+          </button>
+          <button class="btn-report-found" onclick="showPage('report-found')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            Report Found
+          </button>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon yellow"><svg viewBox="0 0 24 24" fill="none" stroke="#ca8a04" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+          <div><div class="stat-label">Lost Items</div><div class="stat-value" id="statLost">0</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
+          <div><div class="stat-label">Found Items</div><div class="stat-value" id="statFound">0</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+          <div><div class="stat-label">Claimed</div><div class="stat-value" id="statClaimed">0</div></div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <h2>Recently Updated</h2>
+        <span class="explore-link" onclick="showPage('lost')">Explore All →</span>
+      </div>
+
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="56" height="56"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        <h3>No Recent Updates</h3>
+        <p>Looks like everyone is holding onto their belongings right now. Be a hero and report an item if you find one!</p>
+      </div>
+
+      <div class="tip-card">
+        <div class="tip-content">
+          <h3>How to recover items faster?</h3>
+          <p>Adding clear photos and specific locations significantly increases the chance of finding your item. Our automated matching system will notify you as soon as a potential match is found.</p>
+          <div class="tip-tags">
+            <div class="tip-tag">📸 Add Photos</div>
+            <div class="tip-tag">📍 Be Specific</div>
+            <div class="tip-tag">🔄 Update Daily</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page" id="page-lost">
+    <div class="home-container">
+      <div class="dir-header">
+        <h1>Lost Items Directory</h1>
+        <p>Browse through items reported lost across the campus. If you have found any of these items, please help by turning them in or contacting the owner.</p>
+      </div>
+      <div class="dir-controls">
+        <div class="search-bar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" placeholder="Search Lost Items..." id="lostSearch" oninput="filterItems('lost')">
+        </div>
+        <select class="filter-select" id="lostCatFilter" onchange="filterItems('lost')">
+          <option value="">All Categories</option>
+        </select>
+      </div>
+      <div class="items-grid" id="lostItemsGrid"></div>
+    </div>
+  </div>
+
+  <div class="page" id="page-found">
+    <div class="home-container">
+      <div class="dir-header">
+        <h1>Found Items Directory</h1>
+        <p>Items safely turned in by our community. Have you lost something recently? Check if it has been found here to reclaim your property.</p>
+      </div>
+      <div class="dir-controls">
+        <div class="search-bar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" placeholder="Search Found Items..." id="foundSearch" oninput="filterItems('found')">
+        </div>
+        <select class="filter-select" id="foundCatFilter" onchange="filterItems('found')">
+          <option value="">All Categories</option>
+        </select>
+      </div>
+      <div class="items-grid" id="foundItemsGrid"></div>
+    </div>
+  </div>
+
+  <div class="page" id="page-post">
+    <div class="home-container">
+      <div class="post-wrap">
+        <h2>Post Item</h2>
+        <p>Lost something important or found an item that doesn't belong to you? Start by selecting whether the item is lost or found.</p>
+        <div class="post-choices">
+          <button class="choice-btn choice-lost" onclick="showPage('report-lost')">Lost Item</button>
+          <button class="choice-btn choice-found" onclick="showPage('report-found')">Found Item</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page" id="page-report-lost">
+    <div class="home-container">
+      <button class="form-back-btn" onclick="showPage('post')">← Report Lost Item</button>
+      <div class="form-layout">
+        <div class="form-card">
+          <div class="form-group">
+            <label class="form-label">Item Title <span style="color:var(--red-text)">*</span></label>
+            <input class="form-input" type="text" id="lostTitle" placeholder="Ex: Blue Leather Wallet" oninput="syncPreviewTitle()">
+            <span class="field-error" id="lostTitleErr" style="display:none">Item title is required.</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category <span style="color:var(--red-text)">*</span></label>
+            <div class="form-select-wrap"><select class="form-select" id="lostCat"><option value="">Select Category</option></select><div class="select-arrow">⌄</div></div>
+            <span class="field-error" id="lostCatErr" style="display:none">Please select a category.</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Last Seen Location <span style="color:var(--red-text)">*</span></label>
+            <div class="form-select-wrap"><select class="form-select" id="lostLoc" onchange="toggleOtherLoc('lostLocOther', this)">
+              <option value="">Select Location</option><option>Guard House</option><option>CCIS Building</option><option>Main Library</option><option>Flagpole Area</option><option>University Gymnasium</option><option value="Others">Others (please specify)</option>
+            </select><div class="select-arrow">⌄</div></div>
+            <input class="form-input" type="text" id="lostLocOther" placeholder="Please specify the location..." style="display:none;margin-top:8px">
+            <span class="field-error" id="lostLocErr" style="display:none">Please select or specify the last seen location.</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Detailed Description <span style="color:var(--red-text)">*</span></label>
+            <textarea class="form-textarea" id="lostDesc" placeholder="Describe specific marks, contents, or circumstances..."></textarea>
+            <span class="field-error" id="lostDescErr" style="display:none">Please describe the item.</span>
+          </div>
+        </div>
+        <div>
+          <div class="form-card">
+            <div class="img-title-preview" id="lostPreviewTitle">Item Title</div>
+            <div id="lostImgArea">
+              <div class="img-upload-area" onclick="document.getElementById('lostImgInput').click()">
+                <p><strong>Drop photos here</strong><br>or click to browse</p>
+                <input type="file" id="lostImgInput" accept="image/*" style="display:none" onchange="previewImage(this,'lostImgArea')">
+              </div>
+            </div>
+          </div>
+          <button class="btn-submit" onclick="submitLostItem()">Submit Report</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page" id="page-report-found">
+    <div class="home-container">
+      <button class="form-back-btn" onclick="showPage('post')">← Report Found Item</button>
+      <div class="form-card" style="max-width:640px;margin:0 auto;">
+        <div class="form-group">
+          <label class="form-label">Item Title <span style="color:var(--red-text)">*</span></label>
+          <input class="form-input" type="text" id="foundTitle" placeholder="Ex: Key with a red Keychain">
+          <span class="field-error" id="foundTitleErr" style="display:none">Item title is required.</span>
+        </div>
+        <div class="two-col">
+          <div class="form-group">
+            <label class="form-label">Category <span style="color:var(--red-text)">*</span></label>
+            <div class="form-select-wrap"><select class="form-select" id="foundCat"><option value="">Select Category</option></select><div class="select-arrow">⌄</div></div>
+            <span class="field-error" id="foundCatErr" style="display:none">Please select a category.</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Location Found <span style="color:var(--red-text)">*</span></label>
+            <div class="form-select-wrap"><select class="form-select" id="foundLoc" onchange="toggleOtherLoc('foundLocOther', this)">
+              <option value="">Select Location</option><option>Guard House</option><option>CCIS Building</option><option>Main Library</option><option>Flagpole Area</option><option>University Gymnasium</option><option value="Others">Others (please specify)</option>
+            </select><div class="select-arrow">⌄</div></div>
+            <input class="form-input" type="text" id="foundLocOther" placeholder="Please specify the location..." style="display:none;margin-top:8px">
+            <span class="field-error" id="foundLocErr" style="display:none">Please select or specify where you found it.</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pick-Up Location <span style="color:var(--red-text)">*</span></label>
+          <div class="form-select-wrap"><select class="form-select" id="foundPickup"><option value="">Where is the item kept now?</option></select><div class="select-arrow">⌄</div></div>
+          <span class="field-error" id="foundPickupErr" style="display:none">Please select a pick-up location.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Detailed Description <span style="color:var(--red-text)">*</span></label>
+          <textarea class="form-textarea" id="foundDesc" placeholder="Be descriptive but don't give away secret identifying marks..."></textarea>
+          <span class="field-error" id="foundDescErr" style="display:none">Please describe the item.</span>
+        </div>
+        <button class="btn-submit" onclick="submitFoundItem()">Submit Report</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="page" id="page-settings">
+    <div class="settings-page-wrap">
+      <div class="settings-sidebar-panel">
+        <div>
+          <h2>Settings</h2>
+          <div class="settings-nav">
+            <button class="s-nav-btn active" onclick="switchSettingsTab('account',this)"><i class="fa-solid fa-user-circle"></i> Account Information</button>
+            <button class="s-nav-btn" onclick="switchSettingsTab('security',this)"><i class="fa-solid fa-lock"></i> Password &amp; Security</button>
+          </div>
+        </div>
+        <button class="sidebar-logout-btn" onclick="Auth.logout()"><i class="fa-solid fa-right-from-bracket"></i> Log Out</button>
+      </div>
+      <div class="settings-content-area">
+        <div class="settings-section active" id="set-account">
+          <h1>Account Information</h1>
+          <div class="account-card">
+            <div class="fb-profile-container">
+              <div class="avatar-view"><div class="main-avatar"><i class="fa-solid fa-user"></i></div><label for="avatarUpload" class="camera-icon-btn"><i class="fa-solid fa-camera"></i></label><input type="file" id="avatarUpload" accept="image/*" hidden onchange="handleAvatarChange(this)"></div>
+              <div class="profile-info-text"><h3>Upload New Photo</h3><p id="avatarFileName">No file chosen</p><button type="button" class="yellow-btn-small" onclick="document.getElementById('avatarUpload').click()">Update</button></div>
+            </div>
+            <hr class="form-divider">
+            <form onsubmit="submitAccountInfo(event)">
+              <div class="settings-form-grid">
+                <div class="settings-form-group"><label>First Name *</label><div class="input-wrapper"><input type="text" class="form-input" id="accFirstName" placeholder="First Name" value="Student"><i class="fa-solid fa-lock lock-icon"></i></div></div>
+                <div class="settings-form-group"><label>Last Name *</label><div class="input-wrapper"><input type="text" class="form-input" id="accLastName" placeholder="Last Name" value="User"><i class="fa-solid fa-lock lock-icon"></i></div></div>
+                <div class="settings-form-group full"><label>Username *</label><div class="input-wrapper"><input type="text" class="form-input" id="accUsername" placeholder="Username" value="student"><i class="fa-solid fa-lock lock-icon"></i></div></div>
+                <div class="settings-form-group full"><label>Email *</label><div class="input-wrapper"><input type="email" class="form-input" id="accEmail" placeholder="Email Address" value="student@carsu.edu.ph"><i class="fa-solid fa-lock lock-icon"></i></div></div>
+                <div class="settings-form-group full"><label>Role</label><div class="input-wrapper"><input type="text" class="form-input" value="Student" readonly style="background:#f9f9f9;color:#666"><i class="fa-solid fa-lock lock-icon"></i></div></div>
+                <div class="full"><button type="submit" class="btn-update-main">Update Information</button></div>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="settings-section" id="set-security">
+          <h1>Password &amp; Security</h1>
+          <div class="account-card">
+            <form onsubmit="submitPasswordChange(event)">
+              <div style="display:flex;flex-direction:column;gap:18px;">
+                <div class="settings-form-group"><label>Current Password *</label><div class="input-wrapper"><input type="password" class="form-input" id="currentPass" placeholder="Enter current password"></div><span class="field-error" id="currentPassErr" style="display:none">Current password is required.</span></div>
+                <div class="settings-form-group"><label>New Password *</label><div class="input-wrapper"><input type="password" class="form-input" id="newPass" placeholder="Enter new password (min. 8 characters)"></div><span class="field-error" id="newPassErr" style="display:none">New password must be at least 8 characters.</span></div>
+                <div class="settings-form-group"><label>Confirm Password *</label><div class="input-wrapper"><input type="password" class="form-input" id="confirmPass" placeholder="Confirm new password"></div><span class="field-error" id="confirmPassErr" style="display:none">Passwords do not match.</span></div>
+                <button type="submit" class="btn-update-main">Update Password</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="itemModal">
+    <div class="modal-container">
+      <button class="modal-report-btn" id="reportItemBtn" title="Report this item" onclick="openReportItemForm()"><i class="fa-solid fa-flag"></i></button>
+      <button class="modal-close-btn" onclick="closeItemModal()">← Back</button>
+      <div class="modal-content-layout">
+        <div class="modal-image-sec" id="modalImgSec"></div>
+        <div class="modal-info-sec">
+          <div class="modal-badges"><span class="badge" id="modalTypeBadge"></span><span class="badge badge-pending">PENDING</span></div>
+          <h2 id="modalTitle">Item Name</h2>
+          <div class="modal-meta"><span id="modalCat"></span><span id="modalLoc"></span><span id="modalDate"></span></div>
+          <div class="modal-description"><h4>Description</h4><p id="modalDesc">—</p></div>
+          <button class="btn-claim" id="claimBtn" onclick="openClaimForm()">Request Claim</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="popup-overlay" id="claimFormPopup">
+    <div class="popup-box claim-popup">
+      <h3>Claim Verification Process</h3>
+      <p>Provide detailed identifiable proof that you are the rightful owner.</p>
+      <div class="form-group" style="margin-top:16px"><textarea class="form-textarea" id="claimEvidence" placeholder="Describe specific details only the owner would know..."></textarea><span class="field-error" id="claimEvidenceErr" style="display:none">Please provide your proof of ownership.</span></div>
+      <div class="form-group"><label class="form-label" style="margin-bottom:8px"><i class="fa-solid fa-paperclip" style="color:var(--green)"></i> Upload Proof (Receipt/Photo)</label><input type="file" class="form-input" id="claimFile" accept="image/*,.pdf"></div>
+      <div class="popup-actions"><button class="btn-cancel" onclick="closeClaimForm()">Cancel</button><button class="btn-submit-evidence" onclick="submitClaim()">Submit Evidence</button></div>
+    </div>
+  </div>
+
+  <div class="popup-overlay" id="reportItemPopup">
+    <div class="popup-box report-popup">
+      <button class="popup-close-btn" onclick="closeReportItemForm()" style="position:absolute;top:16px;right:16px;background:none;border:none;cursor:pointer;font-size:18px;color:var(--text-muted)">&times;</button>
+      <h3>Report This Item</h3>
+      <p>If you believe this item belongs to you, please submit a report so an admin can review your ownership.</p>
+      <div class="form-group" style="margin-top:16px"><textarea class="form-textarea" id="reportReason" placeholder="Explain why you think this item is yours..."></textarea><span class="field-error" id="reportReasonErr" style="display:none">Please provide a reason for your report.</span></div>
+      <div class="popup-actions"><button class="btn-cancel" onclick="closeReportItemForm()">Cancel</button><button class="btn-submit-evidence" onclick="submitItemReport()">Submit Report</button></div>
+    </div>
+  </div>
+
+  <div class="popup-overlay" id="successPopup">
+    <div class="popup-box">
+      <div class="popup-icon"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" width="36" height="36"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+      <h3 id="successTitle">Report Submitted!</h3>
+      <p id="successMsg">Your report has been successfully submitted and is now under review.</p>
+      <button class="popup-close" onclick="closeSuccessPopup()">Got it!</button>
+    </div>
+  </div>
+
+  <footer class="bottom-bar"></footer>
+  
+  <script src="/js/api.js"></script>
+  <script src="/js/student.js"></script>
+</body>
+</html>

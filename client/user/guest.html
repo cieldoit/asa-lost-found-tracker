@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ASA Lost & Found — Guest</title>
+
+  <link rel="icon" href="/ASA_logo/logo-asa-top.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="/user/css/guest.css" />
+</head>
+
+<body>
+  <div id="toast-container"></div>
+
+  <div class="guest-top-banner">
+    <div class="guest-top-banner-inner">
+      <span class="guest-pill">
+        <span class="guest-pulse"></span>
+        <i class="fa-solid fa-eye" style="font-size:10px"></i>
+        Guest Mode
+      </span>
+
+      <p class="guest-banner-text">
+        You're browsing as a guest — <strong>view only.</strong>
+        Login or sign up to report, claim, or interact with items.
+      </p>
+
+      <div class="guest-banner-actions">
+        <a href="/login/landing.html" class="gbtn gbtn-primary">
+          <i class="fa-solid fa-right-to-bracket"></i> Login
+        </a>
+        <a href="/login/selection.html" class="gbtn gbtn-outline">Sign Up</a>
+      </div>
+    </div>
+  </div>
+
+  <guest-header id="siteHeader"></guest-header>
+
+  <div class="page active" id="page-browse">
+    <div class="home-container">
+
+      <div class="welcome-banner">
+        <div class="welcome-text">
+          <h1>Welcome, <span class="welcome-name">Guest</span> 👀</h1>
+          <p>Browse lost and found items across the campus — no account needed to look.</p>
+        </div>
+
+        <div class="action-btns">
+          <button class="btn-report-lost" onclick="triggerLoginGate('post')">
+            <i class="fa-solid fa-circle-plus"></i>
+            Report Lost
+          </button>
+
+          <button class="btn-report-found" onclick="triggerLoginGate('post')">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            Report Found
+          </button>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon yellow">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <div>
+            <div class="stat-label">Lost Items</div>
+            <div class="stat-value" id="guestLostCount">0</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon blue">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </div>
+          <div>
+            <div class="stat-label">Found Items</div>
+            <div class="stat-value" id="guestFoundCount">0</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon green">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+          <div>
+            <div class="stat-label">Claimed</div>
+            <div class="stat-value">0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <h2>Recently Updated</h2>
+        <span class="explore-link" onclick="gShowPage('lost')">Explore All →</span>
+      </div>
+
+      <div class="items-grid" id="recentItemsGrid"></div>
+
+      <div class="tip-card">
+        <div class="tip-content">
+          <h3>How to recover items faster?</h3>
+          <p>Adding clear photos and specific locations significantly increases the chance of finding your item. Our automated matching system will notify you as soon as a potential match is found.</p>
+
+          <div class="tip-tags">
+            <div class="tip-tag">📸 Add Photos</div>
+            <div class="tip-tag">📍 Be Specific</div>
+            <div class="tip-tag">🔄 Update Daily</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="page" id="page-lost">
+    <div class="home-container">
+      <div class="dir-header">
+        <h1>Lost Items Directory</h1>
+        <p>Browse through items reported lost across the campus.</p>
+      </div>
+
+      <div class="dir-controls">
+        <div class="search-bar">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Search Lost Items..." id="lostSearch" oninput="filterItems('lost')">
+        </div>
+
+        <select class="filter-select" id="lostCatFilter" onchange="filterItems('lost')">
+          <option value="">All Categories</option>
+        </select>
+      </div>
+
+      <div class="items-grid" id="lostItemsGrid"></div>
+    </div>
+  </div>
+
+  <div class="page" id="page-found">
+    <div class="home-container">
+      <div class="dir-header">
+        <h1>Found Items Directory</h1>
+        <p>Items safely turned in by our community. Check if your item has been found here.</p>
+      </div>
+
+      <div class="dir-controls">
+        <div class="search-bar">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Search Found Items..." id="foundSearch" oninput="filterItems('found')">
+        </div>
+
+        <select class="filter-select" id="foundCatFilter" onchange="filterItems('found')">
+          <option value="">All Categories</option>
+        </select>
+      </div>
+
+      <div class="items-grid" id="foundItemsGrid"></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="itemModal">
+    <div class="modal-container">
+      <button class="modal-report-btn" title="Report this item" onclick="triggerLoginGate('report')">
+        <i class="fa-solid fa-flag"></i>
+      </button>
+
+      <button class="modal-close-btn" onclick="closeItemModal()">← Back</button>
+
+      <div class="modal-content-layout">
+        <div class="modal-image-sec" id="modalImgSec"></div>
+
+        <div class="modal-info-sec">
+          <div class="modal-badges">
+            <span class="badge" id="modalTypeBadge"></span>
+            <span class="badge badge-pending">PENDING</span>
+          </div>
+
+          <h2 id="modalTitle">Item Name</h2>
+
+          <div class="modal-meta">
+            <span id="modalCat"></span>
+            <span id="modalLoc"></span>
+            <span id="modalDate"></span>
+          </div>
+
+          <div class="modal-description">
+            <h4>Description</h4>
+            <p id="modalDesc">—</p>
+          </div>
+
+          <div class="guest-modal-gate">
+            <div class="guest-modal-hint">
+              <i class="fa-solid fa-lock"></i>
+              Login required to claim or report this item.
+            </div>
+
+            <button class="btn-claim" onclick="triggerLoginGate('claim')">
+              Request Claim
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="popup-overlay" id="loginGatePopup">
+    <div class="popup-box">
+      <div class="popup-icon-filled" id="gateIconWrap">
+        <i class="fa-solid fa-lock" id="gateIcon"></i>
+      </div>
+
+      <h3 id="gateTitle">Login Required</h3>
+      <p id="gateMsg">You need an account to do this. Login or create a free account to continue.</p>
+
+      <div class="popup-actions">
+        <a href="/login/landing.html" class="btn-popup-primary">
+          <i class="fa-solid fa-right-to-bracket"></i>
+          Login to Continue
+        </a>
+
+        <a href="/login/selection.html" class="btn-popup-secondary">
+          <i class="fa-solid fa-user-plus"></i>
+          Create an Account
+        </a>
+
+        <button class="btn-popup-dismiss" onclick="closeLoginGate()">
+          <i class="fa-solid fa-xmark"></i> Continue Browsing
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="bottom-bar"></footer>
+
+  <script src="/js/guest.js"></script>
+</body>
+</html>

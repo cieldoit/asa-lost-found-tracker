@@ -1,0 +1,438 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ASA Lost &amp; Found — Admin</title>
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='10' fill='%231a5c2a'/><circle cx='32' cy='22' r='10' fill='%23f5c518'/><circle cx='32' cy='22' r='4' fill='white'/><rect x='30' y='31' width='4' height='16' rx='2' fill='%23f5c518'/><circle cx='30' cy='36' r='11' fill='none' stroke='%23f5c518' stroke-width='3'/></svg>" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+ <link rel="stylesheet" href="./css/admin.css" />
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<!-- ============================================================
+     ADMIN HEADER (Custom Element with updates: Home & Dashboard in profile)
+============================================================ -->
+<admin-header id="siteHeader"></admin-header>
+
+<!-- ============================================================
+     PAGE: DASHBOARD (Home)
+============================================================ -->
+<div class="page active" id="page-dashboard">
+  <div class="home-container">
+    <div class="welcome-banner">
+      <div class="welcome-text">
+        <h1>Welcome back, <span class="welcome-name" id="welcomeName">Admin</span> 👋 <span class="admin-badge"><i class="fa-solid fa-shield-halved"></i> Administrator</span></h1>
+        <p>Here's an overview of all reported items across campus.</p>
+      </div>
+      <div class="action-btns">
+        <button class="btn-report-lost" onclick="showPage('report-lost')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+          Post Lost
+        </button>
+        <button class="btn-report-found" onclick="showPage('report-found')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          Post Found
+        </button>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon yellow"><svg viewBox="0 0 24 24" fill="none" stroke="#ca8a04" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg></div>
+        <div><div class="stat-label">Total Lost</div><div class="stat-value" id="statLost">0</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
+        <div><div class="stat-label">Total Found</div><div class="stat-value" id="statFound">0</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+        <div><div class="stat-label">Resolved</div><div class="stat-value" id="statResolved">0</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon pink"><svg viewBox="0 0 24 24" fill="none" stroke="#be185d" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <div><div class="stat-label">Total Reports</div><div class="stat-value" id="statTotal">0</div></div>
+      </div>
+    </div>
+
+    <!-- Recently Updated – now a full‑width card matching the tip‑card -->
+    <div class="section-header">
+      <h2>Recently Updated</h2>
+      <span class="explore-link" onclick="showPage('lost')">View All →</span>
+    </div>
+    <div class="items-grid" id="recentItemsContainer"></div>
+
+    <div class="tip-card">
+      <h3>Admin Tips</h3>
+      <p>You can edit categories and locations directly in the report forms. Building photos for pick-up locations can be managed in Settings.</p>
+      <div class="tip-tags">
+        <div class="tip-tag">✏️ Edit Categories</div>
+        <div class="tip-tag">📍 Manage Locations</div>
+        <div class="tip-tag">🖼️ Building Photos</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE: LOST ITEMS DIRECTORY  (updated with reporter info)
+============================================================ -->
+<div class="page" id="page-lost">
+  <div class="home-container">
+    <div class="dir-header">
+      <h1>Lost Items Directory</h1>
+      <p>All lost item reports submitted across campus. As admin you can resolve or remove any listing.</p>
+    </div>
+    <div class="dir-controls">
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" placeholder="Search lost items..." id="lostSearch" oninput="filterItems('lost')">
+      </div>
+      <select class="filter-select" id="lostCatFilter" onchange="filterItems('lost')">
+        <option value="">All Categories</option>
+      </select>
+    </div>
+    <div class="items-grid" id="lostItemsGrid">
+      <!-- Sample lost item card -->
+      <div class="item-card"
+           data-title="Blue Wallet"
+           data-cat="Accessories"
+           data-desc="Small blue leather wallet with student ID inside."
+           data-loc="Library Floor 2"
+           data-date="April 15, 2026"
+           data-type="lost"
+           data-reporter-name="Maria Santos"
+           data-reporter-role="Student"
+           onclick="openItemModal(this)">
+        <div class="card-img-wrap">
+          <div style="width:100%;height:100%;background:linear-gradient(135deg,#dbeafe,#bfdbfe);display:flex;align-items:center;justify-content:center;font-size:48px;">👛</div>
+          <span class="badge badge-lost">LOST</span>
+          <span class="badge badge-pending">PENDING</span>
+        </div>
+        <div class="card-info">
+          <h3>Blue Wallet</h3>
+          <span class="category-tag">Accessories</span>
+          <div class="reporter-info">
+            <i class="fa-solid fa-user"></i>
+            <span class="reporter-name">Maria Santos</span>
+            <span>(Student)</span>
+          </div>
+          <p class="card-desc">Small blue leather wallet with student ID inside.</p>
+          <div class="card-footer-row"><span>📍 Library Floor 2</span><span class="view-link">VIEW</span></div>
+        </div>
+        <div class="card-admin-actions" onclick="event.stopPropagation()">
+          <button class="btn-card-action btn-card-resolve" onclick="resolveItem(this)">✓ Resolve</button>
+          <button class="btn-card-action btn-card-delete" onclick="confirmDelete(this)">🗑 Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE: FOUND ITEMS DIRECTORY  (updated with building photo)
+============================================================ -->
+<div class="page" id="page-found">
+  <div class="home-container">
+    <div class="dir-header">
+      <h1>Found Items Directory</h1>
+      <p>All found item reports submitted across campus. As admin you can resolve or remove any listing.</p>
+    </div>
+    <div class="dir-controls">
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" placeholder="Search found items..." id="foundSearch" oninput="filterItems('found')">
+      </div>
+      <select class="filter-select" id="foundCatFilter" onchange="filterItems('found')">
+        <option value="">All Categories</option>
+      </select>
+    </div>
+    <div class="items-grid" id="foundItemsGrid">
+      <!-- Sample found item card with building photo -->
+      <div class="item-card"
+           data-title="Textbook"
+           data-cat="Books"
+           data-desc="Engineering Mathematics textbook, has a name written on the first page."
+           data-loc="CCIS LSG Office"
+           data-date="April 18, 2026"
+           data-type="found"
+           data-reporter-name="Juan Dela Cruz"
+           data-reporter-role="Staff"
+           onclick="openItemModal(this)">
+        <div class="card-img-wrap">
+          <div style="width:100%;height:100%;background:linear-gradient(135deg,#dcfce7,#bbf7d0);display:flex;align-items:center;justify-content:center;font-size:48px;">📚</div>
+          <span class="badge badge-found">FOUND</span>
+          <span class="badge badge-pending">PENDING</span>
+        </div>
+        <div class="card-info">
+          <h3>Textbook</h3>
+          <span class="category-tag">Books</span>
+          <div class="reporter-info">
+            <i class="fa-solid fa-user"></i>
+            <span class="reporter-name">Juan Dela Cruz</span>
+            <span>(Staff)</span>
+          </div>
+          <p class="card-desc">Engineering Mathematics textbook, has a name on the first page.</p>
+          <div class="card-footer-row">
+            <span>
+              <img class="building-thumb" src="data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='1.5' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 21h18M3 7v1a4 4 0 004 4h10a4 4 0 004-4V7M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16'/%3E%3C/svg%3E" alt="Building icon">
+              📍 CCIS LSG Office
+            </span>
+            <span class="view-link">VIEW</span>
+          </div>
+        </div>
+        <div class="card-admin-actions" onclick="event.stopPropagation()">
+          <button class="btn-card-action btn-card-resolve" onclick="resolveItem(this)">✓ Resolve</button>
+          <button class="btn-card-action btn-card-delete" onclick="confirmDelete(this)">🗑 Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE: POST ITEM
+============================================================ -->
+<div class="page" id="page-post">
+  <div class="home-container">
+    <div class="post-wrap">
+      <h2>Post Item</h2>
+      <p>As admin, you can post lost or found items on behalf of reporters. Select the appropriate type below.</p>
+      <div class="post-choices">
+        <button class="choice-btn choice-lost" onclick="showPage('report-lost')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20" style="margin-bottom:8px"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg><br>
+          Lost Item
+        </button>
+        <button class="choice-btn choice-found" onclick="showPage('report-found')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20" style="margin-bottom:8px"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><br>
+          Found Item
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE: REPORT LOST ITEM (Admin)  – with reporter fields
+============================================================ -->
+<div class="page" id="page-report-lost">
+  <div class="home-container">
+    <button class="form-back-btn" onclick="showPage('post')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Report Lost Item
+    </button>
+    <div class="form-layout">
+      <div class="form-card">
+        <div class="form-group">
+          <label class="form-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/></svg>Item Title <span style="color:var(--red-text)">*</span></label>
+          <input class="form-input" type="text" id="lostTitle" placeholder="Ex: Blue Leather Wallet" oninput="syncPreviewTitle()">
+          <span class="field-error" id="lostTitleErr" style="display:none">Item title is required.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><rect x="2" y="7" width="20" height="14" rx="2"/></svg>Category <span style="color:var(--red-text)">*</span><span style="font-size:10.5px;color:var(--text-muted);font-weight:500;margin-left:4px">(Admin: type &amp; press Enter to add)</span></label>
+          <div class="form-select-wrap"><select class="form-select" id="lostCat"><option value="">Select Category</option></select><div class="select-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg></div></div>
+          <span class="field-error" id="lostCatErr" style="display:none">Please select a category.</span>
+          <div style="margin-top:10px"><p style="font-size:11.5px;font-weight:700;color:var(--text-mid);margin-bottom:6px"><i class="fa-solid fa-pen-to-square" style="color:var(--green)"></i> Edit Categories (Admin)</p><div class="tags-editor" id="catTagsEditor"></div><p class="tag-hint">Type a category name and press Enter to add. Click × to remove.</p></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Last Seen Location <span style="color:var(--red-text)">*</span></label>
+          <div class="form-select-wrap"><select class="form-select" id="lostLoc"><option value="">Select Location</option></select><div class="select-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg></div></div>
+          <span class="field-error" id="lostLocErr" style="display:none">Please select the last seen location.</span>
+          <div style="margin-top:10px"><p style="font-size:11.5px;font-weight:700;color:var(--text-mid);margin-bottom:6px"><i class="fa-solid fa-pen-to-square" style="color:var(--green)"></i> Edit Locations (Admin)</p><div class="tags-editor" id="locTagsEditor"></div><p class="tag-hint">Type a location name and press Enter to add. Click × to remove.</p></div>
+        </div>
+        <!-- Reporter fields -->
+        <div class="two-col">
+          <div class="form-group">
+            <label class="form-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Reporter Name <span style="color:var(--red-text)">*</span></label>
+            <input class="form-input" type="text" id="lostReporterName" placeholder="Full name">
+          </div>
+          <div class="form-group">
+            <label class="form-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><rect x="2" y="7" width="20" height="14" rx="2"/></svg>Role</label>
+            <div class="form-select-wrap">
+              <select class="form-select" id="lostReporterRole">
+                <option value="">Select role</option>
+                <option>Student</option>
+                <option>Staff</option>
+                <option>Visitor</option>
+              </select>
+              <div class="select-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg></div>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Detailed Description <span style="color:var(--red-text)">*</span></label>
+          <textarea class="form-textarea" id="lostDesc" placeholder="Describe specific marks, contents, or circumstances..."></textarea>
+          <span class="field-error" id="lostDescErr" style="display:none">Please describe the item.</span>
+        </div>
+      </div>
+      <div>
+        <div class="form-card">
+          <div class="img-title-preview" id="lostPreviewTitle">Item Title</div>
+          <div id="lostImgArea">
+            <div class="img-upload-area" onclick="document.getElementById('lostImgInput').click()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9l4-4 4 4 4-4 4 4"/><path d="M3 15l4 4 4-4 4 4 4-4"/></svg>
+              <p><strong>Drop photos here</strong><br>or click to browse</p>
+              <input type="file" id="lostImgInput" accept="image/*" style="display:none" onchange="previewImage(this,'lostImgArea')">
+            </div>
+          </div>
+        </div>
+        <button class="btn-submit" onclick="submitLostItem()">Post Lost Item <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE: REPORT FOUND ITEM (Admin) – PHOTO UPLOAD REMOVED
+============================================================ -->
+<div class="page" id="page-report-found">
+  <div class="home-container">
+    <button class="form-back-btn" onclick="showPage('post')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Report Found Item</button>
+    <div class="found-report-layout">
+    <div class="form-card found-form-card">
+      <div class="form-group"><label class="form-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/></svg>Item Title <span style="color:var(--red-text)">*</span></label><input class="form-input" type="text" id="foundTitle" placeholder="Ex: Key with a red Keychain"><span class="field-error" id="foundTitleErr" style="display:none">Item title is required.</span></div>
+      <div class="two-col">
+        <div class="form-group"><label class="form-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><rect x="2" y="7" width="20" height="14" rx="2"/></svg>Category <span style="color:var(--red-text)">*</span></label><div class="form-select-wrap"><select class="form-select" id="foundCat"><option value="">Select Category</option></select><div class="select-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg></div></div><span class="field-error" id="foundCatErr" style="display:none">Please select a category.</span></div>
+        <div class="form-group"><label class="form-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Location Found <span style="color:var(--red-text)">*</span></label><div class="form-select-wrap"><select class="form-select" id="foundLoc"><option value="">Select Location</option></select><div class="select-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg></div></div><span class="field-error" id="foundLocErr" style="display:none">Please select where it was found.</span></div>
+      </div>
+      <div class="form-group"><label class="form-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Pick-Up Location <span style="color:var(--red-text)">*</span></label><div class="form-select-wrap"><select class="form-select" id="foundPickup"><option value="">Where is the item kept now?</option><option>CAA LSG Office</option><option>CCIS LSG Office</option><option>CED LSG Office</option><option>CEGS LSG Office</option><option>CHASS LSG Office</option><option>CMNS LSG Office</option><option>COFES LSG Office</option><option>Guard House - Main Gate</option><option>Guard House - Green Gate</option></select><div class="select-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg></div></div><span class="field-error" id="foundPickupErr" style="display:none">Please select a pick-up location.</span></div>
+      <!-- Reporter fields -->
+      <div class="two-col">
+        <div class="form-group">
+          <label class="form-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Reporter Name <span style="color:var(--red-text)">*</span></label>
+          <input class="form-input" type="text" id="foundReporterName" placeholder="Full name">
+        </div>
+        <div class="form-group">
+          <label class="form-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><rect x="2" y="7" width="20" height="14" rx="2"/></svg>Role</label>
+          <div class="form-select-wrap">
+            <select class="form-select" id="foundReporterRole">
+              <option value="">Select role</option>
+              <option>Student</option>
+              <option>Staff</option>
+              <option>Visitor</option>
+            </select>
+            <div class="select-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg></div>
+          </div>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Detailed Description <span style="color:var(--red-text)">*</span></label><textarea class="form-textarea" id="foundDesc" placeholder="Describe the item without giving away identifying marks..."></textarea><span class="field-error" id="foundDescErr" style="display:none">Please describe the item.</span></div>
+      <button class="btn-submit" onclick="submitFoundItem()">Post Found Item <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+    </div>
+    <aside class="pickup-preview-card" id="foundPickupPreview">
+      <div class="pickup-preview-photo" id="foundPickupPreviewPhoto">
+        <i class="fa-solid fa-building"></i>
+      </div>
+      <div class="pickup-preview-body">
+        <span class="pickup-preview-eyebrow">Pick-up location</span>
+        <h3 id="foundPickupPreviewName">Choose a location</h3>
+        <p id="foundPickupPreviewNote">The saved building photo will appear here and in the found item details.</p>
+      </div>
+    </aside>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE: SETTINGS  (Dashboard link added in sidebar)
+============================================================ -->
+<div class="page" id="page-settings">
+  <div class="settings-page-wrap">
+    <div class="settings-sidebar-panel">
+      <div>
+        <h2>Settings</h2>
+        <div class="settings-nav">
+          <button class="s-nav-btn active" onclick="switchSettingsTab('account',this)"><i class="fa-solid fa-user-circle"></i> Account Information</button>
+          <button class="s-nav-btn" onclick="switchSettingsTab('security',this)"><i class="fa-solid fa-lock"></i> Password &amp; Security</button>
+          <button class="s-nav-btn" onclick="switchSettingsTab('buildings',this)"><i class="fa-solid fa-building"></i> Building Photos</button>
+        </div>
+      </div>
+      <div class="sidebar-bottom-links">
+        <a href="dashboard.html" class="dashboard-link-btn"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
+        <a href="/" class="sidebar-logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
+      </div>
+    </div>
+    <div class="settings-content-area">
+      <div class="settings-section active" id="set-account"><h1>Account Information</h1><div class="account-card"><div class="fb-profile-container"><div class="avatar-view"><div class="main-avatar"><i class="fa-solid fa-user"></i></div><label for="avatarUpload" class="camera-icon-btn"><i class="fa-solid fa-camera"></i></label><input type="file" id="avatarUpload" accept="image/*" hidden onchange="handleAvatarChange(this)"></div><div class="profile-info-text"><h3>Upload New Photo</h3><p id="avatarFileName">No file chosen</p><button type="button" class="yellow-btn-small" onclick="document.getElementById('avatarUpload').click()">Update</button></div></div><hr class="form-divider"><form onsubmit="submitAccountInfo(event)"><div class="settings-form-grid"><div class="settings-form-group"><label>First Name *</label><div class="input-wrapper"><input type="text" class="form-input" id="accFirstName" value="CCIS" placeholder="First Name"><i class="fa-solid fa-lock lock-icon"></i></div></div><div class="settings-form-group"><label>Last Name *</label><div class="input-wrapper"><input type="text" class="form-input" id="accLastName" value="Admin" placeholder="Last Name"><i class="fa-solid fa-lock lock-icon"></i></div></div><div class="settings-form-group full"><label>Username *</label><div class="input-wrapper"><input type="text" class="form-input" id="accUsername" value="ccisadmin" placeholder="Username"><i class="fa-solid fa-lock lock-icon"></i></div></div><div class="settings-form-group full"><label>Email *</label><div class="input-wrapper"><input type="email" class="form-input" id="accEmail" value="admin@carsu.edu.ph" placeholder="Email"><i class="fa-solid fa-lock lock-icon"></i></div></div><div class="settings-form-group full"><label>Role</label><div class="input-wrapper"><input type="text" class="form-input" value="Administrator" readonly style="background:#f9f9f9;color:#666"><i class="fa-solid fa-lock lock-icon"></i></div></div><div class="full"><button type="submit" class="btn-update-main">Update Information</button></div></div></form></div></div>
+      <div class="settings-section" id="set-security"><h1>Password &amp; Security</h1><div class="account-card"><form onsubmit="submitPasswordChange(event)"><div style="display:flex;flex-direction:column;gap:18px;"><div class="settings-form-group"><label>Current Password *</label><div class="input-wrapper"><input type="password" class="form-input" id="currentPass" placeholder="Enter current password"></div><span class="field-error" id="currentPassErr" style="display:none">Current password is required.</span></div><div class="settings-form-group"><label>New Password *</label><div class="input-wrapper"><input type="password" class="form-input" id="newPass" placeholder="Enter new password (min. 8 characters)"></div><span class="field-error" id="newPassErr" style="display:none">Password must be at least 8 characters.</span></div><div class="settings-form-group"><label>Confirm Password *</label><div class="input-wrapper"><input type="password" class="form-input" id="confirmPass" placeholder="Confirm new password"></div><span class="field-error" id="confirmPassErr" style="display:none">Passwords do not match.</span></div><div class="settings-form-group"><label>Role</label><div class="input-wrapper"><input type="text" class="form-input" value="Administrator" readonly style="background:#f9f9f9;color:#666"><i class="fa-solid fa-lock lock-icon"></i></div></div><button type="submit" class="btn-update-main">Update Password</button></div></form></div></div>
+      <div class="settings-section" id="set-buildings"><h1>Building Photos</h1><p style="font-size:14px;color:var(--text-muted);margin-bottom:20px">Upload photos for each pick-up location. These appear in the item detail view to help claimants find the office.</p><div class="building-grid" id="buildingGrid"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     ITEM DETAIL MODAL  – updated to show reporter info & building photo
+============================================================ -->
+<div class="modal-overlay" id="itemModal">
+  <div class="modal-container">
+    <button class="modal-close-btn" onclick="closeItemModal()">← Back</button>
+    <div class="modal-content-layout">
+      <div class="modal-image-sec" id="modalImgSec"></div>
+      <div class="modal-info-sec">
+        <div class="modal-badges"><span class="badge" id="modalTypeBadge"></span><span class="badge badge-pending" id="modalStatusBadge">PENDING</span><span class="admin-badge"><i class="fa-solid fa-shield-halved"></i> Admin View</span></div>
+        <h2 id="modalTitle">Item Name</h2>
+        <div class="modal-meta"><span id="modalCat"></span><span id="modalLoc"></span><span id="modalDate"></span></div>
+        <!-- Building photo for found items -->
+        <div class="modal-building-photo" id="modalBuildingPhoto" style="display:none;">
+          <img id="modalBuildingImg" src="" alt="Building photo">
+        </div>
+        <div class="modal-reporter" id="modalReporter">
+          <p><i class="fa-solid fa-user"></i> Reported by <strong id="modalReporterName">—</strong> <span id="modalReporterRole">(—)</span></p>
+        </div>
+        <div class="modal-description"><h4>Description</h4><p id="modalDesc">—</p></div>
+        <div class="modal-admin-actions"><button class="btn-modal-resolve" onclick="resolveFromModal()">✓ Mark as Resolved</button><button class="btn-modal-delete" onclick="deleteFromModal()">🗑 Delete Post</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     CONFIRM DELETE POPUP
+============================================================ -->
+<div class="popup-overlay" id="deletePopup">
+  <div class="popup-box confirm-popup">
+    <h3><i class="fa-solid fa-triangle-exclamation"></i> Delete Item?</h3>
+    <p>This action cannot be undone. The item listing will be permanently removed from the system.</p>
+    <div class="popup-actions"><button class="btn-cancel" onclick="closeDeletePopup()">Cancel</button><button class="btn-confirm-delete" onclick="executeDelete()">Yes, Delete</button></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     TAG DELETE CONFIRMATION POPUP
+============================================================ -->
+<div class="popup-overlay" id="tagDeletePopup">
+  <div class="popup-box confirm-popup">
+    <h3><i class="fa-solid fa-triangle-exclamation"></i> Remove Tag?</h3>
+    <p id="tagDeleteMsg">Are you sure you want to remove this item?</p>
+    <div class="popup-actions">
+      <button class="btn-cancel" onclick="closeTagDeletePopup()">Cancel</button>
+      <button class="btn-confirm-delete" onclick="executeTagDelete()">Yes, Remove</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SUCCESS POPUP
+============================================================ -->
+<div class="popup-overlay" id="successPopup">
+  <div class="popup-box">
+    <div class="popup-icon"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" width="36" height="36"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+    <h3 id="successTitle">Done!</h3>
+    <p id="successMsg">Action completed successfully.</p>
+    <button class="popup-close" onclick="closeSuccessPopup()">Got it!</button>
+  </div>
+</div>
+
+<footer class="bottom-bar"></footer>
+
+<script src="../js/api.js"></script>
+<script src="../js/admin.js"></script>
+
+</body>
+</html>
