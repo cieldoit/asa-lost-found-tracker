@@ -117,6 +117,22 @@ function getPreviewImageData(areaId) {
   const src = document.querySelector(`#${areaId} .img-preview-wrap img`)?.src || '';
   return src.startsWith('data:image/') ? src : null;
 }
+
+function readImageInputData(inputId) {
+  const file = document.getElementById(inputId)?.files?.[0];
+  if (!file) return Promise.resolve(null);
+  if (!file.type.startsWith('image/')) return Promise.resolve(null);
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = event => resolve(event.target.result);
+    reader.onerror = () => reject(new Error('Could not read selected image.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function getLostItemPhotoData() {
+  return getPreviewImageData('lostImgArea') || await readImageInputData('lostImgInput');
+}
 function syncPreviewTitle() { const val = document.getElementById('lostTitle')?.value.trim(); const prev = document.getElementById('lostPreviewTitle'); if(prev) prev.textContent = val || 'Item Title'; }
 async function submitLostItem() {
   const title = document.getElementById('lostTitle').value.trim();
@@ -144,7 +160,7 @@ async function submitLostItem() {
         categoryID,
         locationID: null,
         locationDetail,
-        itemPhotoData: getPreviewImageData('lostImgArea')
+        itemPhotoData: await getLostItemPhotoData()
       })
     });
 

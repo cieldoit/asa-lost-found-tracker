@@ -707,6 +707,22 @@ function getPreviewImageData(areaId) {
   return src.startsWith('data:image/') ? src : null;
 }
 
+function readImageInputData(inputId) {
+  const file = document.getElementById(inputId)?.files?.[0];
+  if (!file) return Promise.resolve(null);
+  if (!file.type.startsWith('image/')) return Promise.resolve(null);
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = event => resolve(event.target.result);
+    reader.onerror = () => reject(new Error('Could not read selected image.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function getLostItemPhotoData() {
+  return getPreviewImageData('lostImgArea') || await readImageInputData('lostImgInput');
+}
+
  
 /* ============================================================
    SUBMIT: LOST REPORT  →  POST /api/items/post
@@ -745,7 +761,7 @@ async function submitLostItem() {
       dateOccured: new Date().toISOString().split('T')[0],
       itemType: 'lost',
       categoryID: cat,
-      itemPhotoData: getPreviewImageData('lostImgArea'),
+      itemPhotoData: await getLostItemPhotoData(),
       locationDetail});
 
     showToast('success', 'Lost Item Submitted', `"${title}" has been posted successfully and is now visible.`);
