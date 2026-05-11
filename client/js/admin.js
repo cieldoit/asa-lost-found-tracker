@@ -876,13 +876,17 @@ function buildAdminItemCard(item) {
   card.dataset.title  = item.title;
   card.dataset.cat    = item.category || 'General';
   card.dataset.desc   = item.description || '';
-  card.dataset.loc    = item.locationDetail || item.location || 'Campus';
+  card.dataset.loc    = item.location || item.locationName || item.locationDetail || 'Campus';
   card.dataset.type   = item.itemType;
+  const pickupName = item.location || item.locationName || item.locationDetail || "Campus";
+  const pickupPhoto = item.locationPhoto || buildingPhotos[pickupName] || buildingPhotos[item.locationDetail] || "";
   card.dataset.reporterName = item.reporterName || 'Unknown';
   card.dataset.reporterRole = item.reporterRole || 'Student';
   card.innerHTML = `
     <div class="card-img-wrap">
-      <div style="width:100%;height:120px;background:${isLost ? 'linear-gradient(135deg,#dbeafe,#bfdbfe)' : 'linear-gradient(135deg,#dcfce7,#bbf7d0)'};display:flex;align-items:center;justify-content:center;font-size:42px;">${isLost ? "\u{1F45B}" : "\u{1F4E6}"}</div>
+      ${!isLost && pickupPhoto
+        ? `<img src="${pickupPhoto}" alt="${pickupName} building photo">`
+        : `<div style="width:100%;height:120px;background:${isLost ? 'linear-gradient(135deg,#dbeafe,#bfdbfe)' : 'linear-gradient(135deg,#dcfce7,#bbf7d0)'};display:flex;align-items:center;justify-content:center;font-size:42px;">${isLost ? "\u{1F45B}" : "\u{1F4E6}"}</div>`}
       <span class="badge badge-${item.itemType}">${item.itemType.toUpperCase()}</span>
       <span class="badge ${statusClass}">${item.itemStatus.toUpperCase()}</span>
     </div>
@@ -891,7 +895,7 @@ function buildAdminItemCard(item) {
       <span class="category-tag">${item.category || "General"}</span>
       <div class="reporter-info"><i class="fa-solid fa-user"></i> <span class="reporter-name">${item.reporterName || "Unknown"}</span> <span>(${item.reporterRole || "Student"})</span></div>
       <p class="card-desc">${(item.description || "No description").substring(0, 80)}</p>
-      <div class="card-footer-row"><span>${!isLost ? `<img class="building-thumb" src="${item.locationPhoto || buildingPhotos[item.locationDetail] || buildingPhotos[item.location] || "data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='1.5' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 21h18M3 7v1a4 4 0 004 4h10a4 4 0 004-4V7M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16'/%3E%3C/svg%3E"}" alt="Building photo">` : '\u{1F4CD}'} ${item.locationDetail || item.location || "Campus"}</span><button class="view-btn" onclick='openAdminItemModal(${JSON.stringify(item)})'>View Details</button></div>
+      <div class="card-footer-row"><span>${!isLost ? `<img class="building-thumb" src="${pickupPhoto || "data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='1.5' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 21h18M3 7v1a4 4 0 004 4h10a4 4 0 004-4V7M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16'/%3E%3C/svg%3E"}" alt="${pickupName} building photo">` : '\u{1F4CD}'} ${pickupName}</span><button class="view-btn" onclick='openAdminItemModal(${JSON.stringify(item)})'>View Details</button></div>
     </div>
     <div class="card-admin-actions">
       ${item.itemStatus === 'pending' ? '<button class="btn-card-action btn-card-approve">Approve</button><button class="btn-card-action btn-card-reject">Reject</button>' : ''}
@@ -921,8 +925,8 @@ function openAdminItemModal(item) {
   document.getElementById("modalReporterName").textContent = item.reporterName || "Unknown User";
   document.getElementById("modalReporterRole").textContent = `(${item.reporterRole || "Student"})`;
 
-  const pickupName = item.locationDetail || item.location || "Campus";
-  const pickupPhoto = item.locationPhoto || buildingPhotos[item.locationDetail] || buildingPhotos[item.location];
+  const pickupName = item.location || item.locationName || item.locationDetail || "Campus";
+  const pickupPhoto = item.locationPhoto || buildingPhotos[pickupName] || buildingPhotos[item.locationDetail];
   const buildingPhotoContainer = document.getElementById('modalBuildingPhoto');
   const buildingImg = document.getElementById('modalBuildingImg');
   if (item.itemType === 'found' && pickupPhoto && buildingPhotoContainer && buildingImg) {

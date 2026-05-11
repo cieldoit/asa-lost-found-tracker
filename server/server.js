@@ -384,6 +384,7 @@ app.get('/api/items/browse', async (req, res) => {
         i.description,
         i.itemType,
         i.locationDetail,
+        sl.storageName AS locationName,
         i.dateOccured,
         i.itemStatus,
         c.categoryName,

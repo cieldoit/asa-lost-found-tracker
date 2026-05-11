@@ -999,6 +999,8 @@ function buildItemCard(item) {
   const gradient = isLost ? 'linear-gradient(135deg,#dbeafe,#bfdbfe)' : 'linear-gradient(135deg,#dcfce7,#bbf7d0)';
   const emoji    = getCategoryEmoji(item.categoryName);
   const date     = new Date(item.dateOccured).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+  const pickupName = item.locationName || item.location || item.locationDetail || 'Campus';
+  const pickupPhoto = item.locationPhoto || '';
 
   const div = document.createElement('div');
   div.className = 'item-card';
@@ -1006,7 +1008,7 @@ function buildItemCard(item) {
   div.dataset.title  = item.title;
   div.dataset.cat    = item.categoryName;
   div.dataset.desc   = item.description || '';
-  div.dataset.loc    = item.locationDetail;
+  div.dataset.loc    = pickupName;
   div.dataset.date   = date;
   div.dataset.type   = item.itemType;
   div.dataset.photo  = item.locationPhoto || '';
@@ -1014,9 +1016,9 @@ function buildItemCard(item) {
 
   div.innerHTML = `
     <div class="card-img-wrap">
-      <div style="width:100%;height:100%;background:${gradient};display:flex;align-items:center;justify-content:center;font-size:48px;">
-        ${isLost ? '👛' : emoji}
-      </div>
+      ${!isLost && pickupPhoto
+        ? `<img src="${pickupPhoto}" alt="${pickupName} building photo">`
+        : `<div style="width:100%;height:100%;background:${gradient};display:flex;align-items:center;justify-content:center;font-size:48px;">${isLost ? '\u{1F45B}' : emoji}</div>`}
       <span class="badge badge-${item.itemType}">${item.itemType.toUpperCase()}</span>
     </div>
     <div class="card-info">
@@ -1024,7 +1026,7 @@ function buildItemCard(item) {
       <span class="category-tag">${item.categoryName || 'General'}</span>
       <p class="card-desc">${(item.description||'').substring(0,80)}${(item.description||'').length > 80 ? '…' : ''}</p>
       <div class="card-footer-row">
-        <span>${!isLost && item.locationPhoto ? `<img class="building-thumb" src="${item.locationPhoto}" alt="Pickup location photo">` : '<i class="fa-solid fa-location-dot"></i>'} ${item.locationDetail}</span>
+        <span>${!isLost && pickupPhoto ? `<img class="building-thumb" src="${pickupPhoto}" alt="${pickupName} building photo">` : '<i class="fa-solid fa-location-dot"></i>'} ${pickupName}</span>
         <span class="view-link">VIEW DETAILS</span>
       </div>
     </div>
