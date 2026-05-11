@@ -712,15 +712,31 @@ function readImageInputData(inputId) {
   if (!file) return Promise.resolve(null);
   if (!file.type.startsWith('image/')) return Promise.resolve(null);
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = event => resolve(event.target.result);
-    reader.onerror = () => reject(new Error('Could not read selected image.'));
-    reader.readAsDataURL(file);
+    const image = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    image.onload = () => {
+      const maxSize = 1200;
+      const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(image.width * scale));
+      canvas.height = Math.max(1, Math.round(image.height * scale));
+      canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(objectUrl);
+      resolve(canvas.toDataURL('image/jpeg', 0.78));
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Could not read selected image.'));
+    };
+
+    image.src = objectUrl;
   });
 }
 
 async function getLostItemPhotoData() {
-  return getPreviewImageData('lostImgArea') || await readImageInputData('lostImgInput');
+  return await readImageInputData('lostImgInput') || getPreviewImageData('lostImgArea');
 }
 
  
