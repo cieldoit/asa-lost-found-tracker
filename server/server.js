@@ -878,7 +878,7 @@ app.get('/', (req, res) => {
 });
 
 // Catch-all: return index for any unmatched route
-app.get('*', (req, res) => {
+app.use((req, res) => {
   res.sendFile(path.join(clientDir, 'login/index.html'));
 });
 
