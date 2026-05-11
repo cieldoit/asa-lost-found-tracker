@@ -131,6 +131,7 @@ class VisitorHeader extends HTMLElement {
       e.stopPropagation();
       notifDropdown.classList.toggle('show');
       profileDropdown.classList.remove('show');
+      if (typeof loadNotifications === 'function') loadNotifications();
     });
 
     markReadBtn.addEventListener('click', async e => {
@@ -1093,6 +1094,7 @@ async function markAllNotificationsRead() {
   try {
     await NotifAPI.markAllRead();
     await loadNotifications();
+    if (document.getElementById('visitorNotificationsModal')) openVisitorNotificationsModal();
   } catch (err) {
     console.warn('Could not mark notifications read:', err.message);
   }

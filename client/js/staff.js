@@ -57,7 +57,7 @@ class StaffHeader extends HTMLElement {
                     <div class="status-dot"></div>
                   </div>
                 </div>
-                <div class="notif-panel-footer"><a href="#">See all notifications</a></div>
+                <div class="notif-panel-footer"><a href="#" id="headerSeeAllNotifications">See all notifications</a></div>
               </div>
             </div>
             <div class="profile-wrap">
@@ -119,7 +119,7 @@ class StaffHeader extends HTMLElement {
     const notifBtn         = this.querySelector('#headerNotifBtn');
     const notifDropdown    = this.querySelector('#headerNotifDropdown');
     const markReadBtn      = this.querySelector('#headerMarkRead');
-
+    const seeAllBtn        = this.querySelector('#headerSeeAllNotifications');
     profileBtn.addEventListener('click', e => {
       e.stopPropagation();
       profileDropdown.classList.toggle('show');
@@ -133,10 +133,17 @@ class StaffHeader extends HTMLElement {
       if (typeof loadNotifications === 'function') loadNotifications();
     });
 
-    markReadBtn.addEventListener('click', e => {
+    markReadBtn.addEventListener('click', async e => {
       e.preventDefault();
       e.stopPropagation();
-      if (typeof markAllNotificationsRead === 'function') markAllNotificationsRead();
+      if (typeof markAllNotificationsRead === 'function') await markAllNotificationsRead();
+    });
+
+    seeAllBtn?.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      openStaffNotificationsModal();
+      notifDropdown.classList.remove('show');
     });
 
     window.addEventListener('click', event => {
@@ -171,31 +178,32 @@ class StaffHeader extends HTMLElement {
   }
 
   renderNotifications(notifs) {
+    window.staffNotifications = Array.isArray(notifs) ? notifs : [];
     const list = this.querySelector('#headerNotifList');
     const dot  = this.querySelector('#headerNotifDot');
     if (!list) return;
 
-    if (!notifs || notifs.length === 0) {
+    if (!window.staffNotifications.length) {
       list.innerHTML = `<div style="padding:20px;text-align:center;color:#9ca3af;font-size:13px">No notifications yet.</div>`;
       if (dot) dot.classList.add('hidden');
       return;
     }
 
-    const unread = notifs.filter(n => !n.isRead);
+    const unread = window.staffNotifications.filter(isUnreadNotification);
     if (dot) { dot.textContent = unread.length; dot.classList.toggle('hidden', unread.length === 0); }
 
-    list.innerHTML = notifs.map(n => `
-      <div class="notif-item ${n.isRead ? '' : 'unread'}" data-notif-id="${n.notifID}">
+    list.innerHTML = window.staffNotifications.slice(0, 5).map(n => `
+      <div class="notif-item ${isUnreadNotification(n) ? 'unread' : ''}" data-notif-id="${n.notifID}">
         <div class="notif-icon-box welcome-bg">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
           </svg>
         </div>
         <div class="notif-text">
-          <p>${n.isRead ? n.message : `<strong>${n.message}</strong>`}</p>
+          <p>${isUnreadNotification(n) ? `<strong>${n.message}</strong>` : n.message}</p>
           <span class="notif-time">${new Date(n.createdAt).toLocaleDateString()}</span>
         </div>
-        ${n.isRead ? '' : '<div class="status-dot"></div>'}
+        ${isUnreadNotification(n) ? '<div class="status-dot"></div>' : ''}
       </div>
     `).join('');
   }
@@ -221,6 +229,75 @@ class StaffHeader extends HTMLElement {
 
 customElements.define('staff-header', StaffHeader);
 
+window.staffNotifications = [];
+
+function isUnreadNotification(notification) {
+  return Number(notification?.isRead) === 0 || notification?.isRead === false;
+}
+
+function escapeNotificationHtml(value) {
+  return String(value || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function formatNotificationDate(value) {
+  if (!value) return 'Just now';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'Just now' : date.toLocaleString();
+}
+
+function openStaffNotificationsModal() {
+  document.getElementById('staffNotificationsModal')?.remove();
+  const notifs = window.staffNotifications || [];
+  const modal = document.createElement('div');
+  modal.id = 'staffNotificationsModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(17,24,39,.48);z-index:100000;display:flex;align-items:center;justify-content:center;padding:18px;';
+  modal.innerHTML = `
+    <div style="width:min(560px,100%);max-height:82vh;background:#fff;border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.25);overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid #e5e7eb;">
+        <h2 style="margin:0;font-size:18px;font-weight:800;color:#111827;">All Notifications</h2>
+        <button type="button" onclick="closeStaffNotificationsModal()" style="border:0;background:transparent;font-size:24px;line-height:1;cursor:pointer;color:#6b7280;">&times;</button>
+      </div>
+      <div style="max-height:66vh;overflow:auto;">
+        ${notifs.length ? notifs.map(n => `
+          <button type="button" onclick="staffMarkNotificationRead('${n.notifID}')" style="width:100%;display:flex;gap:12px;text-align:left;padding:15px 18px;border:0;border-bottom:1px solid #e5e7eb;background:${isUnreadNotification(n) ? '#f0fdf4' : '#fff'};cursor:pointer;">
+            <span style="width:38px;height:38px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;background:#166534;color:#fff;"><i class="fa-solid fa-bell"></i></span>
+            <span style="display:block;flex:1;">
+              <span style="display:block;font-size:13.5px;line-height:1.5;color:#111827;font-weight:${isUnreadNotification(n) ? '800' : '500'};">${escapeNotificationHtml(n.message)}</span>
+              <span style="display:block;margin-top:5px;font-size:12px;color:#6b7280;">${formatNotificationDate(n.createdAt)}</span>
+            </span>
+          </button>
+        `).join('') : '<div style="padding:28px;text-align:center;color:#9ca3af;font-size:14px;">No notifications yet.</div>'}
+      </div>
+    </div>
+  `;
+  modal.addEventListener('click', e => {
+    if (e.target === modal) closeStaffNotificationsModal();
+  });
+  document.body.appendChild(modal);
+}
+
+function closeStaffNotificationsModal() {
+  document.getElementById('staffNotificationsModal')?.remove();
+}
+
+async function staffMarkNotificationRead(notifID) {
+  if (!notifID) return;
+  try {
+    await NotifAPI.markRead(notifID);
+    await loadNotifications();
+    openStaffNotificationsModal();
+  } catch (err) {
+    console.warn('Could not mark notification read:', err.message);
+  }
+}
+
+window.closeStaffNotificationsModal = closeStaffNotificationsModal;
+window.staffMarkNotificationRead = staffMarkNotificationRead;
 /* ============================================================
    HELPER: close all dropdowns
 ============================================================ */
@@ -1043,6 +1120,7 @@ async function markAllNotificationsRead() {
   try {
     await NotifAPI.markAllRead();
     await loadNotifications();
+    if (document.getElementById('staffNotificationsModal')) openStaffNotificationsModal();
   } catch (err) {
     console.warn('Could not mark notifications read:', err.message);
   }
