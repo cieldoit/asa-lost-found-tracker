@@ -113,6 +113,10 @@ function executeTagDelete() {
 }
 function previewImage(input, areaId) { const area = document.getElementById(areaId); if(input.files && input.files[0] && area) { const reader = new FileReader(); reader.onload = e => { area.innerHTML = `<div class="img-preview-wrap"><img src="${e.target.result}" alt="Preview"><button class="img-remove-btn" onclick="removePreview('${areaId}','${input.id}')" title="Remove"><i class="fa-solid fa-xmark"></i></button></div>`; }; reader.readAsDataURL(input.files[0]); } }
 function removePreview(areaId, inputId) { const area = document.getElementById(areaId); if(area) area.innerHTML = `<div class="img-upload-area" onclick="document.getElementById('${inputId}').click()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9l4-4 4 4 4-4 4 4"/><path d="M3 15l4 4 4-4 4 4 4-4"/></svg><p><strong>Drop photos here</strong><br>or click to browse</p><input type="file" id="${inputId}" accept="image/*" style="display:none" onchange="previewImage(this,'${areaId}')"></div>`; }
+function getPreviewImageData(areaId) {
+  const src = document.querySelector(`#${areaId} .img-preview-wrap img`)?.src || '';
+  return src.startsWith('data:image/') ? src : null;
+}
 function syncPreviewTitle() { const val = document.getElementById('lostTitle')?.value.trim(); const prev = document.getElementById('lostPreviewTitle'); if(prev) prev.textContent = val || 'Item Title'; }
 async function submitLostItem() {
   const title = document.getElementById('lostTitle').value.trim();
@@ -139,7 +143,8 @@ async function submitLostItem() {
         itemType: "lost",
         categoryID,
         locationID: null,
-        locationDetail
+        locationDetail,
+        itemPhotoData: getPreviewImageData('lostImgArea')
       })
     });
 
@@ -166,7 +171,6 @@ setTimeout(() => {
   document.getElementById('lostLoc').value = '';
   document.getElementById('lostReporterName').value = '';
   document.getElementById('lostReporterRole').value = '';
-
 }, 1200);
 
   } catch (err) {
@@ -880,13 +884,16 @@ function buildAdminItemCard(item) {
   card.dataset.type   = item.itemType;
   const pickupName = item.location || item.locationName || item.locationDetail || "Campus";
   const pickupPhoto = item.locationPhoto || buildingPhotos[pickupName] || buildingPhotos[item.locationDetail] || "";
+  const itemPhoto = item.itemPhotoData || "";
   card.dataset.reporterName = item.reporterName || 'Unknown';
   card.dataset.reporterRole = item.reporterRole || 'Student';
   card.innerHTML = `
     <div class="card-img-wrap">
-      ${!isLost && pickupPhoto
-        ? `<img src="${pickupPhoto}" alt="${pickupName} building photo">`
-        : `<div style="width:100%;height:120px;background:${isLost ? 'linear-gradient(135deg,#dbeafe,#bfdbfe)' : 'linear-gradient(135deg,#dcfce7,#bbf7d0)'};display:flex;align-items:center;justify-content:center;font-size:42px;">${isLost ? "\u{1F45B}" : "\u{1F4E6}"}</div>`}
+      ${isLost && itemPhoto
+        ? `<img src="${itemPhoto}" alt="${item.title} photo">`
+        : !isLost && pickupPhoto
+          ? `<img src="${pickupPhoto}" alt="${pickupName} building photo">`
+          : `<div style="width:100%;height:120px;background:${isLost ? 'linear-gradient(135deg,#dbeafe,#bfdbfe)' : 'linear-gradient(135deg,#dcfce7,#bbf7d0)'};display:flex;align-items:center;justify-content:center;font-size:42px;">${isLost ? "\u{1F45B}" : "\u{1F4E6}"}</div>`}
       <span class="badge badge-${item.itemType}">${item.itemType.toUpperCase()}</span>
       <span class="badge ${statusClass}">${item.itemStatus.toUpperCase()}</span>
     </div>
@@ -938,7 +945,10 @@ function openAdminItemModal(item) {
   }
 
   const isLost = item.itemType === "lost";
-  document.getElementById("modalImgSec").innerHTML = `
+  const itemPhoto = item.itemPhotoData || "";
+  document.getElementById("modalImgSec").innerHTML = itemPhoto && isLost
+    ? `<img src="${itemPhoto}" alt="${item.title} photo" style="width:100%;height:300px;object-fit:cover;border-radius:12px">`
+    : `
     <div style="
       height:300px;
       border-radius:12px;

@@ -455,6 +455,7 @@ function buildItemCard(item) {
   
   const pickupName = item.locationName || item.location || item.locationDetail || 'Campus';
   const pickupPhoto = item.locationPhoto || '';
+  const itemPhoto = item.itemPhotoData || '';
   const div = document.createElement('div');
   div.className = 'item-card';
   div.dataset.itemId = item.itemID;
@@ -465,13 +466,16 @@ function buildItemCard(item) {
   div.dataset.date   = date;
   div.dataset.type   = item.itemType;
   div.dataset.photo  = item.locationPhoto || '';
+  div.dataset.itemPhoto = itemPhoto;
   div.setAttribute('onclick', 'openItemModal(this)');
  
   div.innerHTML = `
     <div class="card-img-wrap">
-      ${!isLost && pickupPhoto
-        ? `<img src="${pickupPhoto}" alt="${pickupName} building photo">`
-        : `<div style="width:100%;height:100%;background:${gradient};display:flex;align-items:center;justify-content:center;font-size:48px;">${isLost ? '\u{1F45B}' : emoji}</div>`}
+      ${isLost && itemPhoto
+        ? `<img src="${itemPhoto}" alt="${item.title} photo">`
+        : !isLost && pickupPhoto
+          ? `<img src="${pickupPhoto}" alt="${pickupName} building photo">`
+          : `<div style="width:100%;height:100%;background:${gradient};display:flex;align-items:center;justify-content:center;font-size:48px;">${isLost ? '\u{1F45B}' : emoji}</div>`}
       <span class="badge badge-${item.itemType}">${item.itemType.toUpperCase()}</span>
     </div>
     <div class="card-info">
@@ -698,6 +702,11 @@ function removePreview(areaId, inputId) {
       </div>`;
   }
 }
+function getPreviewImageData(areaId) {
+  const src = document.querySelector(`#${areaId} .img-preview-wrap img`)?.src || '';
+  return src.startsWith('data:image/') ? src : null;
+}
+
  
 /* ============================================================
    SUBMIT: LOST REPORT  →  POST /api/items/post
@@ -736,8 +745,8 @@ async function submitLostItem() {
       dateOccured: new Date().toISOString().split('T')[0],
       itemType: 'lost',
       categoryID: cat,
-      locationDetail
-    });
+      itemPhotoData: getPreviewImageData('lostImgArea'),
+      locationDetail});
 
     showToast('success', 'Lost Item Submitted', `"${title}" has been posted successfully and is now visible.`);
 
@@ -851,6 +860,7 @@ function openItemModal(card) {
   const loc   = card.dataset.loc;
   const date  = card.dataset.date;
   const photo = card.dataset.photo || '';
+  const itemPhoto = card.dataset.itemPhoto || '';
  
   currentItemID = card.dataset.itemId || null;
  
@@ -865,7 +875,9 @@ function openItemModal(card) {
   imgSec.style.minHeight    = '240px';
   imgSec.style.borderRadius = '12px';
   imgSec.style.fontSize     = '80px';
-  imgSec.innerHTML = `<span style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-height:240px">${emoji}</span>`;
+  imgSec.innerHTML = isLost && itemPhoto
+    ? `<img src="${itemPhoto}" alt="${title} photo" style="width:100%;height:100%;min-height:240px;object-fit:cover;border-radius:12px">`
+    : `<span style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-height:240px">${emoji}</span>`;
  
   document.getElementById('modalTypeBadge').textContent = type.toUpperCase();
   document.getElementById('modalTypeBadge').className   = `badge badge-${type}`;

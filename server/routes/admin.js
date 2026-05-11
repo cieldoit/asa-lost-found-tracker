@@ -63,6 +63,7 @@ router.get('/items', async (req, res) => {
         i.itemStatus,
         i.locationID,
         i.locationDetail,
+        i.itemPhotoData,
         i.dateOccured,
         i.createdAt,
         c.categoryName AS category,

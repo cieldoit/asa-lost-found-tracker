@@ -496,6 +496,11 @@ function removePreview(areaId, inputId) {
   }
   if (input) input.value = '';
 }
+function getPreviewImageData(areaId) {
+  const src = document.querySelector(`#${areaId} .img-preview-wrap img`)?.src || '';
+  return src.startsWith('data:image/') ? src : null;
+}
+
 
 function syncPreviewTitle() {
   const val = document.getElementById('lostTitle')?.value.trim();
@@ -539,6 +544,7 @@ async function submitLostItem() {
       dateOccured: new Date().toISOString().split('T')[0],
       itemType: 'lost',
       categoryID: cat,
+      itemPhotoData: getPreviewImageData('lostImgArea'),
       locationDetail: lostLocFinal
     });
 
@@ -646,6 +652,7 @@ function openItemModal(card) {
   const loc   = card.dataset.loc;
   const date  = card.dataset.date;
   const photo = card.dataset.photo || '';
+  const itemPhoto = card.dataset.itemPhoto || '';
 
   const imgSec = document.getElementById('modalImgSec');
   const cardImg = card.querySelector('.card-img-wrap > div') || card.querySelector('.card-img-wrap > img');
@@ -1003,6 +1010,7 @@ function buildItemCard(item) {
   const date     = new Date(item.dateOccured).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
   const pickupName = item.locationName || item.location || item.locationDetail || 'Campus';
   const pickupPhoto = item.locationPhoto || '';
+  const itemPhoto = item.itemPhotoData || '';
 
   const div = document.createElement('div');
   div.className = 'item-card';
@@ -1014,13 +1022,16 @@ function buildItemCard(item) {
   div.dataset.date   = date;
   div.dataset.type   = item.itemType;
   div.dataset.photo  = item.locationPhoto || '';
+  div.dataset.itemPhoto = itemPhoto;
   div.setAttribute('onclick', 'openItemModal(this)');
 
   div.innerHTML = `
     <div class="card-img-wrap">
-      ${!isLost && pickupPhoto
-        ? `<img src="${pickupPhoto}" alt="${pickupName} building photo">`
-        : `<div style="width:100%;height:100%;background:${gradient};display:flex;align-items:center;justify-content:center;font-size:48px;">${isLost ? '\u{1F45B}' : emoji}</div>`}
+      ${isLost && itemPhoto
+        ? `<img src="${itemPhoto}" alt="${item.title} photo">`
+        : !isLost && pickupPhoto
+          ? `<img src="${pickupPhoto}" alt="${pickupName} building photo">`
+          : `<div style="width:100%;height:100%;background:${gradient};display:flex;align-items:center;justify-content:center;font-size:48px;">${isLost ? '\u{1F45B}' : emoji}</div>`}
       <span class="badge badge-${item.itemType}">${item.itemType.toUpperCase()}</span>
     </div>
     <div class="card-info">

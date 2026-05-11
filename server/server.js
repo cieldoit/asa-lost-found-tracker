@@ -71,7 +71,7 @@ app.use(cors({
   origin: process.env.FRONTEND_URL || '*',
   credentials: true
 }));
-app.use(express.json());
+app.use(express.json({ limit: '8mb' }));
 
 const clientDir = path.resolve(__dirname, '../client');
 app.use(express.static(clientDir, { index: false }));
@@ -144,7 +144,21 @@ async function ensureStoragePhotoColumn() {
   }
 }
 
+async function ensureItemPhotoColumn() {
+  try {
+    await db.execute(`
+      ALTER TABLE ITEMS
+      ADD COLUMN itemPhotoData LONGTEXT NULL
+    `);
+  } catch (err) {
+    if (err.code !== 'ER_DUP_FIELDNAME') {
+      console.warn('Could not ensure ITEMS.itemPhotoData:', err.message);
+    }
+  }
+}
+
 ensureStoragePhotoColumn();
+ensureItemPhotoColumn();
 
 /* ================= AUTH ================= */
 
@@ -212,10 +226,16 @@ app.post('/api/items/post', authenticateToken, async (req, res) => {
     itemType,
     categoryID,
     locationID,
-    locationDetail
+    locationDetail,
+    itemPhotoData
   } = req.body;
 
   const userID = req.user.userID;
+  const cleanItemPhoto = typeof itemPhotoData === 'string' && itemPhotoData.startsWith('data:image/') ? itemPhotoData : null;
+
+  if (cleanItemPhoto && cleanItemPhoto.length > 6_000_000) {
+    return res.status(413).json({ error: "Item photo is too large. Please upload a smaller image." });
+  }
 
   if (!title || !description || !dateOccured || !itemType || !categoryID || !locationDetail) {
     return res.status(400).json({ error: "All fields are required." });
@@ -224,8 +244,8 @@ app.post('/api/items/post', authenticateToken, async (req, res) => {
   try {
     const [result] = await db.execute(`
       INSERT INTO ITEMS
-      (userID, title, description, dateOccured, itemType, categoryID, locationID, locationDetail, itemStatus)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+      (userID, title, description, dateOccured, itemType, categoryID, locationID, locationDetail, itemPhotoData, itemStatus)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
     `, [
       userID,
       title,
@@ -234,7 +254,8 @@ app.post('/api/items/post', authenticateToken, async (req, res) => {
       itemType,
       categoryID,
       locationID || null,
-      locationDetail
+      locationDetail,
+      cleanItemPhoto
     ]);
 
     const [users] = await db.execute(
@@ -384,6 +405,7 @@ app.get('/api/items/browse', async (req, res) => {
         i.description,
         i.itemType,
         i.locationDetail,
+        i.itemPhotoData,
         sl.storageName AS locationName,
         i.dateOccured,
         i.itemStatus,
