@@ -1066,13 +1066,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 1. Guard — redirect to login if not logged in
   if (!requireAuth('/login/landing.html')) return;
  
-  // 2. Set username from localStorage
-  const userName = Auth.getUser();
-  const role     = Auth.getRole();
-  if (userName) {
-    document.getElementById('welcomeName').textContent = userName;
-    document.querySelector('student-header')?.setUsername(userName, role);
-  }
+  // 2. Sync the header and settings form with the current account.
+  await syncCurrentUserProfile();
  
   // 3. Load data
   await Promise.all([
