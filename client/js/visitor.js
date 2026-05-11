@@ -703,7 +703,9 @@ function closeItemModal() {
    CLAIM FORM
 ============================================================ */
 function openClaimForm() {
+  const selectedItemID = currentItemID;
   closeItemModal();
+  currentItemID = selectedItemID;
   document.getElementById('claimFormPopup').classList.add('active');
 }
 
