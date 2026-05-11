@@ -508,14 +508,33 @@ function renderItemGrid(gridId, items) {
 }
  
 function renderRecentItems(items) {
-  const emptyState = document.querySelector('#page-dashboard .empty-state');
-  if (!emptyState || items.length === 0) return;
- 
-  const grid = document.createElement('div');
-  grid.className = 'items-grid';
-  grid.style.marginTop = '16px';
-  items.forEach(item => grid.appendChild(buildItemCard(item)));
-  emptyState.replaceWith(grid);
+  const dashboard = document.getElementById('page-dashboard');
+  if (!dashboard) return;
+
+  const emptyState = dashboard.querySelector('.empty-state');
+  let box = document.getElementById('recentItemsContainer');
+
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'recentItemsContainer';
+    box.className = 'items-grid';
+    box.style.marginTop = '16px';
+    const sectionHeader = dashboard.querySelector('.section-header');
+    if (emptyState) emptyState.insertAdjacentElement('afterend', box);
+    else sectionHeader?.insertAdjacentElement('afterend', box);
+  }
+
+  box.innerHTML = '';
+
+  if (!items || items.length === 0) {
+    if (emptyState) emptyState.style.display = '';
+    box.style.display = 'none';
+    return;
+  }
+
+  if (emptyState) emptyState.style.display = 'none';
+  box.style.display = '';
+  items.forEach(item => box.appendChild(buildItemCard(item)));
 }
  
 /* ============================================================
