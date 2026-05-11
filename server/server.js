@@ -389,7 +389,7 @@ app.get('/api/items/browse', async (req, res) => {
         c.categoryName,
         sl.photoData AS locationPhoto
       FROM ITEMS i
-      JOIN CATEGORIES c ON i.categoryID = c.categoryID
+      LEFT JOIN CATEGORIES c ON i.categoryID = c.categoryID
       LEFT JOIN STORAGE_LOCATIONS sl ON i.locationID = sl.locationID
       WHERE i.itemStatus IN ('pending', 'approved')
       ORDER BY i.createdAt DESC
@@ -734,7 +734,7 @@ app.get('/api/items/details/:id', async (req, res) => {
         sl.storageName AS locationName,
         sl.photoData AS locationPhoto
       FROM ITEMS i
-      LEFT JOIN CATEGORIES c ON i.categoryID = c.categoryID
+      LEFT LEFT JOIN CATEGORIES c ON i.categoryID = c.categoryID
       LEFT JOIN USERS u ON i.userID = u.userID
       LEFT JOIN STORAGE_LOCATIONS sl ON i.locationID = sl.locationID
       WHERE i.itemID = ?

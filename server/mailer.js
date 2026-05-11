@@ -1,26 +1,30 @@
-// mailer.js - Using Resend HTTP API (works on Render free tier)
+// mailer.js - Using Brevo (Sendinblue) HTTP API
+// Free: 300 emails/day, sends to ANY email, no domain needed
 require('dotenv').config();
 
 const transporter = {
   sendMail: async (options) => {
-    const response = await fetch('https://api.resend.com/emails', {
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'api-key': process.env.BREVO_API_KEY,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: process.env.EMAIL_FROM || 'ASA Lost and Found <onboarding@resend.dev>',
-        to: Array.isArray(options.to) ? options.to : [options.to],
+        sender: {
+          name: 'ASA Lost and Found',
+          email: process.env.BREVO_SENDER_EMAIL
+        },
+        to: [{ email: options.to }],
         subject: options.subject,
-        html: options.html || options.text
+        htmlContent: options.html || `<p>${options.text}</p>`
       })
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.message || 'Failed to send email');
+      throw new Error(data.message || JSON.stringify(data));
     }
 
     return data;
