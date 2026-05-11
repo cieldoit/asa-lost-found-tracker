@@ -895,7 +895,9 @@ function closeItemModal() {
    CLAIM FORM  →  POST /api/claims
 ============================================================ */
 function openClaimForm() {
+  const selectedItemID = currentItemID;
   closeItemModal();
+  currentItemID = selectedItemID;
   document.getElementById('claimFormPopup').classList.add('active');
 }
  
