@@ -569,7 +569,7 @@ async function submitLostItem() {
     return;
   }
 
-  const submitBtn = document.querySelector('#page-report-lost .btn-submit');
+  const submitBtn = document.querySelector('#page-report-lost .btn-submit, #page-report-lost button[onclick*="submitLostItem"]');
   const originalSubmitText = submitBtn?.textContent;
   if (submitBtn) {
     submitBtn.disabled = true;

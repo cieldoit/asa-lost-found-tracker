@@ -161,6 +161,13 @@ async function submitLostItem() {
     return;
   }
 
+  const submitBtn = document.querySelector('#page-report-lost .btn-submit, #page-report-lost button[onclick*="submitLostItem"]');
+  const originalSubmitText = submitBtn?.textContent;
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
+  }
+
   try {
     const res = await fetch(`${ADMIN_API_BASE}/items/post`, {
       method: "POST",
@@ -208,6 +215,11 @@ setTimeout(() => {
   } catch (err) {
     console.error("POST LOST ERROR:", err);
     showToast("error", "Post Failed", err.message);
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalSubmitText || 'Submit Report';
+    }
   }
 }
 async function submitFoundItem() {
