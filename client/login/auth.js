@@ -61,15 +61,23 @@ if (loginForm) {
     const password = document.querySelector("#password").value;
 
     try {
-      const data = await sendRequest("/login", { identifier, password });
+      let data;
+
+      try {
+        data = await sendRequest("/login", { identifier, password });
+      } catch (loginError) {
+        const canTryAdminLogin = /invalid credentials/i.test(loginError.message || "");
+        if (!canTryAdminLogin) throw loginError;
+        data = await sendRequest("/admin/login", { managedBy: identifier, password });
+      }
 
       ["asa_token","asa_role","asa_user","token","role","userName"].forEach(k => localStorage.removeItem(k));
       localStorage.setItem("asa_token", data.token);
       localStorage.setItem("asa_role", data.role);
-      localStorage.setItem("asa_user", data.userName);
+      localStorage.setItem("asa_user", data.userName || data.managedBy);
       localStorage.setItem("token", data.token);
       localStorage.setItem("role", data.role);
-      localStorage.setItem("userName", data.userName);
+      localStorage.setItem("userName", data.userName || data.managedBy);
 
       showToast("Login successful! Redirecting...", "success");
 
