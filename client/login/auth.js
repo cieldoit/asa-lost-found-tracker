@@ -57,11 +57,11 @@ if (loginForm) {
   loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const email = document.querySelector("#email").value;
+    const identifier = document.querySelector("#email").value.trim();
     const password = document.querySelector("#password").value;
 
     try {
-      const data = await sendRequest("/login", { email, password });
+      const data = await sendRequest("/login", { identifier, password });
 
       ["asa_token","asa_role","asa_user","token","role","userName"].forEach(k => localStorage.removeItem(k));
       localStorage.setItem("asa_token", data.token);

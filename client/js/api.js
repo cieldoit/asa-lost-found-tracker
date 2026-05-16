@@ -191,8 +191,8 @@ const AuthAPI = {
   async resendOtp(email) {
     return apiFetch('/resend-otp', { method: 'POST', body: JSON.stringify({ email }) });
   },
-  async login(email, password) {
-    const data = await apiFetch('/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+  async login(identifier, password) {
+    const data = await apiFetch('/login', { method: 'POST', body: JSON.stringify({ identifier, password }) });
     if (data?.token) Auth.save(data.token, data.role, data.userName);
     return data;
   },
