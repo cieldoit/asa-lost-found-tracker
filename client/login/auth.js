@@ -74,11 +74,12 @@ if (loginForm) {
       showToast("Login successful! Redirecting...", "success");
 
       setTimeout(() => {
-        if (data.role === "Student") {
+        const role = String(data.role || "").trim().toLowerCase();
+        if (role === "student") {
           window.location.href = "/user/student.html";
-        } else if (data.role === "Staff") {
+        } else if (role === "staff") {
           window.location.href = "/user/staff.html";
-        } else if (data.role === "Visitor") {
+        } else if (role === "visitor") {
           window.location.href = "/user/visitor.html";
         } else {
           window.location.href = "/user/admin.html";
