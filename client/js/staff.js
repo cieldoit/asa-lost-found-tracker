@@ -848,6 +848,18 @@ function filterItems(type) {
   });
 }
 
+function filterAllItems() {
+  const query = document.getElementById('allItemsSearch')?.value.toLowerCase() || '';
+  const type = document.getElementById('allItemsTypeFilter')?.value || '';
+  document.querySelectorAll('#allItemsGrid .item-card').forEach(card => {
+    const title = (card.dataset.title || '').toLowerCase();
+    const desc = (card.dataset.desc || '').toLowerCase();
+    const matchQuery = !query || title.includes(query) || desc.includes(query);
+    const matchType = !type || card.dataset.type === type;
+    card.style.display = matchQuery && matchType ? '' : 'none';
+  });
+}
+
 /* ============================================================
    SETTINGS
 ============================================================ */
@@ -1081,6 +1093,7 @@ async function loadItems() {
     document.getElementById('statLost') && (document.getElementById('statLost').textContent  = lostItems.length);
     document.getElementById('statFound') && (document.getElementById('statFound').textContent = foundItems.length);
 
+    renderItemGrid('allItemsGrid', items);
     renderItemGrid('lostItemsGrid',  lostItems);
     renderItemGrid('foundItemsGrid', foundItems);
     renderRecentItems(items.slice(0, 4));

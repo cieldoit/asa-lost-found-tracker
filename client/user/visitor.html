@@ -5,10 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ASA Lost &amp; Found — Visitor</title>
   <link rel="icon" type="image/png" sizes="any" href="/ASA_logo/logo-asa-top.png?v=2" />
-<rect width='64' height='64' rx='10' fill='%231a5c2a'/><circle cx='32' cy='22' r='10' fill='%23f5c518'/><circle cx='32' cy='22' r='4' fill='white'/><rect x='30' y='31' width='4' height='16' rx='2' fill='%23f5c518'/><circle cx='30' cy='36' r='11' fill='none' stroke='%23f5c518' stroke-width='3'/></svg>" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="stylesheet" href="./css/script.css" />
+  <link rel="stylesheet" href="/user/css/script.css" />
 </head>
 
 <body>
@@ -59,7 +58,7 @@
 
     <div class="section-header">
       <h2>Recently Updated</h2>
-      <span class="explore-link" onclick="showPage('lost')">Explore All →</span>
+      <span class="explore-link" onclick="showPage('all-items')">Explore All →</span>
     </div>
 
     <div class="empty-state">
@@ -82,6 +81,26 @@
   </div>
 </div>
 
+<div class="page" id="page-all-items">
+  <div class="home-container">
+    <div class="dir-header">
+      <h1>All Posted Items</h1>
+      <p>Browse all lost and found items posted across campus.</p>
+    </div>
+    <div class="dir-controls">
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" placeholder="Search All Items..." id="allItemsSearch" oninput="filterAllItems()">
+      </div>
+      <select class="filter-select" id="allItemsTypeFilter" onchange="filterAllItems()">
+        <option value="">Lost and Found</option>
+        <option value="lost">Lost Items</option>
+        <option value="found">Found Items</option>
+      </select>
+    </div>
+    <div class="items-grid" id="allItemsGrid"></div>
+  </div>
+</div>
 <div class="page" id="page-lost">
   <div class="home-container">
     <div class="dir-header">
@@ -582,7 +601,8 @@
 </div>
 
 <footer class="bottom-bar"></footer>
-<script src="../js/api.js"></script>
-<script src="../js/visitor.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/visitor.js"></script>
 </body>
 </html>
+
