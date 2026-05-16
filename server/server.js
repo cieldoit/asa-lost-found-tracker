@@ -194,6 +194,48 @@ function isValidUsernameFormat(username) {
   return /^[a-z0-9](?:[a-z0-9._]{1,28}[a-z0-9])$/.test(username);
 }
 
+async function ensureDefaultAdminAccount() {
+  if (String(process.env.ADMIN_BOOTSTRAP_DISABLED || '').toLowerCase() === 'true') {
+    return;
+  }
+
+  const adminUserName = process.env.ADMIN_USERNAME || 'ccis_admin';
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@carsu.edu.ph';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+  const passwordHash = await bcrypt.hash(adminPassword, 10);
+
+  try {
+    const [admins] = await db.execute(
+      `SELECT userID FROM USERS
+       WHERE LOWER(email) = LOWER(?)
+          OR LOWER(userName) = LOWER(?)
+          OR userName = ?
+          OR LOWER(REPLACE(REPLACE(REPLACE(userName, ' ', ''), '_', ''), '.', '')) = ?
+       LIMIT 1`,
+      [adminEmail, adminUserName, normalizeUsername(adminUserName), compactUsername(adminUserName)]
+    );
+
+    if (admins.length) {
+      await db.execute(
+        `UPDATE USERS
+         SET userName = ?, email = ?, password = ?, role = 'Admin', userStatus = 'active'
+         WHERE userID = ?`,
+        [adminUserName, adminEmail, passwordHash, admins[0].userID]
+      );
+    } else {
+      await db.execute(
+        `INSERT INTO USERS (userName, email, password, role, userStatus)
+         VALUES (?, ?, ?, 'Admin', 'active')`,
+        [adminUserName, adminEmail, passwordHash]
+      );
+    }
+  } catch (err) {
+    console.warn('Could not ensure default admin account:', err.message);
+  }
+}
+
+const defaultAdminBootstrap = ensureDefaultAdminAccount();
+
 /* ================= AUTH ================= */
 
 app.post('/api/login', async (req, res) => {
@@ -749,6 +791,8 @@ app.post('/api/admin/login', async (req, res) => {
   const { managedBy, password } = req.body;
 
   try {
+    await defaultAdminBootstrap;
+
     const [users] = await db.execute(
       `SELECT * FROM USERS
        WHERE LOWER(role) IN ('admin', 'administrator')

@@ -71,6 +71,11 @@ Open `http://localhost:5000` in your browser.
    - `JWT_SECRET` (generate a strong random string)
    - `EMAIL_USER`, `EMAIL_PASS`
    - `FRONTEND_URL` = your Render app URL (e.g., `https://asa-lost-found.onrender.com`)
+   - Optional admin seed values:
+     - `ADMIN_USERNAME` defaults to `ccis_admin`
+     - `ADMIN_EMAIL` defaults to `admin@carsu.edu.ph`
+     - `ADMIN_PASSWORD` defaults to `admin123`
+     - `ADMIN_BOOTSTRAP_DISABLED=true` disables automatic admin seeding
 4. For MySQL, use **Railway** or **PlanetScale** as your database host.
 
 ---
