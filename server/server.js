@@ -892,7 +892,10 @@ app.get('/api/items/details/:id', async (req, res) => {
     `, [req.params.id]);
 
     if (rows.length === 0) return res.status(404).json({ error: "Item not found" });
-    res.json(rows[0]);
+    res.json({
+      ...rows[0],
+      accountUsername: normalizeUsername(rows[0].userName)
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1014,7 +1017,10 @@ app.put('/api/users/profile', authenticateToken, async (req, res) => {
       'SELECT userID, userName, email, role, userStatus, profilePhotoData FROM USERS WHERE userID = ?',
       [userID]
     );
-    res.json({ message: "Profile updated successfully.", user: rows[0] });
+    res.json({
+      message: "Profile updated successfully.",
+      user: rows[0] ? { ...rows[0], accountUsername: normalizeUsername(rows[0].userName) } : null
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

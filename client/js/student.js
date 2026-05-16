@@ -1102,6 +1102,16 @@ function splitFullName(name) {
   return { firstName: parts.slice(0, -1).join(' '), lastName: parts.at(-1) };
 }
 
+function formatAccountUsername(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/@.*$/, '')
+    .replace(/[^a-z0-9._]+/g, '_')
+    .replace(/[._]{2,}/g, '_')
+    .replace(/^[._]+|[._]+$/g, '');
+}
+
 function renderProfilePhoto(photoData) {
   const icon = '<i class="fa-solid fa-user"></i>';
   const content = photoData ? `<img src="${photoData}" alt="Profile photo">` : icon;
@@ -1138,7 +1148,7 @@ function readProfilePhoto(file) {
 function populateAccountForm(user) {
   const fullName = String(user?.userName || '').trim();
   const { firstName, lastName } = splitFullName(fullName);
-  const username = fullName ? fullName.toLowerCase().replace(/\s+/g, '') : '';
+  const username = formatAccountUsername(user?.accountUsername || fullName);
 
   const firstInput = document.getElementById('accFirstName');
   const lastInput = document.getElementById('accLastName');

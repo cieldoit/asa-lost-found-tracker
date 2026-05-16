@@ -602,6 +602,15 @@ function splitFullName(name) {
   if (parts.length <= 1) return { firstName: parts[0] || "", lastName: "" };
   return { firstName: parts.slice(0, -1).join(" "), lastName: parts.at(-1) };
 }
+function formatAccountUsername(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/@.*$/, "")
+    .replace(/[^a-z0-9._]+/g, "_")
+    .replace(/[._]{2,}/g, "_")
+    .replace(/^[._]+|[._]+$/g, "");
+}
 function defaultProfileAvatar() {
   return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
 }
@@ -638,7 +647,7 @@ function readProfileImage(file) {
 function populateAdminAccountForm(user) {
   const { firstName, lastName } = splitFullName(user?.userName);
   const username = String(user?.userName || "").trim();
-  const usernameFallback = username ? username.toLowerCase().replace(/\s+/g, "") : "";
+  const usernameFallback = formatAccountUsername(user?.accountUsername || username);
 
   const firstInput = document.getElementById("accFirstName");
   const lastInput = document.getElementById("accLastName");
