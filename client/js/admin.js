@@ -509,10 +509,51 @@ function updateBuildingThumbnails() {
 }
 function closeSuccessPopup() { document.getElementById('successPopup').classList.remove('active'); showPage('dashboard'); }
 let currentPage='dashboard';
-function showPage(page) { document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); const el=document.getElementById('page-'+page); if(el) { el.classList.add('active'); currentPage=page; } document.querySelector('admin-header')?.setActivePage(page); if(window.closeAllDropdowns) window.closeAllDropdowns(); const mobileNav=document.getElementById('mobileNav'); if(mobileNav) mobileNav.classList.remove('open'); window.scrollTo({top:0,behavior:'smooth'}); }
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const el=document.getElementById('page-'+page);
+  if(el) {
+    el.classList.add('active');
+    currentPage=page;
+  }
+  const header = document.querySelector('admin-header');
+  addAdminManagementNav(header);
+  header?.setActivePage(page);
+  if(window.closeAllDropdowns) window.closeAllDropdowns();
+  const mobileNav=document.getElementById('mobileNav');
+  if(mobileNav) mobileNav.classList.remove('open');
+  if (page === 'claims') loadAdminClaims();
+  if (page === 'users') loadAdminUsers();
+  if (page === 'appeals') loadAdminAppeals();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
 function closeAllDropdowns() { const hdr=document.querySelector('admin-header'); if(hdr){ hdr.querySelector('#headerProfileDropdown')?.classList.remove('show'); hdr.querySelector('#headerNotifDropdown')?.classList.remove('show'); } }
 function toggleMobileNav() { document.getElementById('mobileNav')?.classList.toggle('open'); }
 function closeMobileNav() { document.getElementById('mobileNav')?.classList.remove('open'); }
+function adminNavButton(page, iconClass, label, mobile = false) {
+  const className = mobile ? 'mnav-item' : 'nav-item';
+  const idPrefix = mobile ? 'amnav' : 'anav';
+  return `<button class="${className}" id="${idPrefix}-${page}" onclick="showPage('${page}')"><i class="${iconClass}" style="width:16px"></i>${label}</button>`;
+}
+function addAdminManagementNav(header) {
+  if (!header || header.querySelector('#anav-claims')) return;
+  const mainNav = header.querySelector('.main-nav');
+  const mobileNav = header.querySelector('#mobileNav');
+  const postNav = header.querySelector('#anav-post');
+  const mobilePostNav = header.querySelector('#amnav-post');
+  const managementNav = [
+    adminNavButton('claims', 'fa-solid fa-clipboard-check', 'Claims'),
+    adminNavButton('users', 'fa-solid fa-users', 'Users'),
+    adminNavButton('appeals', 'fa-solid fa-flag', 'Reports')
+  ].join('');
+  const mobileManagementNav = [
+    adminNavButton('claims', 'fa-solid fa-clipboard-check', 'Claims', true),
+    adminNavButton('users', 'fa-solid fa-users', 'Users', true),
+    adminNavButton('appeals', 'fa-solid fa-flag', 'Reports', true)
+  ].join('');
+  if (mainNav && postNav) postNav.insertAdjacentHTML('afterend', managementNav);
+  if (mobileNav && mobilePostNav) mobilePostNav.insertAdjacentHTML('afterend', mobileManagementNav);
+}
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, ch => ({
     "&": "&amp;",
@@ -637,7 +678,7 @@ initListeners() {
     }
   });
 }
-  setActivePage(page) { ['dashboard','lost','found','post'].forEach(p=>{ this.querySelector(`#anav-${p}`)?.classList.remove('active'); this.querySelector(`#amnav-${p}`)?.classList.remove('active'); }); this.querySelector(`#anav-${page}`)?.classList.add('active'); this.querySelector(`#amnav-${page}`)?.classList.add('active'); }
+  setActivePage(page) { ['dashboard','lost','found','post','claims','users','appeals'].forEach(p=>{ this.querySelector(`#anav-${p}`)?.classList.remove('active'); this.querySelector(`#amnav-${p}`)?.classList.remove('active'); }); this.querySelector(`#anav-${page}`)?.classList.add('active'); this.querySelector(`#amnav-${page}`)?.classList.add('active'); }
   setUsername(name) { const n1=this.querySelector('#headerProfileName'), n2=this.querySelector('#headerDropName'); if(n1) n1.textContent=name; if(n2) n2.textContent=name; }
   renderNotifications(notifs) {
 
@@ -823,6 +864,12 @@ async function loadAdminStats() {
 
     document.getElementById("statResolved").textContent =
       stats.resolvedItems ?? 0;
+
+    const statUsers = document.getElementById("statTotalUsers");
+    if (statUsers) statUsers.textContent = stats.totalUsers ?? 0;
+
+    const statPendingClaims = document.getElementById("statPendingClaims");
+    if (statPendingClaims) statPendingClaims.textContent = stats.pendingClaims ?? 0;
 
   } catch (err) {
     console.error("ADMIN STATS ERROR:", err);
@@ -1015,6 +1062,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (header && typeof header.render === 'function') {
     header.render();
+    addAdminManagementNav(header);
     header.initListeners();
     header.setActivePage('dashboard');
   }
@@ -1026,6 +1074,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadAdminStats();
   loadAdminClaims();
   loadAdminUsers();
+  loadAdminAppeals();
   loadAdminNotifications();
   loadAdminItems();
 
@@ -1186,6 +1235,43 @@ async function setUserStatus(userID, status, btn) {
   } catch (err) {
     showToast('error', 'Error', 'Could not update user status.');
     btn.disabled = false;
+  }
+}
+
+/* ============================================================
+   ADMIN APPEALS / ITEM REPORTS
+============================================================ */
+async function loadAdminAppeals() {
+  const container = document.getElementById('appealsTableBody');
+  if (!container) return;
+
+  container.innerHTML = '<tr><td colspan="6" class="admin-table-empty">Loading reports...</td></tr>';
+
+  try {
+    const res = await fetch(`${ADMIN_API_BASE}/admin/appeals`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Failed to load reports');
+    const appeals = await res.json();
+
+    if (!appeals.length) {
+      container.innerHTML = '<tr><td colspan="6" class="admin-table-empty">No item reports yet.</td></tr>';
+      return;
+    }
+
+    container.innerHTML = appeals.map(a => `
+      <tr data-appeal-id="${a.appealID}">
+        <td>${escapeHtml(a.userName || 'Unknown')}</td>
+        <td><span class="badge badge-pending">${escapeHtml(a.role || 'User')}</span></td>
+        <td>${escapeHtml(a.itemTitle || 'Untitled item')}</td>
+        <td><span class="badge badge-${escapeHtml(a.itemType || 'pending')}">${escapeHtml(String(a.itemType || 'item').toUpperCase())}</span></td>
+        <td>${escapeHtml(a.reason || 'No reason provided.')}</td>
+        <td>${formatNotifDate(a.createdAt)}</td>
+      </tr>
+    `).join('');
+  } catch (err) {
+    console.error('LOAD APPEALS ERROR:', err);
+    container.innerHTML = '<tr><td colspan="6" class="admin-table-empty" style="color:var(--red-text)">Failed to load item reports.</td></tr>';
   }
 }
 

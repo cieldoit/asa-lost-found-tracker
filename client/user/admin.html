@@ -198,6 +198,119 @@
 </div>
 
 <!-- ============================================================
+     PAGE: CLAIM REQUESTS
+============================================================ -->
+<div class="page" id="page-claims">
+  <div class="home-container">
+    <div class="dir-header">
+      <h1>Claim Requests</h1>
+      <p>Review submitted claims, approve valid requests, or reject claims that need more proof.</p>
+    </div>
+    <div class="admin-panel">
+      <div class="admin-panel-head">
+        <div>
+          <span class="admin-panel-eyebrow">Pending review</span>
+          <h2>Claims Queue</h2>
+        </div>
+        <div class="admin-panel-stat"><span id="statPendingClaims">0</span> pending</div>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Claimant</th>
+              <th>Email</th>
+              <th>Item</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="claimsTableBody">
+            <tr><td colspan="6" class="admin-table-empty">Loading claims...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE: USERS
+============================================================ -->
+<div class="page" id="page-users">
+  <div class="home-container">
+    <div class="dir-header">
+      <h1>User Management</h1>
+      <p>Monitor registered accounts and activate or suspend access when needed.</p>
+    </div>
+    <div class="admin-panel">
+      <div class="admin-panel-head">
+        <div>
+          <span class="admin-panel-eyebrow">Accounts</span>
+          <h2>Registered Users</h2>
+        </div>
+        <div class="admin-panel-stat"><span id="statTotalUsers">0</span> users</div>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="usersTableBody">
+            <tr><td colspan="5" class="admin-table-empty">Loading users...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE: ITEM REPORTS / APPEALS
+============================================================ -->
+<div class="page" id="page-appeals">
+  <div class="home-container">
+    <div class="dir-header">
+      <h1>Item Reports</h1>
+      <p>Review reports and appeals sent by users about posted lost and found items.</p>
+    </div>
+    <div class="admin-panel">
+      <div class="admin-panel-head">
+        <div>
+          <span class="admin-panel-eyebrow">User feedback</span>
+          <h2>Reports &amp; Appeals</h2>
+        </div>
+        <button class="admin-refresh-btn" type="button" onclick="loadAdminAppeals()">Refresh</button>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Role</th>
+              <th>Item</th>
+              <th>Type</th>
+              <th>Reason</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="appealsTableBody">
+            <tr><td colspan="6" class="admin-table-empty">Loading reports...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
      PAGE: POST ITEM
 ============================================================ -->
 <div class="page" id="page-post">
