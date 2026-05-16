@@ -114,7 +114,7 @@ function authenticateAdmin(req, res, next) {
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
     if (err) return res.sendStatus(403);
 
-    if (String(user.role || '').toLowerCase() !== 'admin') {
+    if (!isAdminRole(user.role)) {
       return res.status(403).json({ error: "Admin only" });
     }
 
@@ -176,6 +176,14 @@ function compactUsername(value) {
     .replace(/[^a-z0-9]+/g, '');
 }
 
+function isAdminRole(role) {
+  return ['admin', 'administrator'].includes(String(role || '').trim().toLowerCase());
+}
+
+function isAdminLoginAlias(value) {
+  return ['admin', 'administrator', 'ccisadmin'].includes(compactUsername(value));
+}
+
 function usernameFromRegistration(name, email) {
   const fromEmail = normalizeUsername(email);
   const fromName = normalizeUsername(name);
@@ -203,18 +211,20 @@ app.post('/api/login', async (req, res) => {
           OR LOWER(userName) = LOWER(?)
           OR userName = ?
           OR LOWER(REPLACE(REPLACE(REPLACE(userName, ' ', ''), '_', ''), '.', '')) = ?
+          OR (? = 1 AND LOWER(role) IN ('admin', 'administrator'))
        LIMIT 1`,
-      [identifier, identifier, normalizeUsername(identifier), compactUsername(identifier)]
+      [identifier, identifier, normalizeUsername(identifier), compactUsername(identifier), isAdminLoginAlias(identifier) ? 1 : 0]
     );
 
    if (users.length === 0)
   return res.status(401).json({ error: "Invalid credentials" });
 
 const user = users[0];
+const role = isAdminRole(user.role) ? "Admin" : user.role;
 
 /* ================= USER STATUS CHECK ================= */
 
-if (user.userStatus === "pending") {
+if (!isAdminRole(user.role) && user.userStatus === "pending") {
   return res.status(403).json({
     error: "Please verify your email first."
   });
@@ -234,7 +244,7 @@ const match = await bcrypt.compare(password, user.password);
     const token = jwt.sign(
       {
         userID: user.userID,
-        role: user.role,
+        role,
         userName: user.userName
       },
       process.env.JWT_SECRET,
@@ -243,7 +253,7 @@ const match = await bcrypt.compare(password, user.password);
 
     res.json({
       token,
-      role: user.role,
+      role,
       userName: user.userName
     });
 
@@ -741,15 +751,16 @@ app.post('/api/admin/login', async (req, res) => {
   try {
     const [users] = await db.execute(
       `SELECT * FROM USERS
-       WHERE LOWER(role) = 'admin'
+       WHERE LOWER(role) IN ('admin', 'administrator')
          AND (
            LOWER(email) = LOWER(?)
            OR LOWER(userName) = LOWER(?)
            OR userName = ?
            OR LOWER(REPLACE(REPLACE(REPLACE(userName, ' ', ''), '_', ''), '.', '')) = ?
+           OR ? = 1
          )
        LIMIT 1`,
-      [managedBy, managedBy, normalizeUsername(managedBy), compactUsername(managedBy)]
+      [managedBy, managedBy, normalizeUsername(managedBy), compactUsername(managedBy), isAdminLoginAlias(managedBy) ? 1 : 0]
     );
 
     if (users.length === 0)
@@ -765,12 +776,12 @@ app.post('/api/admin/login', async (req, res) => {
       return res.status(401).json({ error: "Invalid admin credentials" });
 
     const token = jwt.sign(
-      { userID: user.userID, role: user.role, userName: user.userName },
+      { userID: user.userID, role: "Admin", userName: user.userName },
       process.env.JWT_SECRET,
       { expiresIn: '1d' }
     );
 
-    res.json({ token, role: user.role, userName: user.userName, managedBy: user.userName });
+    res.json({ token, role: "Admin", userName: user.userName, managedBy: user.userName });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
