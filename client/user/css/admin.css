@@ -541,6 +541,119 @@ body { font-family:'Poppins',sans-serif; background:var(--bg); color:var(--text-
 .btn-card-action:hover { opacity:.85; }
 .btn-card-resolve { background:var(--green-light); color:var(--green); }
 .btn-card-delete  { background:var(--red-bg); color:var(--red-text); }
+.btn-card-approve { background:var(--green); color:#fff; }
+.btn-card-reject { background:var(--red-bg); color:var(--red-text); }
+
+/* ============================================================
+   ADMIN MANAGEMENT TABLES
+============================================================ */
+.admin-panel {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-sm);
+  overflow:hidden;
+}
+.admin-panel-head {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:22px 24px;
+  border-bottom:1px solid var(--border);
+}
+.admin-panel-eyebrow {
+  display:block;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--green);
+  margin-bottom:4px;
+}
+.admin-panel-head h2 {
+  font-size:18px;
+  font-weight:800;
+  color:var(--text-primary);
+}
+.admin-panel-stat {
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:8px 12px;
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  color:var(--text-muted);
+  font-size:12.5px;
+  font-weight:700;
+  white-space:nowrap;
+}
+.admin-panel-stat span {
+  color:var(--green);
+  font-size:16px;
+  font-weight:800;
+}
+.admin-refresh-btn,
+.btn-action {
+  border:0;
+  border-radius:var(--radius-sm);
+  font-family:'Poppins',sans-serif;
+  font-size:12px;
+  font-weight:800;
+  cursor:pointer;
+  transition:opacity .2s,transform .15s;
+}
+.admin-refresh-btn {
+  background:var(--green-light);
+  color:var(--green);
+  padding:9px 14px;
+}
+.admin-refresh-btn:hover,
+.btn-action:hover {
+  opacity:.86;
+  transform:translateY(-1px);
+}
+.admin-table-wrap { width:100%; overflow-x:auto; }
+.admin-table {
+  width:100%;
+  border-collapse:collapse;
+  min-width:760px;
+}
+.admin-table th,
+.admin-table td {
+  padding:14px 18px;
+  text-align:left;
+  border-bottom:1px solid #f3f4f6;
+  vertical-align:middle;
+}
+.admin-table th {
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--text-muted);
+  background:#f9fafb;
+}
+.admin-table td {
+  font-size:13px;
+  color:var(--text-mid);
+}
+.admin-table tr:last-child td { border-bottom:0; }
+.admin-table-empty {
+  text-align:center !important;
+  padding:34px 20px !important;
+  color:var(--text-muted) !important;
+}
+.btn-action {
+  padding:7px 11px;
+  margin-right:6px;
+}
+.btn-approve { background:var(--green); color:#fff; }
+.btn-reject { background:var(--red-bg); color:var(--red-text); }
+.badge-approved,
+.badge-claimed { background:var(--green-light); color:var(--green); border:1px solid #bbf7d0; }
+.badge-danger,
+.badge-rejected { background:var(--red-bg); color:var(--red-text); border:1px solid #fecaca; }
 
 /* ============================================================
    POST ITEM
