@@ -64,7 +64,7 @@
     <!-- Recently Updated – now a full‑width card matching the tip‑card -->
     <div class="section-header">
       <h2>Recently Updated</h2>
-      <span class="explore-link" onclick="showPage('lost')">View All →</span>
+      <span class="explore-link" onclick="showPage('all-items')">View All →</span>
     </div>
     <div class="items-grid" id="recentItemsContainer"></div>
 
@@ -77,6 +77,30 @@
         <div class="tip-tag">🖼️ Building Photos</div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE: ALL POSTED ITEMS
+============================================================ -->
+<div class="page" id="page-all-items">
+  <div class="home-container">
+    <div class="dir-header">
+      <h1>All Posted Items</h1>
+      <p>All lost and found item posts submitted across campus.</p>
+    </div>
+    <div class="dir-controls">
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" placeholder="Search all posted items..." id="allItemsSearch" oninput="filterAllItems()">
+      </div>
+      <select class="filter-select" id="allItemsTypeFilter" onchange="filterAllItems()">
+        <option value="">Lost and Found</option>
+        <option value="lost">Lost Items</option>
+        <option value="found">Found Items</option>
+      </select>
+    </div>
+    <div class="items-grid" id="allItemsGrid"></div>
   </div>
 </div>
 

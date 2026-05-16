@@ -404,6 +404,18 @@ function closeItemModal() { document.getElementById('itemModal').classList.remov
 function resolveFromModal() { if(currentModalCard){ const btn=currentModalCard.querySelector('.btn-card-resolve'); if(btn) resolveItem(btn); document.getElementById('modalStatusBadge').textContent='RESOLVED'; document.getElementById('modalStatusBadge').classList.remove('badge-pending'); document.getElementById('modalStatusBadge').classList.add('badge-claimed'); } }
 function deleteFromModal() { if(currentModalCard){ const btn=currentModalCard.querySelector('.btn-card-delete'); if(btn) confirmDelete(btn); closeItemModal(); } }
 function filterItems(type) { const query=document.getElementById(`${type}Search`).value.toLowerCase(); const catVal=document.getElementById(`${type}CatFilter`).value.toLowerCase(); document.querySelectorAll(`#${type}ItemsGrid .item-card`).forEach(card=>{ const matchQuery=!query||(card.dataset.title||'').toLowerCase().includes(query)||(card.dataset.desc||'').toLowerCase().includes(query)||(card.dataset.reporterName||'').toLowerCase().includes(query); const matchCat=!catVal||(card.dataset.cat||'').toLowerCase()===catVal; card.style.display=matchQuery&&matchCat?'':'none'; }); }
+function filterAllItems() {
+  const query = document.getElementById('allItemsSearch')?.value.toLowerCase() || '';
+  const type = document.getElementById('allItemsTypeFilter')?.value || '';
+  document.querySelectorAll('#allItemsGrid .item-card').forEach(card => {
+    const matchQuery = !query
+      || (card.dataset.title || '').toLowerCase().includes(query)
+      || (card.dataset.desc || '').toLowerCase().includes(query)
+      || (card.dataset.reporterName || '').toLowerCase().includes(query);
+    const matchType = !type || card.dataset.type === type;
+    card.style.display = matchQuery && matchType ? '' : 'none';
+  });
+}
 function switchSettingsTab(tab, btn) { document.querySelectorAll('.settings-section').forEach(s=>s.classList.remove('active')); document.querySelectorAll('.s-nav-btn').forEach(b=>b.classList.remove('active')); document.getElementById(`set-${tab}`)?.classList.add('active'); if(btn) btn.classList.add('active'); }
 function submitAccountInfo(e) { submitAdminAccountInfo(e); }
 function submitPasswordChange(e) { submitAdminPasswordChange(e); }
@@ -943,13 +955,17 @@ async function loadAdminItems() {
 
     const lostGrid = document.getElementById("lostItemsGrid");
     const foundGrid = document.getElementById("foundItemsGrid");
+    const allGrid = document.getElementById("allItemsGrid");
     const recentBox = document.getElementById("recentItemsContainer");
 
     if (lostGrid) lostGrid.innerHTML = "";
     if (foundGrid) foundGrid.innerHTML = "";
+    if (allGrid) allGrid.innerHTML = "";
     if (recentBox) recentBox.innerHTML = "";
 
     items.forEach(item => {
+      allGrid?.appendChild(buildAdminItemCard(item));
+
       if (item.itemType === "lost") {
         lostGrid?.appendChild(buildAdminItemCard(item));
       } else {
