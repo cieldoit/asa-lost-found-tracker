@@ -39,20 +39,58 @@
       display: block; 
     }
 
-    .header-right .nav-link {
-      text-decoration: none;
-      color: #374151;
-      margin-left: 20px;
-      font-weight: 600;
-      font-size: 14px;
-      padding: 8px 16px;
-      border-radius: 8px;
-      transition: all 0.2s ease;
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
     }
 
+    .top-link,
+    .header-right .nav-link {
+      text-decoration: none;
+      color: #12351d;
+      font-weight: 600;
+      font-size: 14px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      border: 1px solid #dce8d8;
+      background: #ffffff;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      line-height: 1;
+      box-shadow: 0 8px 18px rgba(17, 24, 39, 0.06);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
+    }
+
+    .top-link i {
+      color: #1a5c2a;
+      font-size: 13px;
+    }
+
+    .top-link:hover,
     .header-right .nav-link:hover { 
-      color: #1a5c2a; 
+      color: #0f401d;
       background: #f0fdf4;
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(26, 92, 42, 0.12);
+    }
+
+    .top-link.contact-link {
+      background: #1a5c2a;
+      border-color: #1a5c2a;
+      color: #ffffff;
+    }
+
+    .top-link.contact-link i {
+      color: #f5c518;
+    }
+
+    .top-link.contact-link:hover {
+      background: #154d23;
+      color: #ffffff;
     }
 
     .hero-section {
@@ -293,7 +331,10 @@
     }
 
     @media (max-width: 520px) {
-      header { padding: 0 20px; }
+      header { padding: 0 16px; height: auto; min-height: 88px; gap: 12px; }
+      .main-logo { height: 92px; }
+      .header-right { gap: 8px; }
+      .top-link { padding: 9px 11px; font-size: 12px; }
       .card-body { padding: 32px 20px; }
       .hero-title { font-size: 36px; }
     }
@@ -308,7 +349,7 @@
   </a>
   <div class="header-right">
     <a href="/ASA_details/about.html" class="top-link"><i class="fa-regular fa-circle-question"></i> Help Center</a>
-    <a href="/ASA_details/about.html#contact" class="top-link"><i class="fa-regular fa-envelope"></i> Contact Us</a>
+    <a href="/ASA_details/about.html#contact" class="top-link contact-link"><i class="fa-regular fa-envelope"></i> Contact Us</a>
   </div>
 </header>
 
