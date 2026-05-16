@@ -104,6 +104,8 @@ body { font-family:'Poppins',sans-serif; background:var(--bg); color:var(--text-
 .profile-btn:hover { border-color:var(--green); background:var(--green-light); }
 .profile-avatar { width:30px; height:30px; background:var(--green-light); border-radius:50%; display:flex; align-items:center; justify-content:center; }
 .profile-avatar svg { width:16px; height:16px; stroke:var(--green); fill:none; }
+.profile-avatar img,
+.main-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; display:block; }
 .profile-name { font-size:13px; font-weight:600; color:var(--text-primary); }
 .dropdown-content {
   display:none; position:absolute; right:0; top:calc(100% + 10px);

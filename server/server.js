@@ -155,8 +155,22 @@ async function ensureItemPhotoColumn() {
   }
 }
 
+async function ensureUserProfilePhotoColumn() {
+  try {
+    await db.execute(`
+      ALTER TABLE USERS
+      ADD COLUMN profilePhotoData LONGTEXT NULL
+    `);
+  } catch (err) {
+    if (err.code !== 'ER_DUP_FIELDNAME') {
+      console.warn('Could not ensure USERS.profilePhotoData:', err.message);
+    }
+  }
+}
+
 ensureStoragePhotoColumn();
 ensureItemPhotoColumn();
+ensureUserProfilePhotoColumn();
 
 function normalizeUsername(value) {
   return String(value || '')
@@ -871,7 +885,7 @@ app.get('/api/items/details/:id', async (req, res) => {
         sl.storageName AS locationName,
         sl.photoData AS locationPhoto
       FROM ITEMS i
-      LEFT LEFT JOIN CATEGORIES c ON i.categoryID = c.categoryID
+      LEFT JOIN CATEGORIES c ON i.categoryID = c.categoryID
       LEFT JOIN USERS u ON i.userID = u.userID
       LEFT JOIN STORAGE_LOCATIONS sl ON i.locationID = sl.locationID
       WHERE i.itemID = ?
@@ -889,7 +903,7 @@ app.get('/api/items/details/:id', async (req, res) => {
 app.get('/api/users/me', authenticateToken, async (req, res) => {
   try {
     const [rows] = await db.execute(
-      'SELECT userID, userName, email, role, userStatus FROM USERS WHERE userID = ?',
+      'SELECT userID, userName, email, role, userStatus, profilePhotoData FROM USERS WHERE userID = ?',
       [req.user.userID]
     );
 
@@ -970,7 +984,7 @@ app.put('/api/users/change-password', authenticateToken, async (req, res) => {
 /* ================= UPDATE PROFILE ================= */
 
 app.put('/api/users/profile', authenticateToken, async (req, res) => {
-  const { userName } = req.body;
+  const { userName, profilePhotoData } = req.body;
   const userID = req.user.userID;
 
   try {
@@ -978,8 +992,29 @@ app.put('/api/users/profile', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: "Name is required." });
     }
 
-    await db.execute('UPDATE USERS SET userName = ? WHERE userID = ?', [userName.trim(), userID]);
-    res.json({ message: "Profile updated successfully." });
+    const cleanPhoto = typeof profilePhotoData === 'string' && profilePhotoData.startsWith('data:image/')
+      ? profilePhotoData
+      : null;
+
+    if (profilePhotoData !== undefined && profilePhotoData !== null && !cleanPhoto) {
+      return res.status(400).json({ error: "A valid profile image is required." });
+    }
+
+    if (cleanPhoto && cleanPhoto.length > 4_000_000) {
+      return res.status(413).json({ error: "Profile image is too large. Please upload a smaller photo." });
+    }
+
+    if (profilePhotoData !== undefined) {
+      await db.execute('UPDATE USERS SET userName = ?, profilePhotoData = ? WHERE userID = ?', [userName.trim(), cleanPhoto, userID]);
+    } else {
+      await db.execute('UPDATE USERS SET userName = ? WHERE userID = ?', [userName.trim(), userID]);
+    }
+
+    const [rows] = await db.execute(
+      'SELECT userID, userName, email, role, userStatus, profilePhotoData FROM USERS WHERE userID = ?',
+      [userID]
+    );
+    res.json({ message: "Profile updated successfully.", user: rows[0] });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

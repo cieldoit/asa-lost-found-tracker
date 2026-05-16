@@ -5,6 +5,7 @@ const PICKUP_LOCATIONS = ["CAA LSG Office","CCIS LSG Office","CED LSG Office","C
 const DASH_API_BASE = window.ASA_API_BASE || `${window.location.origin}/api`;
 const DASH_TOKEN = localStorage.getItem('asa_token') || localStorage.getItem('token');
 let buildingPhotos = {};
+let dashboardProfilePhotoData = null;
 
 // ── Header dropdowns (Admin style) ──
 const headerNotifBtn = document.getElementById('headerNotifBtn');
@@ -46,6 +47,45 @@ function closeMobileNav() {
   document.getElementById('mobileNav')?.classList.remove('open');
 }
 
+function fallbackAvatarIcon() {
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+}
+
+function renderProfilePhoto(photoData) {
+  dashboardProfilePhotoData = photoData || dashboardProfilePhotoData || null;
+  const content = dashboardProfilePhotoData
+    ? `<img src="${dashboardProfilePhotoData}" alt="Profile photo">`
+    : fallbackAvatarIcon();
+  document.querySelectorAll('.profile-avatar, .main-avatar').forEach(el => {
+    el.innerHTML = content;
+  });
+}
+
+function readProfilePhoto(file) {
+  if (!file || !file.type.startsWith('image/')) {
+    return Promise.reject(new Error('Please choose an image file.'));
+  }
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    image.onload = () => {
+      const maxSize = 420;
+      const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(image.width * scale));
+      canvas.height = Math.max(1, Math.round(image.height * scale));
+      canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(objectUrl);
+      resolve(canvas.toDataURL('image/jpeg', 0.82));
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Could not read selected image.'));
+    };
+    image.src = objectUrl;
+  });
+}
+
 // ── SPA page switcher (Dashboard + Settings + Reports) ──
 function switchPage(page) {
   const mainContainer = document.getElementById('mainContainer');
@@ -65,6 +105,9 @@ function switchPage(page) {
     const sl = document.getElementById('slink-' + page);
     if (sl) sl.classList.add('active');
   }
+  document.querySelectorAll('.main-nav .nav-item, .mobile-nav .mnav-item').forEach(a => a.classList.remove('active'));
+  const navPage = page === 'overview' ? 'overview' : page;
+  document.querySelectorAll(`[data-dash-nav="${navPage}"]`).forEach(a => a.classList.add('active'));
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -116,7 +159,19 @@ function triggerBuildingUpload(loc) {
 
 function handleAvatarChange(input) {
   if (input.files && input.files[0]) {
-    document.getElementById('avatarFileName').textContent = input.files[0].name;
+    const file = input.files[0];
+    document.getElementById('avatarFileName').textContent = file.name;
+    readProfilePhoto(file)
+      .then(async photoData => {
+        const userName = `${document.getElementById('accFirstName')?.value.trim() || ''} ${document.getElementById('accLastName')?.value.trim() || ''}`.trim()
+          || document.getElementById('accUsername')?.value.trim()
+          || localStorage.getItem('userName')
+          || 'CCIS Admin';
+        const saved = await dashFetch('/users/profile', { method: 'PUT', body: JSON.stringify({ userName, profilePhotoData: photoData }) });
+        renderProfilePhoto(saved.user?.profilePhotoData || photoData);
+        showToast('success', 'Photo Updated', 'Your display picture has been saved.');
+      })
+      .catch(err => showToast('error', 'Upload Failed', err.message));
   }
 }
 
@@ -237,9 +292,38 @@ document.querySelectorAll('.filter-reset').forEach(btn => {
 
 // Initialize building grid on page load
 document.addEventListener('DOMContentLoaded', () => {
+  loadDashboardProfile();
   loadDashboardData();
   buildBuildingGrid();
 });
+
+async function loadDashboardProfile() {
+  if (!DASH_TOKEN) return;
+  try {
+    const user = await dashFetch('/users/me');
+    const displayName = user.userName || localStorage.getItem('userName') || 'CCIS Admin';
+    localStorage.setItem('userName', displayName);
+    localStorage.setItem('asa_user', displayName);
+
+    const nameParts = displayName.trim().split(/\s+/);
+    const first = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : displayName;
+    const last = nameParts.length > 1 ? nameParts.at(-1) : '';
+
+    document.getElementById('headerProfileName').textContent = displayName;
+    document.querySelector('.pd-name').textContent = displayName;
+    const firstInput = document.getElementById('accFirstName');
+    const lastInput = document.getElementById('accLastName');
+    const usernameInput = document.getElementById('accUsername');
+    const emailInput = document.getElementById('accEmail');
+    if (firstInput) firstInput.value = first;
+    if (lastInput) lastInput.value = last;
+    if (usernameInput) usernameInput.value = displayName.toLowerCase().replace(/\s+/g, '');
+    if (emailInput) emailInput.value = user.email || '';
+    renderProfilePhoto(user.profilePhotoData);
+  } catch (err) {
+    console.warn('Could not load dashboard profile:', err.message);
+  }
+}
 
 function dashBadge(status) {
   const cls = status === 'approved' ? 'badge-approved' : status === 'claimed' ? 'badge-claimed' : status === 'rejected' ? 'badge-danger' : 'badge-pending';
@@ -271,6 +355,7 @@ async function loadDashboardData() {
     renderClaims(claims);
     renderUsers(users);
     renderReports(appeals);
+    renderActivityLogs(items, claims, appeals);
   } catch (err) {
     showToast('error', 'Dashboard Error', err.message || 'Could not load dashboard data.');
   }
@@ -287,9 +372,71 @@ function renderItemRows(tbodyId, items) {
       <td>${new Date(i.createdAt || i.dateOccured).toLocaleDateString()}</td>
       <td>${i.locationDetail || i.location || ''}</td>
       <td>${dashBadge(i.itemStatus)}</td>
-      <td><button class="list-btn" onclick="deleteDashboardItem(${i.itemID})"><i class="fa-solid fa-trash"></i></button></td>
+      <td>
+        <button class="list-btn" title="View post" onclick="openDashboardItem(${i.itemID})"><i class="fa-solid fa-eye"></i></button>
+        <button class="list-btn" title="Delete post" onclick="deleteDashboardItem(${i.itemID})"><i class="fa-solid fa-trash"></i></button>
+      </td>
     </tr>
   `).join('') : `<tr><td colspan="7" style="text-align:center;padding:24px;color:#9ca3af">No records found.</td></tr>`;
+}
+
+function openDashboardItem(itemID) {
+  window.location.href = `/admin?itemID=${encodeURIComponent(itemID)}`;
+}
+
+function formatLogDate(value) {
+  const date = value ? new Date(value) : null;
+  return date && !Number.isNaN(date.getTime()) ? date.toLocaleString() : '';
+}
+
+function renderActivityLogs(items, claims, appeals) {
+  const logs = [
+    ...items.map(item => ({
+      user: item.reporterName || 'Unknown User',
+      action: `Submitted ${item.itemType === 'found' ? 'Found' : 'Lost'} Item`,
+      item: item.title || 'Untitled item',
+      date: item.createdAt || item.dateOccured
+    })),
+    ...claims.map(claim => ({
+      user: claim.userName || 'Unknown User',
+      action: claim.claimStatus === 'approved' ? 'Approved Claim' : claim.claimStatus === 'rejected' ? 'Rejected Claim' : 'Claim Request',
+      item: claim.itemTitle || 'Untitled item',
+      date: claim.createdAt
+    })),
+    ...appeals.map(appeal => ({
+      user: appeal.userName || 'Unknown User',
+      action: 'Submitted Item Report',
+      item: appeal.itemTitle || 'Untitled item',
+      date: appeal.createdAt
+    }))
+  ].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+  const logsBody = document.getElementById('logs-tbody');
+  if (logsBody) {
+    logsBody.innerHTML = logs.length ? logs.map((log, index) => `
+      <tr>
+        <td>${String(index + 1).padStart(3, '0')}</td>
+        <td>${log.user}</td>
+        <td>${log.action}</td>
+        <td>${log.item}</td>
+        <td>${formatLogDate(log.date)}</td>
+      </tr>
+    `).join('') : `<tr><td colspan="5" style="text-align:center;padding:24px;color:#9ca3af">No activity yet.</td></tr>`;
+  }
+
+  const activityList = document.getElementById('activityList');
+  if (activityList) {
+    activityList.innerHTML = logs.slice(0, 5).map(log => `
+      <div class="act-item">
+        <span class="act-dot dot-green"></span>
+        <div class="act-text">
+          <strong>${log.action}</strong><br>
+          ${log.user} - ${log.item}
+        </div>
+        <span class="act-time">${formatLogDate(log.date)}</span>
+      </div>
+    `).join('') || '<p style="color:#9ca3af">No activity yet.</p>';
+  }
 }
 
 function renderClaims(claims) {
