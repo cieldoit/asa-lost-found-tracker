@@ -467,8 +467,8 @@
         </div>
       </div>
       <div class="sidebar-bottom-links">
-        <a href="dashboard.html" class="dashboard-link-btn"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
-        <a href="/" class="sidebar-logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
+        <button type="button" class="dashboard-link-btn" onclick="showPage('dashboard')"><i class="fa-solid fa-chart-line"></i> Dashboard</button>
+        <a href="/login/landing.html" class="sidebar-logout-btn" onclick="window.Auth?.logout?.(); return false;"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
       </div>
     </div>
     <div class="settings-content-area">

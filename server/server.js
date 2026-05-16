@@ -199,7 +199,8 @@ async function ensureDefaultAdminAccount() {
     return;
   }
 
-  const adminUserName = process.env.ADMIN_USERNAME || 'ccis_admin';
+  const adminLoginName = process.env.ADMIN_USERNAME || 'ccis_admin';
+  const adminDisplayName = process.env.ADMIN_DISPLAY_NAME || 'CCIS Admin';
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@carsu.edu.ph';
   const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
   const passwordHash = await bcrypt.hash(adminPassword, 10);
@@ -212,7 +213,7 @@ async function ensureDefaultAdminAccount() {
           OR userName = ?
           OR LOWER(REPLACE(REPLACE(REPLACE(userName, ' ', ''), '_', ''), '.', '')) = ?
        LIMIT 1`,
-      [adminEmail, adminUserName, normalizeUsername(adminUserName), compactUsername(adminUserName)]
+      [adminEmail, adminDisplayName, normalizeUsername(adminLoginName), compactUsername(adminLoginName)]
     );
 
     if (admins.length) {
@@ -220,13 +221,13 @@ async function ensureDefaultAdminAccount() {
         `UPDATE USERS
          SET userName = ?, email = ?, password = ?, role = 'Admin', userStatus = 'active'
          WHERE userID = ?`,
-        [adminUserName, adminEmail, passwordHash, admins[0].userID]
+        [adminDisplayName, adminEmail, passwordHash, admins[0].userID]
       );
     } else {
       await db.execute(
         `INSERT INTO USERS (userName, email, password, role, userStatus)
          VALUES (?, ?, ?, 'Admin', 'active')`,
-        [adminUserName, adminEmail, passwordHash]
+        [adminDisplayName, adminEmail, passwordHash]
       );
     }
   } catch (err) {
