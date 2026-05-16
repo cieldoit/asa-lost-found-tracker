@@ -134,45 +134,44 @@ function renderGuestItems(containerId, items) {
       day: "numeric"
     });
 
+    const pickupName = item.locationName || item.location || item.locationDetail || "Campus";
+    const pickupPhoto = item.locationPhoto || "";
+    const itemPhoto = item.itemPhotoData || "";
     const emoji = getGuestEmoji(item.categoryName, item.itemType);
     const gradient = isLost
       ? "linear-gradient(135deg,#dbeafe,#bfdbfe)"
       : "linear-gradient(135deg,#dcfce7,#bbf7d0)";
+    const imageMarkup = isLost && itemPhoto
+      ? `<img src="${itemPhoto}" alt="${escapeHtml(item.title)} photo">`
+      : !isLost && pickupPhoto
+        ? `<img src="${pickupPhoto}" alt="${escapeHtml(pickupName)} building photo">`
+        : `<div style="width:100%;height:100%;background:${gradient};display:flex;align-items:center;justify-content:center;font-size:48px;">${emoji}</div>`;
+    const description = item.description || "No description available.";
 
     return `
       <div class="item-card"
         data-title="${escapeHtml(item.title)}"
         data-cat="${escapeHtml(item.categoryName)}"
-        data-desc="${escapeHtml(item.description || "No description available.")}"
-        data-loc="${escapeHtml(item.locationDetail)}"
+        data-desc="${escapeHtml(description)}"
+        data-loc="${escapeHtml(pickupName)}"
         data-date="${date}"
         data-type="${item.itemType}"
+        data-photo="${escapeHtml(pickupPhoto)}"
+        data-item-photo="${escapeHtml(itemPhoto)}"
         onclick="triggerLoginGate('details')"
       >
         <div class="card-img-wrap">
-          <div style="
-            width:100%;
-            height:100%;
-            background:${gradient};
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            font-size:48px;
-          ">
-            ${emoji}
-          </div>
-
+          ${imageMarkup}
           <span class="badge badge-${item.itemType}">${item.itemType.toUpperCase()}</span>
-          <span class="badge badge-pending">PENDING</span>
         </div>
 
         <div class="card-info">
           <h3>${escapeHtml(item.title)}</h3>
           <span class="category-tag">${escapeHtml(item.categoryName)}</span>
-          <p class="card-desc">${escapeHtml(item.description || "No description available.")}</p>
+          <p class="card-desc">${escapeHtml(description.substring(0, 80))}${description.length > 80 ? "..." : ""}</p>
 
           <div class="card-footer-row">
-            <span>📍 ${escapeHtml(item.locationDetail)}</span>
+            <span>${!isLost && pickupPhoto ? `<img class="building-thumb" src="${pickupPhoto}" alt="${escapeHtml(pickupName)} building photo">` : '<i class="fa-solid fa-location-dot"></i>'} ${escapeHtml(pickupName)}</span>
             <span class="view-link">VIEW DETAILS</span>
           </div>
         </div>
@@ -188,6 +187,8 @@ function openItemModal(card) {
   const desc = card.dataset.desc;
   const loc = card.dataset.loc;
   const date = card.dataset.date;
+  const photo = card.dataset.photo || "";
+  const itemPhoto = card.dataset.itemPhoto || "";
 
   const isLost = type === "lost";
   const emoji = getGuestEmoji(cat, type);
@@ -200,11 +201,11 @@ function openItemModal(card) {
   imgSec.style.minHeight = "240px";
   imgSec.style.borderRadius = "12px";
   imgSec.style.fontSize = "80px";
-  imgSec.innerHTML = `
-    <span style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-height:240px">
-      ${emoji}
-    </span>
-  `;
+  imgSec.innerHTML = isLost && itemPhoto
+    ? `<img src="${itemPhoto}" alt="${title} photo">`
+    : !isLost && photo
+      ? `<img src="${photo}" alt="${loc} building photo">`
+      : `<span style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-height:240px">${emoji}</span>`;
 
   document.getElementById("modalTypeBadge").textContent = type.toUpperCase();
   document.getElementById("modalTypeBadge").className = `badge badge-${type}`;

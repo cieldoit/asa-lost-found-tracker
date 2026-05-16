@@ -396,6 +396,20 @@ body {
   font-size: 12px; color: var(--text-muted);
   border-top: 1px solid var(--border); padding-top: 10px;
 }
+.card-footer-row span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.building-thumb {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
 .view-link { color: var(--green); font-weight: 700; font-size: 11px; letter-spacing: 0.05em; }
 
 /* ============================================================
