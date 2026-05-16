@@ -29,7 +29,7 @@ router.get('/stats', async (req, res) => {
 router.get('/users', async (req, res) => {
   try {
     const [users] = await db.query(`
-      SELECT userID, userName, email, role, userStatus
+      SELECT userID, userName, email, role, userStatus, profilePhotoData
       FROM USERS
       ORDER BY userID DESC
     `);

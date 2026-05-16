@@ -234,8 +234,12 @@ const UserAPI = {
   async getMe() {
     return apiFetch('/users/me');
   },
-  async updateProfile(userName) {
-    return apiFetch('/users/profile', { method: 'PUT', body: JSON.stringify({ userName }) });
+  async updateProfile(userNameOrProfile, profilePhotoData) {
+    const payload = typeof userNameOrProfile === 'object'
+      ? userNameOrProfile
+      : { userName: userNameOrProfile };
+    if (profilePhotoData !== undefined) payload.profilePhotoData = profilePhotoData;
+    return apiFetch('/users/profile', { method: 'PUT', body: JSON.stringify(payload) });
   },
   async changePassword(currentPassword, newPassword) {
     return apiFetch('/users/change-password', { method: 'PUT', body: JSON.stringify({ currentPassword, newPassword }) });

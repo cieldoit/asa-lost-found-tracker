@@ -1089,6 +1089,39 @@ function splitFullName(name) {
   return { firstName: parts.slice(0, -1).join(' '), lastName: parts.at(-1) };
 }
 
+function renderProfilePhoto(photoData) {
+  const icon = '<i class="fa-solid fa-user"></i>';
+  const content = photoData ? `<img src="${photoData}" alt="Profile photo">` : icon;
+  document.querySelectorAll('.profile-avatar, .main-avatar').forEach(el => {
+    el.innerHTML = content;
+  });
+}
+
+function readProfilePhoto(file) {
+  if (!file || !file.type.startsWith('image/')) {
+    return Promise.reject(new Error('Please choose an image file.'));
+  }
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    image.onload = () => {
+      const maxSize = 420;
+      const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(image.width * scale));
+      canvas.height = Math.max(1, Math.round(image.height * scale));
+      canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(objectUrl);
+      resolve(canvas.toDataURL('image/jpeg', 0.82));
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Could not read selected image.'));
+    };
+    image.src = objectUrl;
+  });
+}
+
 function populateAccountForm(user) {
   const fullName = String(user?.userName || '').trim();
   const { firstName, lastName } = splitFullName(fullName);
@@ -1133,6 +1166,7 @@ async function syncCurrentUserProfile() {
   if (welcomeName) welcomeName.textContent = firstName;
   document.querySelector('student-header')?.setUsername?.(displayName, user.role || storedRole);
   populateAccountForm(user);
+  renderProfilePhoto(user.profilePhotoData);
   return user;
 }
 
@@ -1187,10 +1221,21 @@ async function submitPasswordChange(e) {
   }
 }
  
-function handleAvatarChange(input) {
+async function handleAvatarChange(input) {
   if (!input.files || !input.files[0]) return;
-  document.getElementById('avatarFileName').textContent = input.files[0].name;
-  showToast('info', 'Photo Selected', 'Click Update to save your new photo.');
+  const file = input.files[0];
+  document.getElementById('avatarFileName').textContent = file.name;
+  try {
+    const profilePhotoData = await readProfilePhoto(file);
+    const userName = `${document.getElementById('accFirstName').value.trim()} ${document.getElementById('accLastName').value.trim()}`.trim()
+      || localStorage.getItem('userName')
+      || 'Student';
+    const data = await UserAPI.updateProfile({ userName, profilePhotoData });
+    renderProfilePhoto(data.user?.profilePhotoData || profilePhotoData);
+    showToast('success', 'Photo Updated', 'Your display picture has been saved.');
+  } catch (err) {
+    showToast('error', 'Upload Failed', err.message || 'Could not update display picture.');
+  }
 }
  
 /* ============================================================

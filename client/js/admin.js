@@ -26,6 +26,8 @@ let pendingDeleteCard = null;
 let currentModalCard  = null;
 let pendingTagDelete  = null;
 let currentAdminUser = null;
+let adminItemsCache = [];
+let pendingAdminItemID = new URLSearchParams(window.location.search).get('itemID');
 
 function showToast(type, title, message) {
   const container = document.getElementById('toast-container');
@@ -405,7 +407,23 @@ function filterItems(type) { const query=document.getElementById(`${type}Search`
 function switchSettingsTab(tab, btn) { document.querySelectorAll('.settings-section').forEach(s=>s.classList.remove('active')); document.querySelectorAll('.s-nav-btn').forEach(b=>b.classList.remove('active')); document.getElementById(`set-${tab}`)?.classList.add('active'); if(btn) btn.classList.add('active'); }
 function submitAccountInfo(e) { submitAdminAccountInfo(e); }
 function submitPasswordChange(e) { submitAdminPasswordChange(e); }
-function handleAvatarChange(input) { if(input.files && input.files[0]) document.getElementById('avatarFileName').textContent=input.files[0].name; }
+async function handleAvatarChange(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  document.getElementById('avatarFileName').textContent = file.name;
+  try {
+    const profilePhotoData = await readProfileImage(file);
+    const userName = `${document.getElementById("accFirstName")?.value.trim() || ""} ${document.getElementById("accLastName")?.value.trim() || ""}`.trim()
+      || currentAdminUser?.userName
+      || "CCIS Admin";
+    const data = await UserAPI.updateProfile({ userName, profilePhotoData });
+    currentAdminUser = data.user || { ...currentAdminUser, userName, profilePhotoData };
+    renderAdminProfilePhoto(currentAdminUser.profilePhotoData);
+    showToast('success', 'Photo Updated', 'Your display picture has been saved.');
+  } catch (err) {
+    showToast('error', 'Upload Failed', err.message || 'Could not update display picture.');
+  }
+}
 function updateFoundPickupPreview() {
   const loc = document.getElementById('foundPickup')?.value || '';
   const photoBox = document.getElementById('foundPickupPreviewPhoto');
@@ -572,6 +590,39 @@ function splitFullName(name) {
   if (parts.length <= 1) return { firstName: parts[0] || "", lastName: "" };
   return { firstName: parts.slice(0, -1).join(" "), lastName: parts.at(-1) };
 }
+function defaultProfileAvatar() {
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+}
+function renderAdminProfilePhoto(photoData) {
+  const content = photoData ? `<img src="${photoData}" alt="Profile photo">` : defaultProfileAvatar();
+  document.querySelectorAll('.profile-avatar, .main-avatar').forEach(el => {
+    el.innerHTML = content;
+  });
+}
+function readProfileImage(file) {
+  if (!file || !file.type.startsWith('image/')) {
+    return Promise.reject(new Error('Please choose an image file.'));
+  }
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    image.onload = () => {
+      const maxSize = 420;
+      const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(image.width * scale));
+      canvas.height = Math.max(1, Math.round(image.height * scale));
+      canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(objectUrl);
+      resolve(canvas.toDataURL('image/jpeg', 0.82));
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Could not read selected image.'));
+    };
+    image.src = objectUrl;
+  });
+}
 function populateAdminAccountForm(user) {
   const { firstName, lastName } = splitFullName(user?.userName);
   const username = String(user?.userName || "").trim();
@@ -602,6 +653,7 @@ async function ensureAdminSession() {
     localStorage.setItem("userName", me.userName || "CCIS Admin");
     document.querySelector('admin-header')?.setUsername(me.userName || "CCIS Admin");
     populateAdminAccountForm(me);
+    renderAdminProfilePhoto(me.profilePhotoData);
     return true;
   } catch (err) {
     adminSessionReady = false;
@@ -887,6 +939,7 @@ async function loadAdminItems() {
     if (!res.ok) throw new Error("Failed to load items");
 
     const items = await res.json();
+    adminItemsCache = Array.isArray(items) ? items : [];
 
     const lostGrid = document.getElementById("lostItemsGrid");
     const foundGrid = document.getElementById("foundItemsGrid");
@@ -906,9 +959,24 @@ async function loadAdminItems() {
       recentBox?.appendChild(buildAdminItemCard(item));
     });
 
+    openPendingAdminItem();
+    return adminItemsCache;
+
   } catch (err) {
     console.error("LOAD ITEMS ERROR:", err);
+    return [];
   }
+}
+
+function openPendingAdminItem() {
+  if (!pendingAdminItemID) return;
+  const item = adminItemsCache.find(i => String(i.itemID) === String(pendingAdminItemID));
+  if (!item) return;
+  showPage(item.itemType === 'found' ? 'found' : 'lost');
+  openAdminItemModal(item);
+  pendingAdminItemID = null;
+  const cleanUrl = `${window.location.pathname}${window.location.hash || ''}`;
+  window.history.replaceState({}, '', cleanUrl);
 }
 
 async function loadAdminNotifications() {
@@ -1076,7 +1144,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadAdminUsers();
   loadAdminAppeals();
   loadAdminNotifications();
-  loadAdminItems();
+  await loadAdminItems();
+  if (window.location.hash === '#post') {
+    showPage('post');
+  }
 
   buildTagEditor('catTagsEditor', categories, populateAllSelects);
   buildTagEditor('locTagsEditor', locations, populateAllSelects);
@@ -1284,16 +1355,15 @@ async function submitAdminAccountInfo(e) {
     || document.getElementById('accUsername')?.value.trim();
   if (!userName) { showToast('error', 'Required', 'Please fill in name fields.'); return; }
   try {
-    const res = await fetch(`${ADMIN_API_BASE}/users/profile`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ userName })
+    const data = await UserAPI.updateProfile({
+      userName,
+      ...(currentAdminUser?.profilePhotoData ? { profilePhotoData: currentAdminUser.profilePhotoData } : {})
     });
-    if (!res.ok) throw new Error((await res.json()).error || 'Failed');
-    currentAdminUser = { ...(currentAdminUser || {}), userName };
+    currentAdminUser = data.user || { ...(currentAdminUser || {}), userName };
     localStorage.setItem('asa_user', userName);
     localStorage.setItem('userName', userName);
     document.querySelector('admin-header')?.setUsername(userName);
+    renderAdminProfilePhoto(currentAdminUser.profilePhotoData);
     populateAdminAccountForm(currentAdminUser);
     showToast('success', 'Account Updated', 'Your profile has been saved.');
   } catch (err) {
