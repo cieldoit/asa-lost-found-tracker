@@ -422,6 +422,7 @@ async function loadItems() {
     document.getElementById('statLost').textContent  = lostItems.length;
     document.getElementById('statFound').textContent = foundItems.length;
  
+    renderItemGrid('allItemsGrid', items);
     renderItemGrid('lostItemsGrid',  lostItems);
     renderItemGrid('foundItemsGrid', foundItems);
     renderRecentItems(items.slice(0, 4));
@@ -1069,6 +1070,18 @@ function filterItems(type) {
       (card.dataset.desc  || '').toLowerCase().includes(query);
     const matchCat = !catVal || (card.dataset.cat || '').toLowerCase() === catVal;
     card.style.display = (matchQuery && matchCat) ? '' : 'none';
+  });
+}
+
+function filterAllItems() {
+  const query = document.getElementById('allItemsSearch')?.value.toLowerCase() || '';
+  const type = document.getElementById('allItemsTypeFilter')?.value || '';
+  document.querySelectorAll('#allItemsGrid .item-card').forEach(card => {
+    const matchQuery = !query
+      || (card.dataset.title || '').toLowerCase().includes(query)
+      || (card.dataset.desc || '').toLowerCase().includes(query);
+    const matchType = !type || card.dataset.type === type;
+    card.style.display = matchQuery && matchType ? '' : 'none';
   });
 }
  
