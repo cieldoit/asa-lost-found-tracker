@@ -126,8 +126,6 @@ function authenticateAdmin(req, res, next) {
 
 /* ================= ROUTE MODULES ================= */
 const adminRoutes = require('./routes/admin');
-app.use('/api/admin', authenticateAdmin, adminRoutes);
-
 const notificationRoutes = require('./routes/notifications');
 app.use('/api/notifications', notificationRoutes);
 
@@ -170,6 +168,14 @@ function normalizeUsername(value) {
     .replace(/^[._]+|[._]+$/g, '');
 }
 
+function compactUsername(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/@.*$/, '')
+    .replace(/[^a-z0-9]+/g, '');
+}
+
 function usernameFromRegistration(name, email) {
   const fromEmail = normalizeUsername(email);
   const fromName = normalizeUsername(name);
@@ -192,8 +198,13 @@ app.post('/api/login', async (req, res) => {
 
   try {
     const [users] = await db.execute(
-      'SELECT * FROM USERS WHERE email = ? OR userName = ? LIMIT 1',
-      [identifier, normalizeUsername(identifier)]
+      `SELECT * FROM USERS
+       WHERE LOWER(email) = LOWER(?)
+          OR LOWER(userName) = LOWER(?)
+          OR userName = ?
+          OR LOWER(REPLACE(REPLACE(REPLACE(userName, ' ', ''), '_', ''), '.', '')) = ?
+       LIMIT 1`,
+      [identifier, identifier, normalizeUsername(identifier), compactUsername(identifier)]
     );
 
    if (users.length === 0)
@@ -729,8 +740,16 @@ app.post('/api/admin/login', async (req, res) => {
 
   try {
     const [users] = await db.execute(
-      "SELECT * FROM USERS WHERE (userName = ? OR email = ?) AND LOWER(role) = 'admin'",
-      [normalizeUsername(managedBy), managedBy]
+      `SELECT * FROM USERS
+       WHERE LOWER(role) = 'admin'
+         AND (
+           LOWER(email) = LOWER(?)
+           OR LOWER(userName) = LOWER(?)
+           OR userName = ?
+           OR LOWER(REPLACE(REPLACE(REPLACE(userName, ' ', ''), '_', ''), '.', '')) = ?
+         )
+       LIMIT 1`,
+      [managedBy, managedBy, normalizeUsername(managedBy), compactUsername(managedBy)]
     );
 
     if (users.length === 0)
@@ -756,6 +775,8 @@ app.post('/api/admin/login', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+app.use('/api/admin', authenticateAdmin, adminRoutes);
 
 /* ================= MY CLAIMS ================= */
 
@@ -945,4 +966,3 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
