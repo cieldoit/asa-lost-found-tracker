@@ -160,15 +160,40 @@ async function ensureItemPhotoColumn() {
 ensureStoragePhotoColumn();
 ensureItemPhotoColumn();
 
+function normalizeUsername(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/@.*$/, '')
+    .replace(/[^a-z0-9._]+/g, '_')
+    .replace(/[._]{2,}/g, '_')
+    .replace(/^[._]+|[._]+$/g, '');
+}
+
+function usernameFromRegistration(name, email) {
+  const fromEmail = normalizeUsername(email);
+  const fromName = normalizeUsername(name);
+  return fromEmail || fromName;
+}
+
+function isValidUsernameFormat(username) {
+  return /^[a-z0-9](?:[a-z0-9._]{1,28}[a-z0-9])$/.test(username);
+}
+
 /* ================= AUTH ================= */
 
 app.post('/api/login', async (req, res) => {
-  const { email, password } = req.body;
+  const identifier = String(req.body.identifier || req.body.email || '').trim();
+  const { password } = req.body;
+
+  if (!identifier || !password) {
+    return res.status(400).json({ error: "Email/username and password are required." });
+  }
 
   try {
     const [users] = await db.execute(
-      'SELECT * FROM USERS WHERE email = ?',
-      [email]
+      'SELECT * FROM USERS WHERE email = ? OR userName = ? LIMIT 1',
+      [identifier, normalizeUsername(identifier)]
     );
 
    if (users.length === 0)
@@ -480,6 +505,14 @@ app.post('/api/register', async (req, res) => {
     return res.status(400).json({ error: "All fields are required." });
   }
 
+  const userName = usernameFromRegistration(name, email);
+
+  if (!isValidUsernameFormat(userName)) {
+    return res.status(400).json({
+      error: "Username must be 3-30 characters and use only lowercase letters, numbers, dots, or underscores."
+    });
+  }
+
   if (["Student", "Staff"].includes(role) && !campusEmailPattern.test(email)) {
     return res.status(400).json({
       error: "Email must follow firstname.lastname@carsu.edu.ph format."
@@ -498,12 +531,15 @@ app.post('/api/register', async (req, res) => {
 
   try {
     const [existing] = await db.execute(
-      "SELECT userID FROM USERS WHERE email = ?",
-      [email]
+      "SELECT userID, email, userName FROM USERS WHERE email = ? OR userName = ? LIMIT 1",
+      [email, userName]
     );
 
     if (existing.length > 0) {
-      return res.status(400).json({ error: "Email already registered." });
+      if (String(existing[0].email).toLowerCase() === String(email).toLowerCase()) {
+        return res.status(400).json({ error: "Email already registered." });
+      }
+      return res.status(400).json({ error: "Username already taken. Please use a different email or contact support." });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -514,7 +550,7 @@ app.post('/api/register', async (req, res) => {
     await db.execute(`
       INSERT INTO USERS (userName, email, password, role, userStatus)
       VALUES (?, ?, ?, ?, 'pending')
-    `, [name, email, hashedPassword, role]);
+    `, [userName, email, hashedPassword, role]);
 
     await db.execute(`
       INSERT INTO OTP_VERIFICATIONS (email, otpCode, expiresAt)
@@ -525,17 +561,18 @@ app.post('/api/register', async (req, res) => {
       from: ASA_EMAIL_FROM,
       to: email,
       subject: "ASA Email Verification Code",
-      text: `Hi ${name}, your ASA verification code is ${otp}. This code expires in 10 minutes.`,
+      text: `Hi ${name}, your ASA username is ${userName}. Your verification code is ${otp}. This code expires in 10 minutes.`,
       html: buildVerificationEmail({
         code: otp,
         name,
-        intro: 'Welcome to ASA. Use this code to verify your email address and activate your lost and found account.'
+        intro: `Welcome to ASA. Your username is ${userName}. Use this code to verify your email address and activate your lost and found account.`
       })
     });
 
     res.status(201).json({
       message: "Account created. Please verify your email.",
-      email
+      email,
+      userName
     });
 
   } catch (err) {
@@ -693,7 +730,7 @@ app.post('/api/admin/login', async (req, res) => {
   try {
     const [users] = await db.execute(
       "SELECT * FROM USERS WHERE (userName = ? OR email = ?) AND LOWER(role) = 'admin'",
-      [managedBy, managedBy]
+      [normalizeUsername(managedBy), managedBy]
     );
 
     if (users.length === 0)
