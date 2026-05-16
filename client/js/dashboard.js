@@ -51,6 +51,16 @@ function fallbackAvatarIcon() {
   return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
 }
 
+function formatAccountUsername(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/@.*$/, '')
+    .replace(/[^a-z0-9._]+/g, '_')
+    .replace(/[._]{2,}/g, '_')
+    .replace(/^[._]+|[._]+$/g, '');
+}
+
 function renderProfilePhoto(photoData) {
   dashboardProfilePhotoData = photoData || dashboardProfilePhotoData || null;
   const content = dashboardProfilePhotoData
@@ -317,7 +327,7 @@ async function loadDashboardProfile() {
     const emailInput = document.getElementById('accEmail');
     if (firstInput) firstInput.value = first;
     if (lastInput) lastInput.value = last;
-    if (usernameInput) usernameInput.value = displayName.toLowerCase().replace(/\s+/g, '');
+    if (usernameInput) usernameInput.value = formatAccountUsername(user.accountUsername || displayName);
     if (emailInput) emailInput.value = user.email || '';
     renderProfilePhoto(user.profilePhotoData);
   } catch (err) {
