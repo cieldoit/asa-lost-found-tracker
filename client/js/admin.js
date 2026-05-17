@@ -1101,6 +1101,25 @@ async function markAllAdminNotificationsRead() {
   }
 }
 
+
+async function openAdminNotification(notifID, itemID) {
+  try {
+    if (notifID) await markSingleNotificationRead(notifID);
+  } catch (err) {
+    console.warn('Could not mark notification read:', err.message);
+  }
+
+  closeAllDropdowns();
+  closeAdminNotificationsModal();
+
+  if (itemID) {
+    window.location.href = `/admin?itemID=${encodeURIComponent(itemID)}`;
+  } else {
+    window.location.href = '/admin#claims';
+  }
+}
+window.openAdminNotification = openAdminNotification;
+
 async function markSingleNotificationRead(notificationID) {
   try {
 
@@ -1119,6 +1138,129 @@ async function markSingleNotificationRead(notificationID) {
   }
 }
 
+
+function ensureClaimDecisionModal() {
+  let modal = document.getElementById('claimDecisionModal');
+  if (modal) return modal;
+
+  modal = document.createElement('div');
+  modal.className = 'popup-overlay';
+  modal.id = 'claimDecisionModal';
+  modal.innerHTML = `
+    <div class="popup-box" style="max-width:520px;text-align:left">
+      <h3 id="claimDecisionTitle">Claim Decision</h3>
+      <p id="claimDecisionSubtitle" style="color:#6b7280;margin-bottom:14px"></p>
+      <input type="hidden" id="claimDecisionID">
+      <input type="hidden" id="claimDecisionAction">
+      <div id="claimApproveFields">
+        <label class="form-label">Storage / Pick-Up Location</label>
+        <input class="form-input" id="claimPickupLocation" placeholder="Example: CAA LSG Office">
+        <label class="form-label" style="margin-top:12px">Available Schedule</label>
+        <input class="form-input" id="claimPickupSchedule" placeholder="Example: May 18, 2026, 9:00 AM - 4:00 PM">
+      </div>
+      <label class="form-label" style="margin-top:12px">Message / Note</label>
+      <textarea class="form-textarea" id="claimAdminNote" placeholder="Optional note for the claimant"></textarea>
+      <div class="popup-actions">
+        <button class="btn-cancel" onclick="closeClaimDecisionModal()">Cancel</button>
+        <button class="btn-submit" onclick="submitClaimDecision()">Send</button>
+      </div>
+    </div>
+  `;
+  modal.addEventListener('click', e => {
+    if (e.target === modal) closeClaimDecisionModal();
+  });
+  document.body.appendChild(modal);
+  return modal;
+}
+
+function openClaimDecisionModal(claimID, action, itemTitle = 'this item') {
+  const modal = ensureClaimDecisionModal();
+  document.getElementById('claimDecisionID').value = claimID;
+  document.getElementById('claimDecisionAction').value = action;
+  document.getElementById('claimDecisionTitle').textContent = action === 'approve' ? 'Approve Claim' : 'Reject Claim';
+  document.getElementById('claimDecisionSubtitle').textContent = action === 'approve'
+    ? `Tell the claimant when and where to verify ownership and pick up "${itemTitle}".`
+    : `Tell the claimant why the request for "${itemTitle}" was rejected.`;
+  document.getElementById('claimApproveFields').style.display = action === 'approve' ? 'block' : 'none';
+  document.getElementById('claimPickupLocation').value = '';
+  document.getElementById('claimPickupSchedule').value = '';
+  document.getElementById('claimAdminNote').value = '';
+  modal.classList.add('active');
+}
+
+function closeClaimDecisionModal() {
+  document.getElementById('claimDecisionModal')?.classList.remove('active');
+}
+
+async function submitClaimDecision() {
+  const claimID = document.getElementById('claimDecisionID').value;
+  const action = document.getElementById('claimDecisionAction').value;
+  const payload = {
+    pickupLocation: document.getElementById('claimPickupLocation').value.trim(),
+    pickupSchedule: document.getElementById('claimPickupSchedule').value.trim(),
+    adminNote: document.getElementById('claimAdminNote').value.trim()
+  };
+
+  if (action === 'approve' && (!payload.pickupLocation || !payload.pickupSchedule)) {
+    showToast('error', 'Missing Details', 'Pickup location and available schedule are required.');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${ADMIN_API_BASE}/admin/claims/${claimID}/${action}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || data.message || 'Claim update failed');
+
+    closeClaimDecisionModal();
+    closeItemModal();
+    showToast(action === 'approve' ? 'success' : 'info', action === 'approve' ? 'Claim Approved' : 'Claim Rejected', action === 'approve' ? 'The claimant was notified with pickup instructions.' : 'The claimant was notified.');
+    await loadAdminClaims();
+    await loadAdminStats();
+    await loadAdminItems();
+    await loadAdminNotifications();
+  } catch (err) {
+    showToast('error', 'Claim Update Failed', err.message);
+  }
+}
+
+function renderAdminModalActions(item) {
+  const actionBox = document.querySelector('.modal-admin-actions');
+  if (!actionBox) return;
+  actionBox.innerHTML = '';
+
+  if (item.pendingClaimID) {
+    const approve = document.createElement('button');
+    approve.className = 'btn-modal-resolve';
+    approve.textContent = 'Approve Claim';
+    approve.onclick = () => openClaimDecisionModal(item.pendingClaimID, 'approve', item.title || 'item');
+    actionBox.appendChild(approve);
+
+    const reject = document.createElement('button');
+    reject.className = 'btn-modal-delete';
+    reject.textContent = 'Reject Claim';
+    reject.onclick = () => openClaimDecisionModal(item.pendingClaimID, 'reject', item.title || 'item');
+    actionBox.appendChild(reject);
+  }
+
+  const resolve = document.createElement('button');
+  resolve.className = 'btn-modal-resolve';
+  resolve.textContent = '✓ Mark as Resolved';
+  resolve.onclick = resolveFromModal;
+  actionBox.appendChild(resolve);
+
+  const del = document.createElement('button');
+  del.className = 'btn-modal-delete';
+  del.textContent = 'Delete Post';
+  del.onclick = deleteFromModal;
+  actionBox.appendChild(del);
+}
+window.openClaimDecisionModal = openClaimDecisionModal;
+window.closeClaimDecisionModal = closeClaimDecisionModal;
+window.submitClaimDecision = submitClaimDecision;
 function buildAdminItemCard(item) {
   const isLost = item.itemType === "lost";
   const statusClass = { pending: 'badge-pending', approved: 'badge-approved', rejected: 'badge-danger', claimed: 'badge-claimed' }[item.itemStatus] || 'badge-pending';
@@ -1209,6 +1351,7 @@ function openAdminItemModal(item) {
     </div>
   `;
 
+  renderAdminModalActions(item);
   document.getElementById("itemModal").classList.add("active");
 }
 
@@ -1298,9 +1441,9 @@ async function loadAdminClaims() {
         <td><span class="badge badge-${c.claimStatus === 'pending' ? 'pending' : c.claimStatus === 'approved' ? 'claimed' : 'danger'}">${c.claimStatus.toUpperCase()}</span></td>
         <td>
           ${c.claimStatus === 'pending' ? `
-            <button class="btn-action btn-approve" onclick="approveClaim(${c.claimID}, this)">Approve</button>
-            <button class="btn-action btn-reject" onclick="rejectClaim(${c.claimID}, this)">Reject</button>
-          ` : '—'}
+            <button class="btn-action btn-approve" onclick="openClaimDecisionModal(${c.claimID}, 'approve', '${String(c.itemTitle || 'item').replace(/'/g, '&#39;')}')">Approve</button>
+            <button class="btn-action btn-reject" onclick="openClaimDecisionModal(${c.claimID}, 'reject', '${String(c.itemTitle || 'item').replace(/'/g, '&#39;')}')">Reject</button>
+          ` : '-'}
         </td>
       </tr>
     `).join('');

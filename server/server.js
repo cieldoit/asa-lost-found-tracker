@@ -180,10 +180,29 @@ async function ensureUserCreatedAtColumn() {
     }
   }
 }
+async function ensureClaimPickupColumns() {
+  const columns = [
+    ['pickupLocation', 'VARCHAR(255) NULL'],
+    ['pickupSchedule', 'VARCHAR(255) NULL'],
+    ['adminNote', 'TEXT NULL']
+  ];
+
+  for (const [column, definition] of columns) {
+    try {
+      await db.execute(`ALTER TABLE CLAIMS ADD COLUMN ${column} ${definition}`);
+    } catch (err) {
+      if (err.code !== 'ER_DUP_FIELDNAME') {
+        console.warn(`Could not ensure CLAIMS.${column}:`, err.message);
+      }
+    }
+  }
+}
+
 ensureStoragePhotoColumn();
 ensureItemPhotoColumn();
 ensureUserProfilePhotoColumn();
 ensureUserCreatedAtColumn();
+ensureClaimPickupColumns();
 
 function normalizeUsername(value) {
   return String(value || '')
