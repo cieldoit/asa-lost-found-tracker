@@ -7,18 +7,21 @@ const realtime = require('../realtime');
 /* ================= ADMIN STATS ================= */
 router.get('/stats', async (req, res) => {
   try {
-    const [[users]]    = await db.query(`SELECT COUNT(*) AS totalUsers FROM USERS`);
-    const [[lost]]     = await db.query(`SELECT COUNT(*) AS totalLost FROM ITEMS WHERE itemType = 'lost'`);
-    const [[found]]    = await db.query(`SELECT COUNT(*) AS totalFound FROM ITEMS WHERE itemType = 'found'`);
-    const [[claims]]   = await db.query(`SELECT COUNT(*) AS pendingClaims FROM CLAIMS WHERE claimStatus = 'pending'`);
-    const [[resolved]] = await db.query(`SELECT COUNT(*) AS resolvedItems FROM ITEMS WHERE itemStatus = 'claimed'`);
+    const [[stats]] = await db.query(`
+      SELECT
+        (SELECT COUNT(*) FROM USERS) AS totalUsers,
+        (SELECT COUNT(*) FROM ITEMS WHERE itemType = 'lost') AS totalLost,
+        (SELECT COUNT(*) FROM ITEMS WHERE itemType = 'found') AS totalFound,
+        (SELECT COUNT(*) FROM CLAIMS WHERE claimStatus = 'pending') AS pendingClaims,
+        (SELECT COUNT(*) FROM ITEMS WHERE itemStatus = 'claimed') AS resolvedItems
+    `);
 
     res.json({
-      totalUsers:    users.totalUsers,
-      totalLost:     lost.totalLost,
-      totalFound:    found.totalFound,
-      pendingClaims: claims.pendingClaims,
-      resolvedItems: resolved.resolvedItems
+      totalUsers: stats.totalUsers || 0,
+      totalLost: stats.totalLost || 0,
+      totalFound: stats.totalFound || 0,
+      pendingClaims: stats.pendingClaims || 0,
+      resolvedItems: stats.resolvedItems || 0
     });
   } catch (err) {
     console.error(err);

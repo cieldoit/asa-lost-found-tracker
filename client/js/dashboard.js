@@ -351,26 +351,52 @@ function dashBadge(status) {
 
 async function loadDashboardData() {
   if (!DASH_TOKEN) return;
-  try {
-    const [stats, items, claims, users, appeals] = await Promise.all([
-      dashFetch('/admin/stats'),
-      dashFetch('/admin/items'),
-      dashFetch('/admin/claims'),
-      dashFetch('/admin/users'),
-      dashFetch('/admin/appeals').catch(() => [])
-    ]);
+
+  const updateStats = stats => {
     document.getElementById('countLost').textContent = stats.totalLost ?? 0;
     document.getElementById('countFound').textContent = stats.totalFound ?? 0;
-    document.getElementById('countPending').textContent = claims.filter(c => c.claimStatus === 'pending').length;
-    document.getElementById('countUsers').textContent = users.length;
-    document.getElementById('countClaimed').textContent = items.filter(i => i.itemStatus === 'claimed').length;
-    renderItemRows('lost-tbody', items.filter(i => i.itemType === 'lost'));
-    renderItemRows('found-tbody', items.filter(i => i.itemType === 'found'));
-    renderItemRows('claimed-tbody', items.filter(i => i.itemStatus === 'claimed'));
-    renderUpdates(items);
-    renderClaims(claims);
-    renderUsers(users);
-    renderReports(appeals);
+    document.getElementById('countPending').textContent = stats.pendingClaims ?? 0;
+    document.getElementById('countUsers').textContent = stats.totalUsers ?? 0;
+    document.getElementById('countClaimed').textContent = stats.resolvedItems ?? 0;
+  };
+
+  try {
+    const statsPromise = dashFetch('/admin/stats').then(stats => {
+      updateStats(stats);
+      return stats;
+    });
+
+    const itemsPromise = dashFetch('/admin/items').then(items => {
+      const itemList = Array.isArray(items) ? items : [];
+      renderItemRows('lost-tbody', itemList.filter(i => i.itemType === 'lost'));
+      renderItemRows('found-tbody', itemList.filter(i => i.itemType === 'found'));
+      renderItemRows('claimed-tbody', itemList.filter(i => i.itemStatus === 'claimed'));
+      renderUpdates(itemList);
+      return itemList;
+    });
+
+    const claimsPromise = dashFetch('/admin/claims').then(claims => {
+      const claimList = Array.isArray(claims) ? claims : [];
+      document.getElementById('countPending').textContent = claimList.filter(c => c.claimStatus === 'pending').length;
+      renderClaims(claimList);
+      return claimList;
+    });
+
+    const usersPromise = dashFetch('/admin/users').then(users => {
+      const userList = Array.isArray(users) ? users : [];
+      document.getElementById('countUsers').textContent = userList.length;
+      renderUsers(userList);
+      return userList;
+    });
+
+    const appealsPromise = dashFetch('/admin/appeals').then(appeals => {
+      const appealList = Array.isArray(appeals) ? appeals : [];
+      renderReports(appealList);
+      return appealList;
+    }).catch(() => []);
+
+    const [items, claims, appeals] = await Promise.all([itemsPromise, claimsPromise, appealsPromise]);
+    await Promise.allSettled([statsPromise, usersPromise]);
     renderActivityLogs(items, claims, appeals);
   } catch (err) {
     showToast('error', 'Dashboard Error', err.message || 'Could not load dashboard data.');
