@@ -186,10 +186,12 @@ router.get('/claims', async (req, res) => {
         u.email,
         i.title AS itemTitle,
         i.itemType,
-        i.itemID
+        i.itemID,
+        COALESCE(sl.storageName, i.locationDetail, 'Campus') AS pickupLocationSource
       FROM CLAIMS c
       JOIN USERS u ON c.userID = u.userID
       JOIN ITEMS i ON c.itemID = i.itemID
+      LEFT JOIN STORAGE_LOCATIONS sl ON i.locationID = sl.locationID
       ORDER BY c.createdAt DESC
     `);
     res.json(claims);
@@ -201,16 +203,22 @@ router.get('/claims', async (req, res) => {
 
 router.put('/claims/:id/approve', async (req, res) => {
   try {
-    const { pickupLocation, pickupSchedule, adminNote } = req.body || {};
+    const { pickupSchedule, adminNote } = req.body || {};
 
-    if (!pickupLocation || !pickupSchedule) {
-      return res.status(400).json({ error: 'Pickup location and schedule are required.' });
+    if (!pickupSchedule) {
+      return res.status(400).json({ error: 'Pickup schedule is required.' });
     }
 
     const [claims] = await db.query(`
-      SELECT c.userID, c.itemID, i.title, i.userID AS ownerID
+      SELECT
+        c.userID,
+        c.itemID,
+        i.title,
+        i.userID AS ownerID,
+        COALESCE(sl.storageName, i.locationDetail, 'Campus') AS pickupLocation
       FROM CLAIMS c
       JOIN ITEMS i ON c.itemID = i.itemID
+      LEFT JOIN STORAGE_LOCATIONS sl ON i.locationID = sl.locationID
       WHERE c.claimID = ?
     `, [req.params.id]);
 
@@ -221,14 +229,14 @@ router.put('/claims/:id/approve', async (req, res) => {
       UPDATE CLAIMS
       SET claimStatus = 'approved', pickupLocation = ?, pickupSchedule = ?, adminNote = ?
       WHERE claimID = ?
-    `, [pickupLocation, pickupSchedule, adminNote || '', req.params.id]);
+    `, [claim.pickupLocation, pickupSchedule, adminNote || '', req.params.id]);
 
     await db.query(`UPDATE ITEMS SET itemStatus = 'claimed' WHERE itemID = ?`, [claim.itemID]);
 
     await db.query(`INSERT INTO NOTIFICATIONS (userID, itemID, message) VALUES (?, ?, ?)`, [
       claim.userID,
       claim.itemID,
-      `Your claim for "${claim.title}" has been approved. Please go to ${pickupLocation} on ${pickupSchedule} for verification and pickup.${adminNote ? ` Note: ${adminNote}` : ''}`
+      `Your claim for "${claim.title}" has been approved. Please go to ${claim.pickupLocation} on ${pickupSchedule} for verification and pickup.${adminNote ? ` Note: ${adminNote}` : ''}`
     ]);
 
     if (claim.ownerID !== claim.userID) {
