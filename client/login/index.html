@@ -1001,7 +1001,14 @@
             margin-bottom: 18px;
         }
 
-        .social-icons { display: flex; gap: 10px; }
+        .social-icons { display: flex; gap: 10px;}
+
+        .social-icons a,
+        .social-icons a:hover,
+        .social-icons a .circle,
+        .social-icons a:hover .circle {
+            transform: none !important;
+        }
 
         .circle {
             width: 34px;
@@ -1260,6 +1267,8 @@
                     "box-3 box-4"
                     "box-5 box-5";
             }
+
+            
 
             .Item-2 {
                 grid-template-columns: 1fr;
@@ -1617,7 +1626,9 @@
                         <h3>ASA Lost & Found</h3>
                         <p>The official CSU-Main lost and found tracking platform for reporting items, browsing listings, and helping belongings return to the right owner.</p>
                         <div class="social-icons" aria-label="ASA support channels">
-                            <span class="circle">f</span>
+                            <a href="https://www.facebook.com/profile.php?id=61589747645898" class="fb">
+                                <span class="circle">f</span>
+                            </a>
                             <span class="circle">@</span>
                             <span class="circle">?</span>
                         </div>
