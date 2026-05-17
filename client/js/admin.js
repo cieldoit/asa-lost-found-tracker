@@ -1232,6 +1232,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadAdminUsers();
   loadAdminAppeals();
   loadAdminNotifications();
+  if (!window.adminNotificationPoll) {
+    window.adminNotificationPoll = setInterval(loadAdminNotifications, 10000);
+  }
+  window.addEventListener('focus', loadAdminNotifications);
   await loadAdminItems();
   const hashPage = { '#lost': 'lost', '#found': 'found', '#post': 'post', '#claims': 'claims', '#users': 'users', '#appeals': 'appeals' }[window.location.hash];
   if (hashPage) showPage(hashPage);
