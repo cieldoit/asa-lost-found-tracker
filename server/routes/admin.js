@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const realtime = require('../realtime');
 
 /* ================= ADMIN STATS ================= */
 router.get('/stats', async (req, res) => {
@@ -111,6 +112,10 @@ router.put('/items/:id/approve', async (req, res) => {
       `Your item "${item.title}" has been approved and is now visible.`
     ]);
 
+    realtime.emitToUser(item.userID, 'notifications-changed', { reason: 'item-approved', itemID: req.params.id });
+    realtime.emitToAll('items-changed', { reason: 'item-approved', itemID: req.params.id });
+    realtime.emitToRole('admin', 'admin-data-changed', { reason: 'item-approved', itemID: req.params.id });
+
     res.json({ message: 'Item approved successfully' });
   } catch (err) {
     console.error(err);
@@ -130,6 +135,10 @@ router.put('/items/:id/reject', async (req, res) => {
       item.userID, req.params.id,
       `Your item "${item.title}" has been rejected.`
     ]);
+
+    realtime.emitToUser(item.userID, 'notifications-changed', { reason: 'item-rejected', itemID: req.params.id });
+    realtime.emitToAll('items-changed', { reason: 'item-rejected', itemID: req.params.id });
+    realtime.emitToRole('admin', 'admin-data-changed', { reason: 'item-rejected', itemID: req.params.id });
 
     res.json({ message: 'Item rejected successfully' });
   } catch (err) {
@@ -151,6 +160,10 @@ router.put('/items/:id/resolve', async (req, res) => {
       `Your item "${item.title}" has been marked as resolved/claimed.`
     ]);
 
+    realtime.emitToUser(item.userID, 'notifications-changed', { reason: 'item-resolved', itemID: req.params.id });
+    realtime.emitToAll('items-changed', { reason: 'item-resolved', itemID: req.params.id });
+    realtime.emitToRole('admin', 'admin-data-changed', { reason: 'item-resolved', itemID: req.params.id });
+
     res.json({ message: 'Item resolved successfully' });
   } catch (err) {
     console.error(err);
@@ -163,6 +176,9 @@ router.delete('/items/:id', async (req, res) => {
     await db.query('DELETE FROM CLAIMS WHERE itemID = ?', [req.params.id]);
     await db.query('DELETE FROM NOTIFICATIONS WHERE itemID = ?', [req.params.id]);
     await db.query('DELETE FROM ITEMS WHERE itemID = ?', [req.params.id]);
+    realtime.emitToAll('items-changed', { reason: 'item-deleted', itemID: req.params.id });
+    realtime.emitToRole('admin', 'admin-data-changed', { reason: 'item-deleted', itemID: req.params.id });
+
     res.json({ message: 'Item deleted successfully' });
   } catch (err) {
     console.error(err);
@@ -247,6 +263,11 @@ router.put('/claims/:id/approve', async (req, res) => {
       ]);
     }
 
+    realtime.emitToUser(claim.userID, 'notifications-changed', { reason: 'claim-approved', itemID: claim.itemID });
+    if (claim.ownerID !== claim.userID) realtime.emitToUser(claim.ownerID, 'notifications-changed', { reason: 'claim-approved-owner', itemID: claim.itemID });
+    realtime.emitToAll('items-changed', { reason: 'claim-approved', itemID: claim.itemID });
+    realtime.emitToRole('admin', 'claims-changed', { reason: 'claim-approved', itemID: claim.itemID });
+
     res.json({ message: 'Claim approved successfully' });
   } catch (err) {
     console.error(err);
@@ -279,6 +300,9 @@ router.put('/claims/:id/reject', async (req, res) => {
       claim.itemID,
       `Your claim for "${claim.title}" has been rejected.${adminNote ? ` Reason: ${adminNote}` : ''}`
     ]);
+
+    realtime.emitToUser(claim.userID, 'notifications-changed', { reason: 'claim-rejected', itemID: claim.itemID });
+    realtime.emitToRole('admin', 'claims-changed', { reason: 'claim-rejected', itemID: claim.itemID });
 
     res.json({ message: 'Claim rejected successfully' });
   } catch (err) {

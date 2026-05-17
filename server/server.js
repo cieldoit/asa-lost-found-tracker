@@ -7,6 +7,7 @@ require('dotenv').config();
 
 const db = require('./db');
 const transporter = require('./mailer');
+const realtime = require('./realtime');
 
 const app = express();
 
@@ -128,6 +129,17 @@ function authenticateAdmin(req, res, next) {
 const adminRoutes = require('./routes/admin');
 const notificationRoutes = require('./routes/notifications');
 app.use('/api/notifications', notificationRoutes);
+
+app.get('/api/events', (req, res) => {
+  const token = req.query.token;
+  if (!token) return res.sendStatus(401);
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) return res.sendStatus(403);
+    realtime.addClient(user, res);
+  });
+});
+
 
 async function ensureStoragePhotoColumn() {
   try {
@@ -413,6 +425,10 @@ await Promise.all(admins.map(admin => db.execute(`
   `${userName} reported a ${itemType} item: "${title}".`
 ])));
 
+    realtime.emitToAll('items-changed', { reason: 'item-posted', itemID: result.insertId });
+    realtime.emitToRole('admin', 'admin-data-changed', { reason: 'item-posted', itemID: result.insertId });
+    realtime.emitToUser(userID, 'notifications-changed', { reason: 'item-posted', itemID: result.insertId });
+
     res.status(201).json({
       message: "Item posted successfully.",
       itemID: result.insertId
@@ -474,6 +490,9 @@ app.post('/api/claims', authenticateToken, async (req, res) => {
       `${claimantName} requested to claim ${itemType} item: "${itemTitle}".`
     ])));
 
+    realtime.emitToRole('admin', 'claims-changed', { reason: 'claim-submitted', itemID });
+    realtime.emitToUser(userID, 'notifications-changed', { reason: 'claim-submitted', itemID });
+
     res.json({ message: "Claim submitted" });
 
   } catch (err) {
@@ -524,6 +543,9 @@ app.post('/api/appeals', authenticateToken, async (req, res) => {
       `${userName} submitted an appeal for "${itemTitle}".`
     ])));
 
+    realtime.emitToRole('admin', 'admin-data-changed', { reason: 'appeal-submitted', itemID });
+    realtime.emitToUser(userID, 'notifications-changed', { reason: 'appeal-submitted', itemID });
+
     res.json({ message: "Appeal submitted" });
 
   } catch (err) {
@@ -558,6 +580,8 @@ app.put('/api/notifications/:id/read', authenticateToken, async (req, res) => {
     [notifID, userID]
   );
 
+  realtime.emitToUser(userID, 'notifications-changed', { reason: 'notification-read' });
+
   res.json({ message: "Marked as read" });
 });
 
@@ -568,6 +592,8 @@ app.put('/api/notifications/read-all', authenticateToken, async (req, res) => {
     'UPDATE NOTIFICATIONS SET isRead = 1 WHERE userID = ?',
     [userID]
   );
+
+  realtime.emitToUser(userID, 'notifications-changed', { reason: 'notifications-read-all' });
 
   res.json({ message: "All notifications marked as read" });
 });
