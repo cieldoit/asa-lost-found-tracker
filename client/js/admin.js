@@ -1089,13 +1089,10 @@ function buildAdminItemCard(item) {
       <div class="card-footer-row"><span>${!isLost ? `<img class="building-thumb" src="${pickupPhoto || "data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='1.5' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 21h18M3 7v1a4 4 0 004 4h10a4 4 0 004-4V7M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16'/%3E%3C/svg%3E"}" alt="${pickupName} building photo">` : '\u{1F4CD}'} ${pickupName}</span><button class="view-btn" onclick='openAdminItemModal(${JSON.stringify(item)})'>View Details</button></div>
     </div>
     <div class="card-admin-actions">
-      ${item.itemStatus === 'pending' ? '<button class="btn-card-action btn-card-approve">Approve</button><button class="btn-card-action btn-card-reject">Reject</button>' : ''}
       <button class="btn-card-action btn-card-resolve">\u2713 Resolve</button>
       <button class="btn-card-action btn-card-delete">\u{1F5D1} Delete</button>
     </div>
   `;
-  card.querySelector('.btn-card-approve')?.addEventListener('click', function(e) { e.stopPropagation(); setAdminItemStatus(this, 'approve'); });
-  card.querySelector('.btn-card-reject')?.addEventListener('click', function(e) { e.stopPropagation(); setAdminItemStatus(this, 'reject'); });
   card.querySelector('.btn-card-resolve').addEventListener('click', function(e) { e.stopPropagation(); resolveItem(this); });
   card.querySelector('.btn-card-delete').addEventListener('click', function(e) { e.stopPropagation(); confirmDelete(this); });
   return card;
@@ -1170,9 +1167,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadAdminAppeals();
   loadAdminNotifications();
   await loadAdminItems();
-  if (window.location.hash === '#post') {
-    showPage('post');
-  }
+  const hashPage = { '#lost': 'lost', '#found': 'found', '#post': 'post', '#claims': 'claims', '#users': 'users', '#appeals': 'appeals' }[window.location.hash];
+  if (hashPage) showPage(hashPage);
 
   buildTagEditor('catTagsEditor', categories, populateAllSelects);
   buildTagEditor('locTagsEditor', locations, populateAllSelects);

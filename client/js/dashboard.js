@@ -352,15 +352,12 @@ async function loadDashboardData() {
     ]);
     document.getElementById('countLost').textContent = stats.totalLost ?? 0;
     document.getElementById('countFound').textContent = stats.totalFound ?? 0;
-    document.getElementById('countPending').textContent = items.filter(i => i.itemStatus === 'pending').length;
+    document.getElementById('countPending').textContent = claims.filter(c => c.claimStatus === 'pending').length;
     document.getElementById('countUsers').textContent = users.length;
     document.getElementById('countClaimed').textContent = items.filter(i => i.itemStatus === 'claimed').length;
-    document.getElementById('countApproved').textContent = items.filter(i => i.itemStatus === 'approved').length;
     renderItemRows('lost-tbody', items.filter(i => i.itemType === 'lost'));
     renderItemRows('found-tbody', items.filter(i => i.itemType === 'found'));
-    renderItemRows('pending-tbody', items.filter(i => i.itemStatus === 'pending'));
     renderItemRows('claimed-tbody', items.filter(i => i.itemStatus === 'claimed'));
-    renderItemRows('approved-tbody', items.filter(i => i.itemStatus === 'approved'));
     renderUpdates(items);
     renderClaims(claims);
     renderUsers(users);
@@ -374,20 +371,17 @@ async function loadDashboardData() {
 function renderItemRows(tbodyId, items) {
   const tbody = document.getElementById(tbodyId);
   if (!tbody) return;
-  tbody.innerHTML = items.length ? items.map(i => `
-    <tr data-item-id="${i.itemID}">
-      <td><div style="width:40px;height:40px;background:${i.itemType === 'lost' ? '#dbeafe' : '#dcfce7'};border-radius:8px;display:flex;align-items:center;justify-content:center">${i.itemType === 'lost' ? 'L' : 'F'}</div></td>
-      <td>${i.title}</td>
-      <td>${i.category || 'General'}</td>
-      <td>${new Date(i.createdAt || i.dateOccured).toLocaleDateString()}</td>
-      <td>${i.locationDetail || i.location || ''}</td>
-      <td>${dashBadge(i.itemStatus)}</td>
-      <td>
-        <button class="list-btn" title="View post" onclick="openDashboardItem(${i.itemID})"><i class="fa-solid fa-eye"></i></button>
-        <button class="list-btn" title="Delete post" onclick="deleteDashboardItem(${i.itemID})"><i class="fa-solid fa-trash"></i></button>
-      </td>
-    </tr>
-  `).join('') : `<tr><td colspan="7" style="text-align:center;padding:24px;color:#9ca3af">No records found.</td></tr>`;
+  const colspan = tbodyId === 'found-tbody' ? 7 : 6;
+  tbody.innerHTML = items.length ? items.map(i => {
+    const isFound = i.itemType === 'found';
+    const img = `<div style="width:40px;height:40px;background:${isFound ? '#dcfce7' : '#dbeafe'};border-radius:8px;display:flex;align-items:center;justify-content:center">${isFound ? 'F' : 'L'}</div>`;
+    const date = new Date(i.createdAt || i.dateOccured).toLocaleDateString();
+    const actions = `<button class="list-btn" title="View post" onclick="openDashboardItem(${i.itemID})"><i class="fa-solid fa-eye"></i></button><button class="list-btn" title="Delete post" onclick="deleteDashboardItem(${i.itemID})"><i class="fa-solid fa-trash"></i></button>`;
+    if (tbodyId === 'found-tbody') {
+      return `<tr data-item-id="${i.itemID}"><td>${img}</td><td>${i.title}</td><td>${i.category || 'General'}</td><td>${date}</td><td>${i.locationDetail || i.location || ''}</td><td>${dashBadge(i.itemStatus)}</td><td>${actions}</td></tr>`;
+    }
+    return `<tr data-item-id="${i.itemID}"><td>${img}</td><td>${i.title}</td><td>${i.category || 'General'}</td><td>${date}</td><td>${dashBadge(i.itemStatus)}</td><td>${actions}</td></tr>`;
+  }).join('') : `<tr><td colspan="${colspan}" style="text-align:center;padding:24px;color:#9ca3af">No records found.</td></tr>`;
 }
 
 function openDashboardItem(itemID) {
@@ -449,18 +443,50 @@ function renderActivityLogs(items, claims, appeals) {
   }
 }
 
+function claimProofCell(claim) {
+  return claim.proof ? '<i class="fa-solid fa-paperclip" style="color:var(--green)"></i> Provided' : 'No proof';
+}
+
 function renderClaims(claims) {
-  const tbody = document.getElementById('overview-pending-body');
-  if (!tbody) return;
   const pending = claims.filter(c => c.claimStatus === 'pending');
-  tbody.innerHTML = pending.length ? pending.map(c => `
-    <tr><td>${c.itemTitle}</td><td>${c.userName}</td><td>${c.itemType}</td><td>${new Date(c.createdAt).toLocaleDateString()}</td><td>${dashBadge(c.claimStatus)}</td><td></td></tr>
-  `).join('') : `<tr><td colspan="6" style="text-align:center;padding:24px;color:#9ca3af">No pending claims.</td></tr>`;
+  const overview = document.getElementById('overview-pending-body');
+  if (overview) {
+    overview.innerHTML = pending.length ? pending.map(c => `
+      <tr>
+        <td>${c.itemTitle || 'Untitled item'}</td>
+        <td>${c.userName || 'Unknown'}${c.email ? ` (${c.email})` : ''}</td>
+        <td>${c.itemType || 'Item'}</td>
+        <td>${new Date(c.createdAt).toLocaleDateString()}</td>
+        <td>${dashBadge(c.claimStatus)}</td>
+        <td><button class="list-btn" title="View post" onclick="openDashboardItem(${c.itemID})"><i class="fa-solid fa-eye"></i></button></td>
+      </tr>
+    `).join('') : `<tr><td colspan="6" style="text-align:center;padding:24px;color:#9ca3af">No pending claims.</td></tr>`;
+  }
+
+  const pendingBody = document.getElementById('pending-tbody');
+  if (pendingBody) {
+    pendingBody.innerHTML = pending.length ? pending.map(c => `
+      <tr>
+        <td>${claimProofCell(c)}</td>
+        <td>${c.userName || 'Unknown'}${c.email ? ` (${c.email})` : ''}</td>
+        <td>${c.itemTitle || 'Untitled item'}</td>
+        <td>${c.itemType || 'Item'}</td>
+        <td>${new Date(c.createdAt).toLocaleDateString()}</td>
+        <td>${dashBadge(c.claimStatus)}</td>
+        <td><button class="list-btn" title="View post" onclick="openDashboardItem(${c.itemID})"><i class="fa-solid fa-eye"></i></button></td>
+      </tr>
+    `).join('') : `<tr><td colspan="7" style="text-align:center;padding:24px;color:#9ca3af">No pending claim items.</td></tr>`;
+  }
 }
 
 function renderUpdates(items) {
-  const rows = items.slice(0, 10).map(i => `<tr><td>${i.itemID}</td><td>${i.title}</td><td>${i.category || 'General'}</td><td>${new Date(i.createdAt).toLocaleDateString()}</td><td>${dashBadge(i.itemStatus)}</td></tr>`).join('');
-  ['overview-updates-body','updates-tbody'].forEach(id => { const tbody = document.getElementById(id); if (tbody) tbody.innerHTML = rows; });
+  const visible = items.filter(i => !['approved', 'rejected'].includes(String(i.itemStatus || '').toLowerCase())).slice(0, 10);
+  const overviewRows = visible.map(i => `<tr><td>${i.itemID}</td><td>${i.title}</td><td>${i.category || 'General'}</td><td>${new Date(i.createdAt || i.dateOccured).toLocaleDateString()}</td><td>${dashBadge(i.itemStatus)}</td></tr>`).join('');
+  const updateRows = visible.map(i => `<tr><td>${i.title}</td><td>${i.reporterName || 'Unknown'}</td><td>${i.category || 'General'}</td><td>${i.itemType || 'Item'}</td><td>${dashBadge(i.itemStatus)}</td><td>${new Date(i.createdAt || i.dateOccured).toLocaleDateString()}</td></tr>`).join('');
+  const overviewBody = document.getElementById('overview-updates-body');
+  const updatesBody = document.getElementById('updates-tbody');
+  if (overviewBody) overviewBody.innerHTML = overviewRows || `<tr><td colspan="5" style="text-align:center;padding:24px;color:#9ca3af">No recent updates.</td></tr>`;
+  if (updatesBody) updatesBody.innerHTML = updateRows || `<tr><td colspan="6" style="text-align:center;padding:24px;color:#9ca3af">No recent updates.</td></tr>`;
 }
 
 function renderUsers(users) {
