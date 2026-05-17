@@ -1154,7 +1154,7 @@ function ensureClaimDecisionModal() {
       <input type="hidden" id="claimDecisionAction">
       <div id="claimApproveFields">
         <label class="form-label">Storage / Pick-Up Location</label>
-        <input class="form-input" id="claimPickupLocation" placeholder="Example: CAA LSG Office">
+        <input class="form-input" id="claimPickupLocation" readonly>
         <label class="form-label" style="margin-top:12px">Available Schedule</label>
         <input class="form-input" id="claimPickupSchedule" placeholder="Example: May 18, 2026, 9:00 AM - 4:00 PM">
       </div>
@@ -1173,16 +1173,16 @@ function ensureClaimDecisionModal() {
   return modal;
 }
 
-function openClaimDecisionModal(claimID, action, itemTitle = 'this item') {
+function openClaimDecisionModal(claimID, action, itemTitle = 'this item', pickupLocation = '') {
   const modal = ensureClaimDecisionModal();
   document.getElementById('claimDecisionID').value = claimID;
   document.getElementById('claimDecisionAction').value = action;
   document.getElementById('claimDecisionTitle').textContent = action === 'approve' ? 'Approve Claim' : 'Reject Claim';
   document.getElementById('claimDecisionSubtitle').textContent = action === 'approve'
-    ? `Tell the claimant when and where to verify ownership and pick up "${itemTitle}".`
+    ? `Tell the claimant when to verify ownership and pick up "${itemTitle}".`
     : `Tell the claimant why the request for "${itemTitle}" was rejected.`;
   document.getElementById('claimApproveFields').style.display = action === 'approve' ? 'block' : 'none';
-  document.getElementById('claimPickupLocation').value = '';
+  document.getElementById('claimPickupLocation').value = pickupLocation || 'Stored location not specified';
   document.getElementById('claimPickupSchedule').value = '';
   document.getElementById('claimAdminNote').value = '';
   modal.classList.add('active');
@@ -1196,13 +1196,12 @@ async function submitClaimDecision() {
   const claimID = document.getElementById('claimDecisionID').value;
   const action = document.getElementById('claimDecisionAction').value;
   const payload = {
-    pickupLocation: document.getElementById('claimPickupLocation').value.trim(),
     pickupSchedule: document.getElementById('claimPickupSchedule').value.trim(),
     adminNote: document.getElementById('claimAdminNote').value.trim()
   };
 
-  if (action === 'approve' && (!payload.pickupLocation || !payload.pickupSchedule)) {
-    showToast('error', 'Missing Details', 'Pickup location and available schedule are required.');
+  if (action === 'approve' && !payload.pickupSchedule) {
+    showToast('error', 'Missing Details', 'Available schedule is required.');
     return;
   }
 
@@ -1236,7 +1235,7 @@ function renderAdminModalActions(item) {
     const approve = document.createElement('button');
     approve.className = 'btn-modal-resolve';
     approve.textContent = 'Approve Claim';
-    approve.onclick = () => openClaimDecisionModal(item.pendingClaimID, 'approve', item.title || 'item');
+    approve.onclick = () => openClaimDecisionModal(item.pendingClaimID, 'approve', item.title || 'item', item.location || item.locationName || item.locationDetail || 'Campus');
     actionBox.appendChild(approve);
 
     const reject = document.createElement('button');
@@ -1441,7 +1440,7 @@ async function loadAdminClaims() {
         <td><span class="badge badge-${c.claimStatus === 'pending' ? 'pending' : c.claimStatus === 'approved' ? 'claimed' : 'danger'}">${c.claimStatus.toUpperCase()}</span></td>
         <td>
           ${c.claimStatus === 'pending' ? `
-            <button class="btn-action btn-approve" onclick="openClaimDecisionModal(${c.claimID}, 'approve', '${String(c.itemTitle || 'item').replace(/'/g, '&#39;')}')">Approve</button>
+            <button class="btn-action btn-approve" onclick="openClaimDecisionModal(${c.claimID}, 'approve', '${String(c.itemTitle || 'item').replace(/'/g, '&#39;')}', '${String(c.pickupLocationSource || 'Campus').replace(/'/g, '&#39;')}')">Approve</button>
             <button class="btn-action btn-reject" onclick="openClaimDecisionModal(${c.claimID}, 'reject', '${String(c.itemTitle || 'item').replace(/'/g, '&#39;')}')">Reject</button>
           ` : '-'}
         </td>

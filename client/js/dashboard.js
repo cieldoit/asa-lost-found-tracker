@@ -463,7 +463,7 @@ function ensureDashClaimDecisionModal() {
       <input type="hidden" id="dashClaimDecisionAction">
       <div id="dashClaimApproveFields">
         <label class="form-label">Storage / Pick-Up Location</label>
-        <input class="form-input" id="dashClaimPickupLocation" placeholder="Example: CAA LSG Office">
+        <input class="form-input" id="dashClaimPickupLocation" readonly>
         <label class="form-label" style="margin-top:12px">Available Schedule</label>
         <input class="form-input" id="dashClaimPickupSchedule" placeholder="Example: May 18, 2026, 9:00 AM - 4:00 PM">
       </div>
@@ -482,16 +482,16 @@ function ensureDashClaimDecisionModal() {
   return modal;
 }
 
-function openDashClaimDecisionModal(claimID, action, itemTitle = 'this item') {
+function openDashClaimDecisionModal(claimID, action, itemTitle = 'this item', pickupLocation = '') {
   const modal = ensureDashClaimDecisionModal();
   document.getElementById('dashClaimDecisionID').value = claimID;
   document.getElementById('dashClaimDecisionAction').value = action;
   document.getElementById('dashClaimDecisionTitle').textContent = action === 'approve' ? 'Approve Claim' : 'Reject Claim';
   document.getElementById('dashClaimDecisionSubtitle').textContent = action === 'approve'
-    ? `Tell the claimant when and where to verify ownership and pick up "${itemTitle}".`
+    ? `Tell the claimant when to verify ownership and pick up "${itemTitle}".`
     : `Tell the claimant why the request for "${itemTitle}" was rejected.`;
   document.getElementById('dashClaimApproveFields').style.display = action === 'approve' ? 'block' : 'none';
-  document.getElementById('dashClaimPickupLocation').value = '';
+  document.getElementById('dashClaimPickupLocation').value = pickupLocation || 'Stored location not specified';
   document.getElementById('dashClaimPickupSchedule').value = '';
   document.getElementById('dashClaimAdminNote').value = '';
   modal.classList.add('active');
@@ -505,13 +505,12 @@ async function submitDashClaimDecision() {
   const claimID = document.getElementById('dashClaimDecisionID').value;
   const action = document.getElementById('dashClaimDecisionAction').value;
   const payload = {
-    pickupLocation: document.getElementById('dashClaimPickupLocation').value.trim(),
     pickupSchedule: document.getElementById('dashClaimPickupSchedule').value.trim(),
     adminNote: document.getElementById('dashClaimAdminNote').value.trim()
   };
 
-  if (action === 'approve' && (!payload.pickupLocation || !payload.pickupSchedule)) {
-    showToast('error', 'Missing Details', 'Pickup location and available schedule are required.');
+  if (action === 'approve' && !payload.pickupSchedule) {
+    showToast('error', 'Missing Details', 'Available schedule is required.');
     return;
   }
 
@@ -545,7 +544,7 @@ function renderClaims(claims) {
         <td>${c.itemType || 'Item'}</td>
         <td>${formatLogDate(c.createdAt)}</td>
         <td>${dashBadge(c.claimStatus)}</td>
-        <td><button class="list-btn" title="View post" onclick="openDashboardItem(${c.itemID})"><i class="fa-solid fa-eye"></i></button> <button class="list-btn" title="Approve claim" onclick="openDashClaimDecisionModal(${c.claimID}, 'approve', '${safeJsText(c.itemTitle || "item")}')"><i class="fa-solid fa-check"></i></button> <button class="list-btn" title="Reject claim" onclick="openDashClaimDecisionModal(${c.claimID}, 'reject', '${safeJsText(c.itemTitle || "item")}')"><i class="fa-solid fa-xmark"></i></button></td>
+        <td><button class="list-btn" title="View post" onclick="openDashboardItem(${c.itemID})"><i class="fa-solid fa-eye"></i></button> <button class="list-btn" title="Approve claim" onclick="openDashClaimDecisionModal(${c.claimID}, 'approve', '${safeJsText(c.itemTitle || "item")}', '${safeJsText(c.pickupLocationSource || "Campus")}')"><i class="fa-solid fa-check"></i></button> <button class="list-btn" title="Reject claim" onclick="openDashClaimDecisionModal(${c.claimID}, 'reject', '${safeJsText(c.itemTitle || "item")}')"><i class="fa-solid fa-xmark"></i></button></td>
       </tr>
     `).join('') : `<tr><td colspan="6" style="text-align:center;padding:24px;color:#9ca3af">No pending claims.</td></tr>`;
   }
@@ -560,7 +559,7 @@ function renderClaims(claims) {
         <td>${c.itemType || 'Item'}</td>
         <td>${formatLogDate(c.createdAt)}</td>
         <td>${dashBadge(c.claimStatus)}</td>
-        <td><button class="list-btn" title="View post" onclick="openDashboardItem(${c.itemID})"><i class="fa-solid fa-eye"></i></button> <button class="list-btn" title="Approve claim" onclick="openDashClaimDecisionModal(${c.claimID}, 'approve', '${safeJsText(c.itemTitle || "item")}')"><i class="fa-solid fa-check"></i></button> <button class="list-btn" title="Reject claim" onclick="openDashClaimDecisionModal(${c.claimID}, 'reject', '${safeJsText(c.itemTitle || "item")}')"><i class="fa-solid fa-xmark"></i></button></td>
+        <td><button class="list-btn" title="View post" onclick="openDashboardItem(${c.itemID})"><i class="fa-solid fa-eye"></i></button> <button class="list-btn" title="Approve claim" onclick="openDashClaimDecisionModal(${c.claimID}, 'approve', '${safeJsText(c.itemTitle || "item")}', '${safeJsText(c.pickupLocationSource || "Campus")}')"><i class="fa-solid fa-check"></i></button> <button class="list-btn" title="Reject claim" onclick="openDashClaimDecisionModal(${c.claimID}, 'reject', '${safeJsText(c.itemTitle || "item")}')"><i class="fa-solid fa-xmark"></i></button></td>
       </tr>
     `).join('') : `<tr><td colspan="7" style="text-align:center;padding:24px;color:#9ca3af">No pending claim items.</td></tr>`;
   }
