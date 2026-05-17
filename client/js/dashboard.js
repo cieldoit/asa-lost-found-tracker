@@ -443,6 +443,93 @@ function renderActivityLogs(items, claims, appeals) {
   }
 }
 
+
+function safeJsText(value) {
+  return String(value || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+function ensureDashClaimDecisionModal() {
+  let modal = document.getElementById('dashClaimDecisionModal');
+  if (modal) return modal;
+
+  modal = document.createElement('div');
+  modal.className = 'popup-overlay';
+  modal.id = 'dashClaimDecisionModal';
+  modal.innerHTML = `
+    <div class="popup-box" style="max-width:520px;text-align:left">
+      <h3 id="dashClaimDecisionTitle">Claim Decision</h3>
+      <p id="dashClaimDecisionSubtitle" style="color:#6b7280;margin-bottom:14px"></p>
+      <input type="hidden" id="dashClaimDecisionID">
+      <input type="hidden" id="dashClaimDecisionAction">
+      <div id="dashClaimApproveFields">
+        <label class="form-label">Storage / Pick-Up Location</label>
+        <input class="form-input" id="dashClaimPickupLocation" placeholder="Example: CAA LSG Office">
+        <label class="form-label" style="margin-top:12px">Available Schedule</label>
+        <input class="form-input" id="dashClaimPickupSchedule" placeholder="Example: May 18, 2026, 9:00 AM - 4:00 PM">
+      </div>
+      <label class="form-label" style="margin-top:12px">Message / Note</label>
+      <textarea class="form-textarea" id="dashClaimAdminNote" placeholder="Optional note for the claimant"></textarea>
+      <div class="popup-actions">
+        <button class="btn-cancel" onclick="closeDashClaimDecisionModal()">Cancel</button>
+        <button class="btn-confirm-del" onclick="submitDashClaimDecision()">Send</button>
+      </div>
+    </div>
+  `;
+  modal.addEventListener('click', e => {
+    if (e.target === modal) closeDashClaimDecisionModal();
+  });
+  document.body.appendChild(modal);
+  return modal;
+}
+
+function openDashClaimDecisionModal(claimID, action, itemTitle = 'this item') {
+  const modal = ensureDashClaimDecisionModal();
+  document.getElementById('dashClaimDecisionID').value = claimID;
+  document.getElementById('dashClaimDecisionAction').value = action;
+  document.getElementById('dashClaimDecisionTitle').textContent = action === 'approve' ? 'Approve Claim' : 'Reject Claim';
+  document.getElementById('dashClaimDecisionSubtitle').textContent = action === 'approve'
+    ? `Tell the claimant when and where to verify ownership and pick up "${itemTitle}".`
+    : `Tell the claimant why the request for "${itemTitle}" was rejected.`;
+  document.getElementById('dashClaimApproveFields').style.display = action === 'approve' ? 'block' : 'none';
+  document.getElementById('dashClaimPickupLocation').value = '';
+  document.getElementById('dashClaimPickupSchedule').value = '';
+  document.getElementById('dashClaimAdminNote').value = '';
+  modal.classList.add('active');
+}
+
+function closeDashClaimDecisionModal() {
+  document.getElementById('dashClaimDecisionModal')?.classList.remove('active');
+}
+
+async function submitDashClaimDecision() {
+  const claimID = document.getElementById('dashClaimDecisionID').value;
+  const action = document.getElementById('dashClaimDecisionAction').value;
+  const payload = {
+    pickupLocation: document.getElementById('dashClaimPickupLocation').value.trim(),
+    pickupSchedule: document.getElementById('dashClaimPickupSchedule').value.trim(),
+    adminNote: document.getElementById('dashClaimAdminNote').value.trim()
+  };
+
+  if (action === 'approve' && (!payload.pickupLocation || !payload.pickupSchedule)) {
+    showToast('error', 'Missing Details', 'Pickup location and available schedule are required.');
+    return;
+  }
+
+  try {
+    await dashFetch(`/admin/claims/${claimID}/${action}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    });
+    closeDashClaimDecisionModal();
+    showToast(action === 'approve' ? 'success' : 'info', action === 'approve' ? 'Claim Approved' : 'Claim Rejected', action === 'approve' ? 'The claimant was notified with pickup instructions.' : 'The claimant was notified.');
+    await loadDashboardData();
+  } catch (err) {
+    showToast('error', 'Claim Update Failed', err.message);
+  }
+}
+window.openDashClaimDecisionModal = openDashClaimDecisionModal;
+window.closeDashClaimDecisionModal = closeDashClaimDecisionModal;
+window.submitDashClaimDecision = submitDashClaimDecision;
 function claimProofCell(claim) {
   return claim.proof ? '<i class="fa-solid fa-paperclip" style="color:var(--green)"></i> Provided' : 'No proof';
 }
@@ -458,7 +545,7 @@ function renderClaims(claims) {
         <td>${c.itemType || 'Item'}</td>
         <td>${formatLogDate(c.createdAt)}</td>
         <td>${dashBadge(c.claimStatus)}</td>
-        <td><button class="list-btn" title="View post" onclick="openDashboardItem(${c.itemID})"><i class="fa-solid fa-eye"></i></button></td>
+        <td><button class="list-btn" title="View post" onclick="openDashboardItem(${c.itemID})"><i class="fa-solid fa-eye"></i></button> <button class="list-btn" title="Approve claim" onclick="openDashClaimDecisionModal(${c.claimID}, 'approve', '${safeJsText(c.itemTitle || "item")}')"><i class="fa-solid fa-check"></i></button> <button class="list-btn" title="Reject claim" onclick="openDashClaimDecisionModal(${c.claimID}, 'reject', '${safeJsText(c.itemTitle || "item")}')"><i class="fa-solid fa-xmark"></i></button></td>
       </tr>
     `).join('') : `<tr><td colspan="6" style="text-align:center;padding:24px;color:#9ca3af">No pending claims.</td></tr>`;
   }
@@ -473,7 +560,7 @@ function renderClaims(claims) {
         <td>${c.itemType || 'Item'}</td>
         <td>${formatLogDate(c.createdAt)}</td>
         <td>${dashBadge(c.claimStatus)}</td>
-        <td><button class="list-btn" title="View post" onclick="openDashboardItem(${c.itemID})"><i class="fa-solid fa-eye"></i></button></td>
+        <td><button class="list-btn" title="View post" onclick="openDashboardItem(${c.itemID})"><i class="fa-solid fa-eye"></i></button> <button class="list-btn" title="Approve claim" onclick="openDashClaimDecisionModal(${c.claimID}, 'approve', '${safeJsText(c.itemTitle || "item")}')"><i class="fa-solid fa-check"></i></button> <button class="list-btn" title="Reject claim" onclick="openDashClaimDecisionModal(${c.claimID}, 'reject', '${safeJsText(c.itemTitle || "item")}')"><i class="fa-solid fa-xmark"></i></button></td>
       </tr>
     `).join('') : `<tr><td colspan="7" style="text-align:center;padding:24px;color:#9ca3af">No pending claim items.</td></tr>`;
   }

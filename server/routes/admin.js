@@ -29,7 +29,7 @@ router.get('/stats', async (req, res) => {
 router.get('/users', async (req, res) => {
   try {
     const [users] = await db.query(`
-      SELECT userID, userName, email, role, userStatus, profilePhotoData
+      SELECT userID, userName, email, role, userStatus, profilePhotoData, createdAt
       FROM USERS
       ORDER BY userID DESC
     `);
@@ -70,11 +70,25 @@ router.get('/items', async (req, res) => {
         u.userName AS reporterName,
         u.role AS reporterRole,
         sl.storageName AS location,
-        sl.photoData AS locationPhoto
+        sl.photoData AS locationPhoto,
+        pending.claimID AS pendingClaimID,
+        pending.userName AS pendingClaimantName,
+        pending.email AS pendingClaimantEmail
       FROM ITEMS i
       LEFT JOIN CATEGORIES c ON i.categoryID = c.categoryID
       LEFT JOIN USERS u ON i.userID = u.userID
       LEFT JOIN STORAGE_LOCATIONS sl ON i.locationID = sl.locationID
+      LEFT JOIN (
+        SELECT c.claimID, c.itemID, u2.userName, u2.email
+        FROM CLAIMS c
+        JOIN USERS u2 ON c.userID = u2.userID
+        WHERE c.claimStatus = 'pending'
+          AND c.claimID = (
+            SELECT MIN(c2.claimID)
+            FROM CLAIMS c2
+            WHERE c2.itemID = c.itemID AND c2.claimStatus = 'pending'
+          )
+      ) pending ON pending.itemID = i.itemID
       ORDER BY i.createdAt DESC
     `);
     res.json(items);
@@ -165,6 +179,9 @@ router.get('/claims', async (req, res) => {
         c.claimStatus,
         c.proof,
         c.createdAt,
+        c.pickupLocation,
+        c.pickupSchedule,
+        c.adminNote,
         u.userName,
         u.email,
         i.title AS itemTitle,
@@ -184,6 +201,12 @@ router.get('/claims', async (req, res) => {
 
 router.put('/claims/:id/approve', async (req, res) => {
   try {
+    const { pickupLocation, pickupSchedule, adminNote } = req.body || {};
+
+    if (!pickupLocation || !pickupSchedule) {
+      return res.status(400).json({ error: 'Pickup location and schedule are required.' });
+    }
+
     const [claims] = await db.query(`
       SELECT c.userID, c.itemID, i.title, i.userID AS ownerID
       FROM CLAIMS c
@@ -194,20 +217,25 @@ router.put('/claims/:id/approve', async (req, res) => {
     if (claims.length === 0) return res.status(404).json({ error: "Claim not found." });
     const claim = claims[0];
 
-    await db.query(`UPDATE CLAIMS SET claimStatus = 'approved' WHERE claimID = ?`, [req.params.id]);
+    await db.query(`
+      UPDATE CLAIMS
+      SET claimStatus = 'approved', pickupLocation = ?, pickupSchedule = ?, adminNote = ?
+      WHERE claimID = ?
+    `, [pickupLocation, pickupSchedule, adminNote || '', req.params.id]);
+
     await db.query(`UPDATE ITEMS SET itemStatus = 'claimed' WHERE itemID = ?`, [claim.itemID]);
 
-    // Notify claimant
     await db.query(`INSERT INTO NOTIFICATIONS (userID, itemID, message) VALUES (?, ?, ?)`, [
-      claim.userID, claim.itemID,
-      `Your claim for "${claim.title}" has been approved! Please pick it up.`
+      claim.userID,
+      claim.itemID,
+      `Your claim for "${claim.title}" has been approved. Please go to ${pickupLocation} on ${pickupSchedule} for verification and pickup.${adminNote ? ` Note: ${adminNote}` : ''}`
     ]);
 
-    // Notify original reporter
     if (claim.ownerID !== claim.userID) {
       await db.query(`INSERT INTO NOTIFICATIONS (userID, itemID, message) VALUES (?, ?, ?)`, [
-        claim.ownerID, claim.itemID,
-        `Your item "${claim.title}" has been claimed and resolved.`
+        claim.ownerID,
+        claim.itemID,
+        `Your item "${claim.title}" has an approved claim and is ready for claimant verification.`
       ]);
     }
 
@@ -220,6 +248,8 @@ router.put('/claims/:id/approve', async (req, res) => {
 
 router.put('/claims/:id/reject', async (req, res) => {
   try {
+    const { adminNote } = req.body || {};
+
     const [claims] = await db.query(`
       SELECT c.userID, c.itemID, i.title
       FROM CLAIMS c
@@ -230,11 +260,16 @@ router.put('/claims/:id/reject', async (req, res) => {
     if (claims.length === 0) return res.status(404).json({ error: "Claim not found." });
     const claim = claims[0];
 
-    await db.query(`UPDATE CLAIMS SET claimStatus = 'rejected' WHERE claimID = ?`, [req.params.id]);
+    await db.query(`
+      UPDATE CLAIMS
+      SET claimStatus = 'rejected', adminNote = ?
+      WHERE claimID = ?
+    `, [adminNote || '', req.params.id]);
 
     await db.query(`INSERT INTO NOTIFICATIONS (userID, itemID, message) VALUES (?, ?, ?)`, [
-      claim.userID, claim.itemID,
-      `Your claim for "${claim.title}" has been rejected.`
+      claim.userID,
+      claim.itemID,
+      `Your claim for "${claim.title}" has been rejected.${adminNote ? ` Reason: ${adminNote}` : ''}`
     ]);
 
     res.json({ message: 'Claim rejected successfully' });
