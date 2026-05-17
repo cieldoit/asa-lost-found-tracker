@@ -1413,5 +1413,3 @@ async function submitAdminPasswordChange(e) {
     showToast('error', 'Error', err.message || 'Could not update password.');
   }
 }
-
-
