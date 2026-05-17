@@ -197,12 +197,22 @@ async function ensureClaimPickupColumns() {
     }
   }
 }
+ 
+async function ensureDatabaseColumns() {
+  await ensureStoragePhotoColumn();
+  await ensureItemPhotoColumn();
+  await ensureUserProfilePhotoColumn();
+  await ensureUserCreatedAtColumn();
+  await ensureClaimPickupColumns();
+}
+
 
 ensureStoragePhotoColumn();
 ensureItemPhotoColumn();
 ensureUserProfilePhotoColumn();
 ensureUserCreatedAtColumn();
 ensureClaimPickupColumns();
+
 
 function normalizeUsername(value) {
   return String(value || '')
@@ -1189,6 +1199,16 @@ app.use((req, res) => {
   res.sendFile(path.join(clientDir, 'login/index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+async function startServer() {
+  try {
+    await ensureDatabaseColumns();
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (err) {
+    console.error('Server startup failed:', err);
+    process.exit(1);
+  }
+}
+
+startServer();
