@@ -1285,6 +1285,20 @@ document.addEventListener('keydown', e => {
 /* ============================================================
    INIT — runs on page load
 ============================================================ */
+
+const refreshStudentRealtime = (window.asaRealtimeDebounce || ((fn) => fn))(async event => {
+  const type = event.detail?.type;
+  if (type === 'connected' || type === 'heartbeat') return;
+
+  const tasks = [];
+  if (['items-changed', 'claims-changed', 'admin-data-changed'].includes(type) && typeof loadItems === 'function') tasks.push(loadItems());
+  if (['notifications-changed', 'items-changed', 'claims-changed'].includes(type) && typeof loadNotifications === 'function') tasks.push(loadNotifications());
+
+  await Promise.allSettled(tasks);
+}, 300);
+
+window.addEventListener('asa:realtime', refreshStudentRealtime);
+
 document.addEventListener('DOMContentLoaded', async () => {
   // 1. Guard — redirect to login if not logged in
   if (!requireAuth('/login/landing.html')) return;

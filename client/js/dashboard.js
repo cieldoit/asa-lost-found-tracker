@@ -307,6 +307,15 @@ document.addEventListener('DOMContentLoaded', () => {
   buildBuildingGrid();
 });
 
+
+const refreshDashboardRealtime = (window.asaRealtimeDebounce || ((fn) => fn))(async event => {
+  const type = event.detail?.type;
+  if (type === 'connected' || type === 'heartbeat') return;
+  if (typeof loadDashboardData === 'function') await loadDashboardData();
+}, 300);
+
+window.addEventListener('asa:realtime', refreshDashboardRealtime);
+
 async function loadDashboardProfile() {
   if (!DASH_TOKEN) return;
   try {

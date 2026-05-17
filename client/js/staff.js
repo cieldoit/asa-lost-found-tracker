@@ -1268,6 +1268,20 @@ async function markAllNotificationsRead() {
 /* ============================================================
    INIT
 ============================================================ */
+
+const refreshStaffRealtime = (window.asaRealtimeDebounce || ((fn) => fn))(async event => {
+  const type = event.detail?.type;
+  if (type === 'connected' || type === 'heartbeat') return;
+
+  const tasks = [];
+  if (['items-changed', 'claims-changed', 'admin-data-changed'].includes(type) && typeof loadItems === 'function') tasks.push(loadItems());
+  if (['notifications-changed', 'items-changed', 'claims-changed'].includes(type) && typeof loadNotifications === 'function') tasks.push(loadNotifications());
+
+  await Promise.allSettled(tasks);
+}, 300);
+
+window.addEventListener('asa:realtime', refreshStaffRealtime);
+
 document.addEventListener('DOMContentLoaded', async () => {
   if (typeof requireAuth === 'function' && !requireAuth('/login/landing.html')) return;
   await syncCurrentUserProfile();

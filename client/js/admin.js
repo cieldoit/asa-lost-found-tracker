@@ -1354,6 +1354,26 @@ function openAdminItemModal(item) {
   document.getElementById("itemModal").classList.add("active");
 }
 
+
+const refreshAdminRealtime = (window.asaRealtimeDebounce || ((fn) => fn))(async event => {
+  const type = event.detail?.type;
+  if (type === 'connected' || type === 'heartbeat') return;
+
+  const tasks = [];
+  if (['notifications-changed', 'claims-changed', 'admin-data-changed', 'items-changed'].includes(type)) {
+    if (typeof loadAdminNotifications === 'function') tasks.push(loadAdminNotifications());
+    if (typeof loadAdminStats === 'function') tasks.push(loadAdminStats());
+  }
+  if (['claims-changed', 'admin-data-changed'].includes(type) && typeof loadAdminClaims === 'function') tasks.push(loadAdminClaims());
+  if (['items-changed', 'claims-changed', 'admin-data-changed'].includes(type) && typeof loadAdminItems === 'function') tasks.push(loadAdminItems());
+  if (type === 'admin-data-changed' && typeof loadAdminUsers === 'function') tasks.push(loadAdminUsers());
+  if (type === 'admin-data-changed' && typeof loadAdminAppeals === 'function') tasks.push(loadAdminAppeals());
+
+  await Promise.allSettled(tasks);
+}, 300);
+
+window.addEventListener('asa:realtime', refreshAdminRealtime);
+
 document.addEventListener('DOMContentLoaded', async () => {
 
   const header = document.querySelector('admin-header');
@@ -1375,7 +1395,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadAdminAppeals();
   loadAdminNotifications();
   if (!window.adminNotificationPoll) {
-    window.adminNotificationPoll = setInterval(loadAdminNotifications, 10000);
+    window.adminNotificationPoll = setInterval(loadAdminNotifications, 30000);
   }
   window.addEventListener('focus', loadAdminNotifications);
   await loadAdminItems();
