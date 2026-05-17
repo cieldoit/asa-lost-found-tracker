@@ -367,6 +367,19 @@ await db.execute(`
   `${userName} reported a ${itemType} item: "${title}".`
 ]);
 
+const [admins] = await db.execute(
+  `SELECT userID FROM USERS WHERE LOWER(role) = 'admin' AND userID <> ?`,
+  [userID]
+);
+await Promise.all(admins.map(admin => db.execute(`
+  INSERT INTO NOTIFICATIONS (userID, itemID, message)
+  VALUES (?, ?, ?)
+`, [
+  admin.userID,
+  result.insertId,
+  `${userName} reported a ${itemType} item: "${title}".`
+])));
+
     res.status(201).json({
       message: "Item posted successfully.",
       itemID: result.insertId
@@ -388,6 +401,19 @@ app.post('/api/claims', authenticateToken, async (req, res) => {
   const userID = req.user.userID;
 
   try {
+    const [claimants] = await db.execute(
+      `SELECT userName, email FROM USERS WHERE userID = ?`,
+      [userID]
+    );
+    const [items] = await db.execute(
+      `SELECT title, itemType FROM ITEMS WHERE itemID = ?`,
+      [itemID]
+    );
+
+    const claimantName = claimants[0]?.userName || 'Someone';
+    const itemTitle = items[0]?.title || 'an item';
+    const itemType = items[0]?.itemType || 'item';
+
     await db.execute(`
       INSERT INTO CLAIMS (userID, itemID, proof, claimStatus)
       VALUES (?, ?, ?, 'pending')
@@ -399,8 +425,21 @@ app.post('/api/claims', authenticateToken, async (req, res) => {
     `, [
       userID,
       itemID,
-      `Your claim request has been submitted.`
+      `Your claim request for "${itemTitle}" has been submitted.`
     ]);
+
+    const [admins] = await db.execute(
+      `SELECT userID FROM USERS WHERE LOWER(role) = 'admin' AND userID <> ?`,
+      [userID]
+    );
+    await Promise.all(admins.map(admin => db.execute(`
+      INSERT INTO NOTIFICATIONS (userID, itemID, message)
+      VALUES (?, ?, ?)
+    `, [
+      admin.userID,
+      itemID,
+      `${claimantName} requested to claim ${itemType} item: "${itemTitle}".`
+    ])));
 
     res.json({ message: "Claim submitted" });
 
@@ -501,6 +540,7 @@ app.get('/api/items/browse', async (req, res) => {
         i.itemPhotoData,
         sl.storageName AS locationName,
         i.dateOccured,
+        i.createdAt,
         i.itemStatus,
         c.categoryName,
         sl.photoData AS locationPhoto
@@ -1052,3 +1092,6 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+
+
