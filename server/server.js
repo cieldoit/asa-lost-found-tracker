@@ -168,9 +168,22 @@ async function ensureUserProfilePhotoColumn() {
   }
 }
 
+async function ensureUserCreatedAtColumn() {
+  try {
+    await db.execute(`
+      ALTER TABLE USERS
+      ADD COLUMN createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `);
+  } catch (err) {
+    if (err.code !== 'ER_DUP_FIELDNAME') {
+      console.warn('Could not ensure USERS.createdAt:', err.message);
+    }
+  }
+}
 ensureStoragePhotoColumn();
 ensureItemPhotoColumn();
 ensureUserProfilePhotoColumn();
+ensureUserCreatedAtColumn();
 
 function normalizeUsername(value) {
   return String(value || '')
