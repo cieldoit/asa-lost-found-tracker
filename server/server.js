@@ -168,9 +168,22 @@ async function ensureUserProfilePhotoColumn() {
   }
 }
 
+async function ensureUserCreatedAtColumn() {
+  try {
+    await db.execute(`
+      ALTER TABLE USERS
+      ADD COLUMN createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `);
+  } catch (err) {
+    if (err.code !== 'ER_DUP_FIELDNAME') {
+      console.warn('Could not ensure USERS.createdAt:', err.message);
+    }
+  }
+}
 ensureStoragePhotoColumn();
 ensureItemPhotoColumn();
 ensureUserProfilePhotoColumn();
+ensureUserCreatedAtColumn();
 
 function normalizeUsername(value) {
   return String(value || '')
@@ -456,7 +469,7 @@ app.post('/api/appeals', authenticateToken, async (req, res) => {
 
   try {
     const [items] = await db.execute(
-      'SELECT * FROM ITEMS WHERE itemID = ?',
+      'SELECT title FROM ITEMS WHERE itemID = ?',
       [itemID]
     );
 
@@ -477,6 +490,19 @@ app.post('/api/appeals', authenticateToken, async (req, res) => {
       itemID,
       `Your appeal has been submitted.`
     ]);
+
+    const [admins] = await db.execute(
+      `SELECT userID FROM USERS WHERE LOWER(role) = "admin" AND userID <> ?`,
+      [userID]
+    );
+    await Promise.all(admins.map(admin => db.execute(`
+      INSERT INTO NOTIFICATIONS (userID, itemID, message)
+      VALUES (?, ?, ?)
+    `, [
+      admin.userID,
+      itemID,
+      `${userName} submitted an appeal for "${itemTitle}".`
+    ])));
 
     res.json({ message: "Appeal submitted" });
 
@@ -1092,6 +1118,3 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
-
-
