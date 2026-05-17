@@ -27,6 +27,7 @@ let currentModalCard  = null;
 let pendingTagDelete  = null;
 let currentAdminUser = null;
 let adminItemsCache = [];
+let currentAdminModalItem = null;
 let pendingAdminItemID = new URLSearchParams(window.location.search).get('itemID');
 
 function showToast(type, title, message) {
@@ -400,9 +401,72 @@ function openItemModal(card) {
 
   document.getElementById('itemModal').classList.add('active');
 }
-function closeItemModal() { document.getElementById('itemModal').classList.remove('active'); currentModalCard = null; }
-function resolveFromModal() { if(currentModalCard){ const btn=currentModalCard.querySelector('.btn-card-resolve'); if(btn) resolveItem(btn); document.getElementById('modalStatusBadge').textContent='RESOLVED'; document.getElementById('modalStatusBadge').classList.remove('badge-pending'); document.getElementById('modalStatusBadge').classList.add('badge-claimed'); } }
-function deleteFromModal() { if(currentModalCard){ const btn=currentModalCard.querySelector('.btn-card-delete'); if(btn) confirmDelete(btn); closeItemModal(); } }
+function closeItemModal() { document.getElementById('itemModal').classList.remove('active'); currentModalCard = null; currentAdminModalItem = null; }
+async function resolveFromModal() {
+  if (currentModalCard) {
+    const btn = currentModalCard.querySelector('.btn-card-resolve');
+    if (btn) resolveItem(btn);
+    document.getElementById('modalStatusBadge').textContent = 'RESOLVED';
+    document.getElementById('modalStatusBadge').classList.remove('badge-pending');
+    document.getElementById('modalStatusBadge').classList.add('badge-claimed');
+    return;
+  }
+
+  const itemID = currentAdminModalItem?.itemID;
+  if (!itemID) return;
+
+  try {
+    await fetch(`${ADMIN_API_BASE}/admin/items/${itemID}/resolve`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}` }
+    }).then(res => {
+      if (!res.ok) throw new Error('Resolve failed');
+      return res.json();
+    });
+
+    currentAdminModalItem.itemStatus = 'claimed';
+    document.getElementById('modalStatusBadge').textContent = 'RESOLVED';
+    document.getElementById('modalStatusBadge').classList.remove('badge-pending');
+    document.getElementById('modalStatusBadge').classList.add('badge-claimed');
+    showToast('success', 'Resolved', `"${currentAdminModalItem.title || 'Item'}" marked as resolved.`);
+    await loadAdminStats();
+    await loadAdminItems();
+    await loadAdminNotifications();
+  } catch (err) {
+    showToast('error', 'Error', 'Could not resolve item.');
+  }
+}
+
+async function deleteFromModal() {
+  if (currentModalCard) {
+    const btn = currentModalCard.querySelector('.btn-card-delete');
+    if (btn) confirmDelete(btn);
+    closeItemModal();
+    return;
+  }
+
+  const itemID = currentAdminModalItem?.itemID;
+  const title = currentAdminModalItem?.title || 'Item';
+  if (!itemID) return;
+
+  try {
+    await fetch(`${ADMIN_API_BASE}/admin/items/${itemID}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    }).then(res => {
+      if (!res.ok) throw new Error('Delete failed');
+      return res.json();
+    });
+
+    showToast('info', 'Deleted', `"${title}" has been removed.`);
+    closeItemModal();
+    await loadAdminStats();
+    await loadAdminItems();
+    await loadAdminNotifications();
+  } catch (err) {
+    showToast('error', 'Error', 'Could not delete item.');
+  }
+}
 function filterItems(type) { const query=document.getElementById(`${type}Search`).value.toLowerCase(); const catVal=document.getElementById(`${type}CatFilter`).value.toLowerCase(); document.querySelectorAll(`#${type}ItemsGrid .item-card`).forEach(card=>{ const matchQuery=!query||(card.dataset.title||'').toLowerCase().includes(query)||(card.dataset.desc||'').toLowerCase().includes(query)||(card.dataset.reporterName||'').toLowerCase().includes(query); const matchCat=!catVal||(card.dataset.cat||'').toLowerCase()===catVal; card.style.display=matchQuery&&matchCat?'':'none'; }); }
 function filterAllItems() {
   const query = document.getElementById('allItemsSearch')?.value.toLowerCase() || '';
@@ -791,7 +855,7 @@ initListeners() {
 
     <div 
       class="notif-item ${n.isRead ? 'read' : 'unread'}"
-      onclick="markSingleNotificationRead(${n.notifID})"
+      onclick="openAdminNotification(${n.notifID}, ${n.itemID || 'null'})"
     >
 
       <div class="notif-icon-box admin-bg">
@@ -868,7 +932,7 @@ function renderAdminNotificationsModal(notifs) {
   }
 
   list.innerHTML = notifs.map(n => `
-    <button type="button" class="admin-notif-row ${n.isRead ? 'read' : 'unread'}" onclick="markSingleNotificationRead(${n.notifID})">
+    <button type="button" class="admin-notif-row ${n.isRead ? 'read' : 'unread'}" onclick="openAdminNotification(${n.notifID}, ${n.itemID || 'null'})">
       <span class="notif-icon-box admin-bg"><i class="fa-solid fa-bell"></i></span>
       <span class="admin-notif-row-text">
         <strong>${escapeHtml(n.message)}</strong>
@@ -1099,6 +1163,8 @@ function buildAdminItemCard(item) {
 }
 
 function openAdminItemModal(item) {
+  currentAdminModalItem = item;
+  currentModalCard = null;
   document.getElementById("modalTypeBadge").textContent = item.itemType.toUpperCase();
   document.getElementById("modalTypeBadge").className = `badge badge-${item.itemType}`;
 
