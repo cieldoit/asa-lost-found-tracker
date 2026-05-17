@@ -377,6 +377,19 @@ await db.execute(`
   `${userName} reported a ${itemType} item: "${title}".`
 ]);
 
+const [admins] = await db.execute(
+  `SELECT userID FROM USERS WHERE LOWER(role) = 'admin' AND userID <> ?`,
+  [userID]
+);
+await Promise.all(admins.map(admin => db.execute(`
+  INSERT INTO NOTIFICATIONS (userID, itemID, message)
+  VALUES (?, ?, ?)
+`, [
+  admin.userID,
+  result.insertId,
+  `${userName} reported a ${itemType} item: "${title}".`
+])));
+
     res.status(201).json({
       message: "Item posted successfully.",
       itemID: result.insertId
@@ -396,8 +409,43 @@ await db.execute(`
 app.post('/api/claims', authenticateToken, async (req, res) => {
   const { itemID, proof } = req.body;
   const userID = req.user.userID;
+  const isAdmin = String(req.user.role || "").toLowerCase() === "admin";
 
   try {
+    if (isAdmin) {
+      await db.execute(`
+        INSERT INTO NOTIFICATIONS (userID, itemID, message, createdAt)
+        SELECT
+          ?,
+          c.itemID,
+          CONCAT(u.userName, ' requested to claim ', i.itemType, ' item: "', i.title, '".'),
+          c.createdAt
+        FROM CLAIMS c
+        JOIN USERS u ON c.userID = u.userID
+        JOIN ITEMS i ON c.itemID = i.itemID
+        WHERE c.userID <> ?
+          AND NOT EXISTS (
+            SELECT 1
+            FROM NOTIFICATIONS n
+            WHERE n.userID = ?
+              AND n.itemID = c.itemID
+              AND n.message = CONCAT(u.userName, ' requested to claim ', i.itemType, ' item: "', i.title, '".')
+          )
+      `, [userID, userID, userID]);
+    }
+    const [claimants] = await db.execute(
+      `SELECT userName, email FROM USERS WHERE userID = ?`,
+      [userID]
+    );
+    const [items] = await db.execute(
+      `SELECT title, itemType FROM ITEMS WHERE itemID = ?`,
+      [itemID]
+    );
+
+    const claimantName = claimants[0]?.userName || 'Someone';
+    const itemTitle = items[0]?.title || 'an item';
+    const itemType = items[0]?.itemType || 'item';
+
     await db.execute(`
       INSERT INTO CLAIMS (userID, itemID, proof, claimStatus)
       VALUES (?, ?, ?, 'pending')
@@ -409,8 +457,21 @@ app.post('/api/claims', authenticateToken, async (req, res) => {
     `, [
       userID,
       itemID,
-      `Your claim request has been submitted.`
+      `Your claim request for "${itemTitle}" has been submitted.`
     ]);
+
+    const [admins] = await db.execute(
+      `SELECT userID FROM USERS WHERE LOWER(role) = 'admin' AND userID <> ?`,
+      [userID]
+    );
+    await Promise.all(admins.map(admin => db.execute(`
+      INSERT INTO NOTIFICATIONS (userID, itemID, message)
+      VALUES (?, ?, ?)
+    `, [
+      admin.userID,
+      itemID,
+      `${claimantName} requested to claim ${itemType} item: "${itemTitle}".`
+    ])));
 
     res.json({ message: "Claim submitted" });
 
@@ -427,7 +488,7 @@ app.post('/api/appeals', authenticateToken, async (req, res) => {
 
   try {
     const [items] = await db.execute(
-      'SELECT * FROM ITEMS WHERE itemID = ?',
+      'SELECT title FROM ITEMS WHERE itemID = ?',
       [itemID]
     );
 
@@ -448,6 +509,19 @@ app.post('/api/appeals', authenticateToken, async (req, res) => {
       itemID,
       `Your appeal has been submitted.`
     ]);
+
+    const [admins] = await db.execute(
+      `SELECT userID FROM USERS WHERE LOWER(role) = "admin" AND userID <> ?`,
+      [userID]
+    );
+    await Promise.all(admins.map(admin => db.execute(`
+      INSERT INTO NOTIFICATIONS (userID, itemID, message)
+      VALUES (?, ?, ?)
+    `, [
+      admin.userID,
+      itemID,
+      `${userName} submitted an appeal for "${itemTitle}".`
+    ])));
 
     res.json({ message: "Appeal submitted" });
 
@@ -511,6 +585,7 @@ app.get('/api/items/browse', async (req, res) => {
         i.itemPhotoData,
         sl.storageName AS locationName,
         i.dateOccured,
+        i.createdAt,
         i.itemStatus,
         c.categoryName,
         sl.photoData AS locationPhoto
@@ -989,8 +1064,30 @@ app.put('/api/users/change-password', authenticateToken, async (req, res) => {
 app.put('/api/users/profile', authenticateToken, async (req, res) => {
   const { userName, profilePhotoData } = req.body;
   const userID = req.user.userID;
+  const isAdmin = String(req.user.role || "").toLowerCase() === "admin";
 
   try {
+    if (isAdmin) {
+      await db.execute(`
+        INSERT INTO NOTIFICATIONS (userID, itemID, message, createdAt)
+        SELECT
+          ?,
+          c.itemID,
+          CONCAT(u.userName, ' requested to claim ', i.itemType, ' item: "', i.title, '".'),
+          c.createdAt
+        FROM CLAIMS c
+        JOIN USERS u ON c.userID = u.userID
+        JOIN ITEMS i ON c.itemID = i.itemID
+        WHERE c.userID <> ?
+          AND NOT EXISTS (
+            SELECT 1
+            FROM NOTIFICATIONS n
+            WHERE n.userID = ?
+              AND n.itemID = c.itemID
+              AND n.message = CONCAT(u.userName, ' requested to claim ', i.itemType, ' item: "', i.title, '".')
+          )
+      `, [userID, userID, userID]);
+    }
     if (!userName || !userName.trim()) {
       return res.status(400).json({ error: "Name is required." });
     }

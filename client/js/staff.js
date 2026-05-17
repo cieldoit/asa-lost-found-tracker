@@ -201,7 +201,7 @@ class StaffHeader extends HTMLElement {
         </div>
         <div class="notif-text">
           <p>${isUnreadNotification(n) ? `<strong>${n.message}</strong>` : n.message}</p>
-          <span class="notif-time">${new Date(n.createdAt).toLocaleDateString()}</span>
+          <span class="notif-time">${formatNotificationDate(n.createdAt)}</span>
         </div>
         ${isUnreadNotification(n) ? '<div class="status-dot"></div>' : ''}
       </div>
@@ -1126,7 +1126,7 @@ function buildItemCard(item) {
   const isLost   = item.itemType === 'lost';
   const gradient = isLost ? 'linear-gradient(135deg,#dbeafe,#bfdbfe)' : 'linear-gradient(135deg,#dcfce7,#bbf7d0)';
   const emoji = getCategoryEmoji(item.categoryName);
-  const date  = new Date(item.dateOccured).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+  const date  = new Date(item.createdAt || item.dateOccured).toLocaleString();
 
   
   const pickupName = item.locationName || item.location || item.locationDetail || 'Campus';

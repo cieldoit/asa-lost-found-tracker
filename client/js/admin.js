@@ -1107,7 +1107,7 @@ function openAdminItemModal(item) {
   document.getElementById("modalTitle").textContent = item.title;
   document.getElementById("modalCat").innerHTML = `<span class="category-tag">${item.category || "General"}</span>`;
   document.getElementById("modalLoc").textContent = `📍 ${item.locationDetail || item.location || "Campus"}`;
-  document.getElementById("modalDate").textContent = `🗓 ${new Date(item.createdAt).toLocaleDateString()}`;
+  document.getElementById("modalDate").textContent = `🗓 ${formatNotifDate(item.createdAt)}`;
   document.getElementById("modalDesc").textContent = item.description || "No description";
 
   document.getElementById("modalReporterName").textContent = item.reporterName || "Unknown User";
@@ -1413,4 +1413,3 @@ async function submitAdminPasswordChange(e) {
     showToast('error', 'Error', err.message || 'Could not update password.');
   }
 }
-

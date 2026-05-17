@@ -375,7 +375,7 @@ function renderItemRows(tbodyId, items) {
   tbody.innerHTML = items.length ? items.map(i => {
     const isFound = i.itemType === 'found';
     const img = `<div style="width:40px;height:40px;background:${isFound ? '#dcfce7' : '#dbeafe'};border-radius:8px;display:flex;align-items:center;justify-content:center">${isFound ? 'F' : 'L'}</div>`;
-    const date = new Date(i.createdAt || i.dateOccured).toLocaleDateString();
+    const date = formatLogDate(i.createdAt || i.dateOccured);
     const actions = `<button class="list-btn" title="View post" onclick="openDashboardItem(${i.itemID})"><i class="fa-solid fa-eye"></i></button><button class="list-btn" title="Delete post" onclick="deleteDashboardItem(${i.itemID})"><i class="fa-solid fa-trash"></i></button>`;
     if (tbodyId === 'found-tbody') {
       return `<tr data-item-id="${i.itemID}"><td>${img}</td><td>${i.title}</td><td>${i.category || 'General'}</td><td>${date}</td><td>${i.locationDetail || i.location || ''}</td><td>${dashBadge(i.itemStatus)}</td><td>${actions}</td></tr>`;
@@ -456,7 +456,7 @@ function renderClaims(claims) {
         <td>${c.itemTitle || 'Untitled item'}</td>
         <td>${c.userName || 'Unknown'}${c.email ? ` (${c.email})` : ''}</td>
         <td>${c.itemType || 'Item'}</td>
-        <td>${new Date(c.createdAt).toLocaleDateString()}</td>
+        <td>${formatLogDate(c.createdAt)}</td>
         <td>${dashBadge(c.claimStatus)}</td>
         <td><button class="list-btn" title="View post" onclick="openDashboardItem(${c.itemID})"><i class="fa-solid fa-eye"></i></button></td>
       </tr>
@@ -471,7 +471,7 @@ function renderClaims(claims) {
         <td>${c.userName || 'Unknown'}${c.email ? ` (${c.email})` : ''}</td>
         <td>${c.itemTitle || 'Untitled item'}</td>
         <td>${c.itemType || 'Item'}</td>
-        <td>${new Date(c.createdAt).toLocaleDateString()}</td>
+        <td>${formatLogDate(c.createdAt)}</td>
         <td>${dashBadge(c.claimStatus)}</td>
         <td><button class="list-btn" title="View post" onclick="openDashboardItem(${c.itemID})"><i class="fa-solid fa-eye"></i></button></td>
       </tr>
@@ -481,8 +481,8 @@ function renderClaims(claims) {
 
 function renderUpdates(items) {
   const visible = items.filter(i => !['approved', 'rejected'].includes(String(i.itemStatus || '').toLowerCase())).slice(0, 10);
-  const overviewRows = visible.map(i => `<tr><td>${i.itemID}</td><td>${i.title}</td><td>${i.category || 'General'}</td><td>${new Date(i.createdAt || i.dateOccured).toLocaleDateString()}</td><td>${dashBadge(i.itemStatus)}</td></tr>`).join('');
-  const updateRows = visible.map(i => `<tr><td>${i.title}</td><td>${i.reporterName || 'Unknown'}</td><td>${i.category || 'General'}</td><td>${i.itemType || 'Item'}</td><td>${dashBadge(i.itemStatus)}</td><td>${new Date(i.createdAt || i.dateOccured).toLocaleDateString()}</td></tr>`).join('');
+  const overviewRows = visible.map(i => `<tr><td>${i.itemID}</td><td>${i.title}</td><td>${i.category || 'General'}</td><td>${formatLogDate(i.createdAt || i.dateOccured)}</td><td>${dashBadge(i.itemStatus)}</td></tr>`).join('');
+  const updateRows = visible.map(i => `<tr><td>${i.title}</td><td>${i.reporterName || 'Unknown'}</td><td>${i.category || 'General'}</td><td>${i.itemType || 'Item'}</td><td>${dashBadge(i.itemStatus)}</td><td>${formatLogDate(i.createdAt || i.dateOccured)}</td></tr>`).join('');
   const overviewBody = document.getElementById('overview-updates-body');
   const updatesBody = document.getElementById('updates-tbody');
   if (overviewBody) overviewBody.innerHTML = overviewRows || `<tr><td colspan="5" style="text-align:center;padding:24px;color:#9ca3af">No recent updates.</td></tr>`;
@@ -504,7 +504,7 @@ function renderReports(appeals) {
       <td>${a.itemTitle}</td>
       <td>${a.role} (${a.userName})</td>
       <td>${a.reason}</td>
-      <td>${new Date(a.createdAt).toLocaleDateString()}</td>
+      <td>${formatLogDate(a.createdAt)}</td>
       <td>${dashBadge(a.itemStatus)}</td>
       <td></td>
     </tr>
