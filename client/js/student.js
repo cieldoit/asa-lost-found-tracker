@@ -1301,6 +1301,3 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 setTimeout(loadFormDropdowns, 500);
- 
-
-
