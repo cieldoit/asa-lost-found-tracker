@@ -386,11 +386,25 @@ function updateFoundPickupPreview() {
   }
 }
 
+function syncVisitorPageUrl(page) {
+  const hashPages = new Set(['lost', 'found', 'post', 'settings']);
+  const target = hashPages.has(page) ? `${window.location.pathname}#${page}` : window.location.pathname;
+  if (window.location.pathname + window.location.hash !== target) {
+    window.history.replaceState({}, '', target);
+  }
+}
+
+function getInitialVisitorPage() {
+  const page = window.location.hash.replace('#', '');
+  return ['lost', 'found', 'post', 'settings'].includes(page) ? page : 'dashboard';
+}
+
 function showPage(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const el = document.getElementById('page-' + page);
   if (el) { el.classList.add('active'); currentPage = page; }
   document.querySelector('visitor-header')?.setActivePage(page);
+  syncVisitorPageUrl(page);
   closeAllDropdowns();
   closeMobileNav();
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1086,22 +1100,44 @@ function toggleOtherLoc(otherId, selectEl) {
    API DATA LOADING
 ============================================================ */
 let allItems = [];
+const VISITOR_ITEMS_CACHE_KEY = 'asa_visitor_items_cache';
+
+function applyVisitorItems(items, shouldCache = true) {
+  const itemList = Array.isArray(items) ? items : [];
+  allItems = itemList;
+  if (shouldCache) {
+    try { localStorage.setItem(VISITOR_ITEMS_CACHE_KEY, JSON.stringify(itemList.slice(0, 40))); }
+    catch (err) { localStorage.removeItem(VISITOR_ITEMS_CACHE_KEY); }
+  }
+
+  const lostItems = itemList.filter(i => i.itemType === 'lost');
+  const foundItems = itemList.filter(i => i.itemType === 'found');
+  const claimedItems = itemList.filter(i => String(i.itemStatus || '').toLowerCase() === 'claimed');
+
+  const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+  set('statLost', lostItems.length);
+  set('statFound', foundItems.length);
+  set('statResolved', claimedItems.length);
+
+  renderItemGrid('allItemsGrid', itemList);
+  renderItemGrid('lostItemsGrid', lostItems);
+  renderItemGrid('foundItemsGrid', foundItems);
+  renderRecentItems(itemList.slice(0, 4));
+}
+
+function hydrateVisitorItemsFromCache() {
+  try {
+    const cached = JSON.parse(localStorage.getItem(VISITOR_ITEMS_CACHE_KEY) || 'null');
+    if (cached) applyVisitorItems(cached, false);
+  } catch (err) {
+    localStorage.removeItem(VISITOR_ITEMS_CACHE_KEY);
+  }
+}
 
 async function loadItems() {
   try {
     const items = await ItemsAPI.browse();
-    allItems = items;
-
-    const lostItems  = items.filter(i => i.itemType === 'lost');
-    const foundItems = items.filter(i => i.itemType === 'found');
-
-    if (document.getElementById('statLost'))  document.getElementById('statLost').textContent  = lostItems.length;
-    if (document.getElementById('statFound')) document.getElementById('statFound').textContent = foundItems.length;
-
-    renderItemGrid('allItemsGrid', items);
-    renderItemGrid('lostItemsGrid',  lostItems);
-    renderItemGrid('foundItemsGrid', foundItems);
-    renderRecentItems(items.slice(0, 4));
+    applyVisitorItems(items);
   } catch (err) {
     console.error('Failed to load items:', err);
     showToast('error', 'Connection Error', 'Could not load items. Is the server running?');
@@ -1269,6 +1305,8 @@ window.addEventListener('asa:realtime', refreshVisitorRealtime);
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (typeof requireAuth === 'function' && !requireAuth('/login/landing.html')) return;
+  showPage(getInitialVisitorPage());
+  hydrateVisitorItemsFromCache();
   await syncCurrentUserProfile();
 
   await Promise.all([ loadItems(), loadFormDropdowns(), loadNotifications() ]);

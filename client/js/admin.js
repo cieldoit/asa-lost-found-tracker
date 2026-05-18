@@ -27,6 +27,7 @@ let currentModalCard  = null;
 let pendingTagDelete  = null;
 let currentAdminUser = null;
 let adminItemsCache = [];
+const ADMIN_ITEMS_CACHE_KEY = 'asa_admin_items_cache';
 let currentAdminModalItem = null;
 let pendingAdminItemID = new URLSearchParams(window.location.search).get('itemID');
 
@@ -601,6 +602,30 @@ function updateBuildingThumbnails() {
     }
   });
 }
+function syncAdminPageUrl(page) {
+  const hashPages = new Set(['lost', 'found', 'post', 'claims', 'users', 'appeals']);
+  const target = hashPages.has(page) ? `/admin#${page}` : '/admin';
+  if (window.location.pathname + window.location.hash !== target) {
+    window.history.replaceState({}, '', target);
+  }
+}
+
+function hydrateAdminStatsFromCache() {
+  try {
+    const cached = JSON.parse(localStorage.getItem('asa_admin_stats') || 'null');
+    if (!cached) return;
+    const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value ?? 0; };
+    set('statLost', cached.totalLost);
+    set('statFound', cached.totalFound);
+    set('statTotal', (cached.totalLost ?? 0) + (cached.totalFound ?? 0));
+    set('statResolved', cached.resolvedItems);
+    set('statTotalUsers', cached.totalUsers);
+    set('statPendingClaims', cached.pendingClaims);
+  } catch (err) {
+    localStorage.removeItem('asa_admin_stats');
+  }
+}
+
 function closeSuccessPopup() { document.getElementById('successPopup').classList.remove('active'); showPage('dashboard'); }
 let currentPage='dashboard';
 function showPage(page) {
@@ -613,6 +638,7 @@ function showPage(page) {
   const header = document.querySelector('admin-header');
   addAdminManagementNav(header);
   header?.setActivePage(page);
+  syncAdminPageUrl(page);
   if(window.closeAllDropdowns) window.closeAllDropdowns();
   const mobileNav=document.getElementById('mobileNav');
   if(mobileNav) mobileNav.classList.remove('open');
@@ -974,9 +1000,6 @@ function closeAdminNotificationsModal() {
 async function loadAdminStats() {
   try {
 
-    console.log("loadAdminStats running...");
-    console.log("token:", token);
-    console.log("role:", role);
 
     const res = await fetch(`${ADMIN_API_BASE}/admin/stats`, {
       headers: {
@@ -985,13 +1008,12 @@ async function loadAdminStats() {
     });
     
 
-    console.log("response status:", res.status);
 
     if (!res.ok) throw new Error("Failed to load stats");
 
     const stats = await res.json();
+    localStorage.setItem('asa_admin_stats', JSON.stringify(stats));
 
-    console.log("stats:", stats);
 
     document.getElementById("statLost").textContent = stats.totalLost ?? 0;
     document.getElementById("statFound").textContent = stats.totalFound ?? 0;
@@ -1013,46 +1035,56 @@ async function loadAdminStats() {
     showToast("error", "Stats Error", "Could not load admin dashboard stats.");
   }
 }
+function renderAdminItemsFromData(items, shouldCache = true) {
+  const itemList = Array.isArray(items) ? items : [];
+  adminItemsCache = itemList;
+  if (shouldCache) {
+    try { localStorage.setItem(ADMIN_ITEMS_CACHE_KEY, JSON.stringify(itemList.slice(0, 40))); }
+    catch (err) { localStorage.removeItem(ADMIN_ITEMS_CACHE_KEY); }
+  }
+
+  const lostGrid = document.getElementById('lostItemsGrid');
+  const foundGrid = document.getElementById('foundItemsGrid');
+  const allGrid = document.getElementById('allItemsGrid');
+  const recentBox = document.getElementById('recentItemsContainer');
+
+  if (lostGrid) lostGrid.innerHTML = '';
+  if (foundGrid) foundGrid.innerHTML = '';
+  if (allGrid) allGrid.innerHTML = '';
+  if (recentBox) recentBox.innerHTML = '';
+
+  itemList.forEach(item => {
+    allGrid?.appendChild(buildAdminItemCard(item));
+    if (item.itemType === 'lost') lostGrid?.appendChild(buildAdminItemCard(item));
+    else foundGrid?.appendChild(buildAdminItemCard(item));
+    recentBox?.appendChild(buildAdminItemCard(item));
+  });
+}
+
+function hydrateAdminItemsFromCache() {
+  try {
+    const cached = JSON.parse(localStorage.getItem(ADMIN_ITEMS_CACHE_KEY) || 'null');
+    if (cached) renderAdminItemsFromData(cached, false);
+  } catch (err) {
+    localStorage.removeItem(ADMIN_ITEMS_CACHE_KEY);
+  }
+}
+
 async function loadAdminItems() {
   try {
     const res = await fetch(`${ADMIN_API_BASE}/admin/items`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+      headers: { Authorization: `Bearer ${token}` }
     });
 
-    if (!res.ok) throw new Error("Failed to load items");
+    if (!res.ok) throw new Error('Failed to load items');
 
     const items = await res.json();
-    adminItemsCache = Array.isArray(items) ? items : [];
-
-    const lostGrid = document.getElementById("lostItemsGrid");
-    const foundGrid = document.getElementById("foundItemsGrid");
-    const allGrid = document.getElementById("allItemsGrid");
-    const recentBox = document.getElementById("recentItemsContainer");
-
-    if (lostGrid) lostGrid.innerHTML = "";
-    if (foundGrid) foundGrid.innerHTML = "";
-    if (allGrid) allGrid.innerHTML = "";
-    if (recentBox) recentBox.innerHTML = "";
-
-    items.forEach(item => {
-      allGrid?.appendChild(buildAdminItemCard(item));
-
-      if (item.itemType === "lost") {
-        lostGrid?.appendChild(buildAdminItemCard(item));
-      } else {
-        foundGrid?.appendChild(buildAdminItemCard(item));
-      }
-
-      recentBox?.appendChild(buildAdminItemCard(item));
-    });
+    renderAdminItemsFromData(items);
 
     openPendingAdminItem();
     return adminItemsCache;
-
   } catch (err) {
-    console.error("LOAD ITEMS ERROR:", err);
+    console.error('LOAD ITEMS ERROR:', err);
     return [];
   }
 }
@@ -1387,9 +1419,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (!(await ensureAdminSession())) return;
 
+  hydrateAdminStatsFromCache();
+  hydrateAdminItemsFromCache();
+  loadAdminStats();
   await loadAdminMeta();
   document.getElementById('foundPickup')?.addEventListener('change', updateFoundPickupPreview);
-  loadAdminStats();
   loadAdminClaims();
   loadAdminUsers();
   loadAdminAppeals();

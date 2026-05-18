@@ -303,11 +303,25 @@ function closeMobileNav() {
 ============================================================ */
 let currentPage = 'dashboard';
  
+function syncStudentPageUrl(page) {
+  const hashPages = new Set(['lost', 'found', 'post', 'settings']);
+  const target = hashPages.has(page) ? `${window.location.pathname}#${page}` : window.location.pathname;
+  if (window.location.pathname + window.location.hash !== target) {
+    window.history.replaceState({}, '', target);
+  }
+}
+
+function getInitialStudentPage() {
+  const page = window.location.hash.replace('#', '');
+  return ['lost', 'found', 'post', 'settings'].includes(page) ? page : 'dashboard';
+}
+
 function showPage(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const el = document.getElementById('page-' + page);
   if (el) { el.classList.add('active'); currentPage = page; }
   document.querySelector('student-header')?.setActivePage(page);
+  syncStudentPageUrl(page);
   closeAllDropdowns();
   closeMobileNav();
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -351,6 +365,7 @@ function dismissToast(toast) {
    LOAD ITEMS FROM API
 ============================================================ */
 let allItems = [];
+const STUDENT_ITEMS_CACHE_KEY = 'asa_student_items_cache';
 let currentItemID = null; // tracks which item is open in modal
 let pickupLocations = [];
 let pickupLocationByID = {};
@@ -410,29 +425,48 @@ function updateFoundPickupPreview() {
   }
 }
  
+function applyStudentItems(items, shouldCache = true) {
+  const itemList = Array.isArray(items) ? items : [];
+  allItems = itemList;
+  if (shouldCache) {
+    try { localStorage.setItem(STUDENT_ITEMS_CACHE_KEY, JSON.stringify(itemList.slice(0, 40))); }
+    catch (err) { localStorage.removeItem(STUDENT_ITEMS_CACHE_KEY); }
+  }
+
+  const lostItems = itemList.filter(i => i.itemType === 'lost');
+  const foundItems = itemList.filter(i => i.itemType === 'found');
+  const claimedItems = itemList.filter(i => String(i.itemStatus || '').toLowerCase() === 'claimed');
+
+  const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+  set('statLost', lostItems.length);
+  set('statFound', foundItems.length);
+  set('statResolved', claimedItems.length);
+
+  renderItemGrid('allItemsGrid', itemList);
+  renderItemGrid('lostItemsGrid', lostItems);
+  renderItemGrid('foundItemsGrid', foundItems);
+  renderRecentItems(itemList.slice(0, 4));
+}
+
+function hydrateStudentItemsFromCache() {
+  try {
+    const cached = JSON.parse(localStorage.getItem(STUDENT_ITEMS_CACHE_KEY) || 'null');
+    if (cached) applyStudentItems(cached, false);
+  } catch (err) {
+    localStorage.removeItem(STUDENT_ITEMS_CACHE_KEY);
+  }
+}
+
 async function loadItems() {
   try {
     const items = await ItemsAPI.browse();
-    allItems = items;
- 
-    const lostItems  = items.filter(i => i.itemType === 'lost');
-    const foundItems = items.filter(i => i.itemType === 'found');
- 
-    // Update dashboard stats
-    document.getElementById('statLost').textContent  = lostItems.length;
-    document.getElementById('statFound').textContent = foundItems.length;
- 
-    renderItemGrid('allItemsGrid', items);
-    renderItemGrid('lostItemsGrid',  lostItems);
-    renderItemGrid('foundItemsGrid', foundItems);
-    renderRecentItems(items.slice(0, 4));
- 
+    applyStudentItems(items);
   } catch (err) {
     console.error('Failed to load items:', err);
     showToast('error', 'Connection Error', 'Could not load items. Is the server running?');
   }
 }
- 
+
 function getCategoryEmoji(cat) {
   if (!cat) return '📦';
   const map = {
@@ -1304,6 +1338,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!requireAuth('/login/landing.html')) return;
  
   // 2. Sync the header and settings form with the current account.
+  showPage(getInitialStudentPage());
+  hydrateStudentItemsFromCache();
   await syncCurrentUserProfile();
  
   // 3. Load data

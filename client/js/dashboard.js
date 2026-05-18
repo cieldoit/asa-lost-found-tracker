@@ -7,6 +7,25 @@ const DASH_TOKEN = localStorage.getItem('asa_token') || localStorage.getItem('to
 let buildingPhotos = {};
 let dashboardProfilePhotoData = null;
 
+function setDashboardStats(stats = {}) {
+  const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value ?? 0; };
+  set('countLost', stats.totalLost);
+  set('countFound', stats.totalFound);
+  set('countPending', stats.pendingClaims);
+  set('countUsers', stats.totalUsers);
+  set('countClaimed', stats.resolvedItems);
+}
+
+function hydrateDashboardStatsFromCache() {
+  try {
+    const cached = JSON.parse(localStorage.getItem('asa_dashboard_stats') || 'null');
+    if (cached) setDashboardStats(cached);
+  } catch (err) {
+    localStorage.removeItem('asa_dashboard_stats');
+  }
+}
+
+
 // ── Header dropdowns (Admin style) ──
 const headerNotifBtn = document.getElementById('headerNotifBtn');
 const headerNotifDropdown = document.getElementById('headerNotifDropdown');
@@ -302,6 +321,7 @@ document.querySelectorAll('.filter-reset').forEach(btn => {
 
 // Initialize building grid on page load
 document.addEventListener('DOMContentLoaded', () => {
+  hydrateDashboardStatsFromCache();
   loadDashboardProfile();
   loadDashboardData();
   buildBuildingGrid();
@@ -353,11 +373,8 @@ async function loadDashboardData() {
   if (!DASH_TOKEN) return;
 
   const updateStats = stats => {
-    document.getElementById('countLost').textContent = stats.totalLost ?? 0;
-    document.getElementById('countFound').textContent = stats.totalFound ?? 0;
-    document.getElementById('countPending').textContent = stats.pendingClaims ?? 0;
-    document.getElementById('countUsers').textContent = stats.totalUsers ?? 0;
-    document.getElementById('countClaimed').textContent = stats.resolvedItems ?? 0;
+    localStorage.setItem('asa_dashboard_stats', JSON.stringify(stats));
+    setDashboardStats(stats);
   };
 
   try {
