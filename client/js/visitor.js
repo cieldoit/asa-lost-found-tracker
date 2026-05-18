@@ -1118,6 +1118,7 @@ function applyVisitorItems(items, shouldCache = true) {
   set('statLost', lostItems.length);
   set('statFound', foundItems.length);
   set('statResolved', claimedItems.length);
+  set('statClaimed', claimedItems.length);
 
   renderItemGrid('allItemsGrid', itemList);
   renderItemGrid('lostItemsGrid', lostItems);
@@ -1136,8 +1137,9 @@ function hydrateVisitorItemsFromCache() {
 
 async function loadItems() {
   try {
-    const items = await ItemsAPI.browse();
+    const items = window.ASA_ITEMS_PRELOAD ? await window.ASA_ITEMS_PRELOAD : await ItemsAPI.browse();
     applyVisitorItems(items);
+    window.ASA_ITEMS_PRELOAD = null;
   } catch (err) {
     console.error('Failed to load items:', err);
     showToast('error', 'Connection Error', 'Could not load items. Is the server running?');

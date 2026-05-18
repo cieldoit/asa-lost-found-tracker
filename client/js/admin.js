@@ -1422,6 +1422,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   hydrateAdminStatsFromCache();
   hydrateAdminItemsFromCache();
   loadAdminStats();
+  const adminItemsReady = loadAdminItems();
   await loadAdminMeta();
   document.getElementById('foundPickup')?.addEventListener('change', updateFoundPickupPreview);
   loadAdminClaims();
@@ -1432,7 +1433,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.adminNotificationPoll = setInterval(loadAdminNotifications, 30000);
   }
   window.addEventListener('focus', loadAdminNotifications);
-  await loadAdminItems();
+  await adminItemsReady;
   const hashPage = { '#lost': 'lost', '#found': 'found', '#post': 'post', '#claims': 'claims', '#users': 'users', '#appeals': 'appeals' }[window.location.hash];
   if (hashPage) showPage(hashPage);
 
