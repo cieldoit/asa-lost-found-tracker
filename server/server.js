@@ -511,21 +511,36 @@ app.post('/api/claims', authenticateToken, async (req, res) => {
 app.post('/api/appeals', authenticateToken, async (req, res) => {
   const { itemID, reason } = req.body;
   const userID = req.user.userID;
+  const cleanReason = String(reason || '').trim();
+
+  if (!itemID) {
+    return res.status(400).json({ error: "Item is required." });
+  }
+  if (!cleanReason) {
+    return res.status(400).json({ error: "Please provide a reason for the appeal." });
+  }
 
   try {
     const [items] = await db.execute(
       'SELECT title FROM ITEMS WHERE itemID = ?',
       [itemID]
     );
+    const [users] = await db.execute(
+      'SELECT userName FROM USERS WHERE userID = ?',
+      [userID]
+    );
 
     if (items.length === 0) {
       return res.status(404).json({ error: "Item not found." });
     }
 
+    const itemTitle = items[0]?.title || 'this item';
+    const userName = users[0]?.userName || 'Someone';
+
     await db.execute(`
       INSERT INTO ITEM_APPEALS (userID, itemID, reason)
       VALUES (?, ?, ?)
-    `, [userID, itemID, reason]);
+    `, [userID, itemID, cleanReason]);
 
     await db.execute(`
       INSERT INTO NOTIFICATIONS (userID, itemID, message)
@@ -533,11 +548,11 @@ app.post('/api/appeals', authenticateToken, async (req, res) => {
     `, [
       userID,
       itemID,
-      `Your appeal has been submitted.`
+      `Your appeal for "${itemTitle}" has been submitted.`
     ]);
 
     const [admins] = await db.execute(
-      `SELECT userID FROM USERS WHERE LOWER(role) = "admin" AND userID <> ?`,
+      `SELECT userID FROM USERS WHERE LOWER(role) = 'admin' AND userID <> ?`,
       [userID]
     );
     await Promise.all(admins.map(admin => db.execute(`
@@ -555,10 +570,10 @@ app.post('/api/appeals', authenticateToken, async (req, res) => {
     res.json({ message: "Appeal submitted" });
 
   } catch (err) {
+    console.error('APPEAL ERROR:', err);
     res.status(500).json({ error: err.message });
   }
 });
-
 /* ================= NOTIFICATIONS ================= */
 
 app.get('/api/notifications', authenticateToken, async (req, res) => {
@@ -638,6 +653,37 @@ app.get('/api/items/browse', async (req, res) => {
       error: "Could not fetch items.",
       details: err.message
     });
+  }
+});
+
+
+app.get('/api/items/my', authenticateToken, async (req, res) => {
+  try {
+    const [items] = await db.execute(`
+      SELECT
+        i.itemID,
+        i.title,
+        i.description,
+        i.itemType,
+        i.locationDetail,
+        i.itemPhotoData,
+        sl.storageName AS locationName,
+        i.dateOccured,
+        i.createdAt,
+        i.itemStatus,
+        c.categoryName,
+        sl.photoData AS locationPhoto
+      FROM ITEMS i
+      LEFT JOIN CATEGORIES c ON i.categoryID = c.categoryID
+      LEFT JOIN STORAGE_LOCATIONS sl ON i.locationID = sl.locationID
+      WHERE i.userID = ?
+      ORDER BY i.createdAt DESC
+    `, [req.user.userID]);
+
+    res.json(items);
+  } catch (err) {
+    console.error('MY POSTS ERROR:', err);
+    res.status(500).json({ error: 'Could not fetch your posts.', details: err.message });
   }
 });
 
