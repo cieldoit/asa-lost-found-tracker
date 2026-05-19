@@ -268,11 +268,17 @@ async function ensureDefaultAdminAccount() {
     );
 
     if (admins.length) {
+      const shouldResetPassword = String(process.env.ADMIN_FORCE_PASSWORD_RESET || '').toLowerCase() === 'true';
+      const passwordSql = shouldResetPassword ? ', password = ?' : '';
+      const params = shouldResetPassword
+        ? [adminDisplayName, adminEmail, passwordHash, admins[0].userID]
+        : [adminDisplayName, adminEmail, admins[0].userID];
+
       await db.execute(
         `UPDATE USERS
-         SET userName = ?, email = ?, password = ?, role = 'Admin', userStatus = 'active'
+         SET userName = ?, email = ?${passwordSql}, role = 'Admin', userStatus = 'active'
          WHERE userID = ?`,
-        [adminDisplayName, adminEmail, passwordHash, admins[0].userID]
+        params
       );
     } else {
       await db.execute(
