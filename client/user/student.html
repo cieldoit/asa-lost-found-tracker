@@ -7,7 +7,7 @@
   <link rel="icon" type="image/png" sizes="any" href="/ASA_logo/logo-asa-top.png?v=2" />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="stylesheet" href="/user/css/script.css" />
+  <link rel="stylesheet" href="../user/css/script.css" />
 </head>
 <body>
   <div id="toast-container"></div>
@@ -227,6 +227,44 @@
     </div>
   </div>
 
+  <!--My Post-->
+  <div class="page" id="page-mypost">
+    <div class="home-container">
+      <div class="dir-header">
+        <h1>My Posts</h1>
+        <p>Manage all the items you have reported as lost or found.</p>
+      </div>
+      
+      <div class="dir-controls">
+        <div class="search-bar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" placeholder="Search my posts..." id="myPostsSearch" oninput="filterMyPosts()">
+        </div>
+        <select class="filter-select" id="myPostsTypeFilter" onchange="filterMyPosts()">
+          <option value="">All Posts</option>
+          <option value="lost">Lost Items</option>
+          <option value="found">Found Items</option>
+        </select>
+        <button class="btn-report-lost" onclick="showPage('post')" style="padding: 10px 20px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+          New Post
+        </button>
+      </div>
+      
+      <div class="items-grid" id="myPostsGrid">
+        <!-- Posts will be dynamically loaded here -->
+      </div>
+      
+      <!-- Empty state (shown when no posts) -->
+      <div class="empty-state" id="myPostsEmpty" style="display: none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="56" height="56"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        <h3>No Posts Yet</h3>
+        <p>You haven't reported any items yet. Click "New Post" to get started!</p>
+      </div>
+    </div>
+  </div>
+  <!--My Post-->
+
   <div class="page" id="page-settings">
     <div class="settings-page-wrap">
       <div class="settings-sidebar-panel">
@@ -325,6 +363,104 @@
 
   <footer class="bottom-bar"></footer>
   
+
+  <script src="/js/api.js"></script>
+  <script src="../js/student.js"></script>
+  
+
+
+  <script>
+  // Function to switch between mypost tabs
+  function switchMypostTab(tabName, btnElement) {
+    // Update active button
+    document.querySelectorAll('.mp-nav-btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    btnElement.classList.add('active');
+    
+    // Show corresponding section
+    document.querySelectorAll('.mypost-section').forEach(section => {
+      section.classList.remove('active');
+    });
+    document.getElementById(`mp-${tabName}`).classList.add('active');
+  }
+  
+  // Function to submit new post
+  function submitNewPost(event) {
+    event.preventDefault();
+    const title = document.getElementById('postTitle').value;
+    const content = document.getElementById('postContent').value;
+    
+    if (!title || !content) {
+      alert('Please fill in both title and content');
+      return;
+    }
+    
+    const postsContainer = document.getElementById('postsContainer');
+    const newPost = document.createElement('div');
+    newPost.className = 'post-card';
+    newPost.innerHTML = `
+      <div class="post-header">
+        <h3>${title}</h3>
+        <div class="post-actions">
+          <button class="icon-btn" onclick="editPost(this)"><i class="fa-solid fa-edit"></i></button>
+          <button class="icon-btn" onclick="deletePost(this)"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      </div>
+      <p class="post-content">${content}</p>
+      <div class="post-footer">
+        <span><i class="fa-regular fa-calendar"></i> Posted just now</span>
+      </div>
+    `;
+    
+    postsContainer.prepend(newPost);
+    event.target.reset();
+    
+    // Switch to All Posts tab
+    const allPostsBtn = document.querySelector('.mp-nav-btn');
+    switchMypostTab('all', allPostsBtn);
+    
+    alert('Post created successfully!');
+  }
+  
+  // Edit post function
+  function editPost(button) {
+    const postCard = button.closest('.post-card');
+    const title = postCard.querySelector('h3').innerText;
+    const content = postCard.querySelector('.post-content').innerText;
+    
+    // Switch to create tab
+    const createBtn = document.querySelectorAll('.mp-nav-btn')[1];
+    switchMypostTab('create', createBtn);
+    
+    // Fill the form
+    document.getElementById('postTitle').value = title;
+    document.getElementById('postContent').value = content;
+    
+    // Change button text
+    const submitBtn = document.querySelector('.btn-create-post');
+    submitBtn.innerHTML = '<i class="fa-solid fa-pen"></i> Update Post';
+  }
+  
+  // Delete post function
+  function deletePost(button) {
+    if (confirm('Are you sure you want to delete this post?')) {
+      button.closest('.post-card').remove();
+    }
+  }
+  
+  // Make sure showPage works
+  function showPage(pageName) {
+    document.querySelectorAll('.page').forEach(page => {
+      page.style.display = 'none';
+    });
+    document.getElementById(`page-${pageName}`).style.display = 'block';
+    if (typeof closeAllDropdowns === 'function') {
+      closeAllDropdowns();
+    }
+  }
+</script>
+
   <script>
   window.ASA_ITEMS_PRELOAD = fetch('/api/items/browse')
     .then(function (res) { return res.ok ? res.json() : []; })
@@ -332,6 +468,7 @@
 </script>
 <script src="/js/api.js"></script>
   <script src="/js/student.js"></script>
+
 </body>
 </html>
 
