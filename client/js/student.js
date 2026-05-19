@@ -338,11 +338,23 @@ function getInitialStudentPage() {
   return ['lost', 'found', 'post', 'my-posts', 'settings'].includes(page) ? page : 'dashboard';
 }
 
+
+function normalizeRoleNavState(page) {
+  const navPage = ['report-lost', 'report-found'].includes(page) ? 'post' : page;
+  document.querySelectorAll('.main-nav .nav-item, .mobile-nav .mnav-item').forEach(item => item.classList.remove('active'));
+  document.getElementById(`snav-${navPage}`)?.classList.add('active');
+  document.getElementById(`smnav-${navPage}`)?.classList.add('active');
+  document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+    const myPostButtons = Array.from(dropdown.querySelectorAll('.dropdown-item')).filter(item => item.textContent.trim().toLowerCase() === 'my post');
+    myPostButtons.slice(1).forEach(item => item.remove());
+  });
+}
 function showPage(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const el = document.getElementById('page-' + page);
   if (el) { el.classList.add('active'); currentPage = page; }
   document.querySelector('student-header')?.setActivePage(page);
+  normalizeRoleNavState(page);
   syncStudentPageUrl(page);
   closeAllDropdowns();
   closeMobileNav();
@@ -1070,13 +1082,12 @@ function openItemModal(card) {
   // Show claim button only for found items
   const claimBtn  = document.getElementById('claimBtn');
   const reportBtn = document.getElementById('reportItemBtn');
-  if (type === 'found') {
-    if (claimBtn)  claimBtn.style.display  = 'block';
-    if (reportBtn) reportBtn.style.display = 'block';
+  if (String(type).toLowerCase() === 'found') {
+    if (claimBtn) claimBtn.style.display = 'block';
   } else {
-    if (claimBtn)  claimBtn.style.display  = 'none';
-    if (reportBtn) reportBtn.style.display = 'none';
+    if (claimBtn) claimBtn.style.display = 'none';
   }
+  if (reportBtn) reportBtn.style.display = 'block';
  
   document.getElementById('itemModal').classList.add('active');
   document.body.style.overflow = 'hidden';

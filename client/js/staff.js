@@ -405,11 +405,23 @@ function getInitialStaffPage() {
   return ['lost', 'found', 'post', 'my-posts', 'settings'].includes(page) ? page : 'dashboard';
 }
 
+
+function normalizeRoleNavState(page) {
+  const navPage = ['report-lost', 'report-found'].includes(page) ? 'post' : page;
+  document.querySelectorAll('.main-nav .nav-item, .mobile-nav .mnav-item').forEach(item => item.classList.remove('active'));
+  document.getElementById(`snav-${navPage}`)?.classList.add('active');
+  document.getElementById(`smnav-${navPage}`)?.classList.add('active');
+  document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+    const myPostButtons = Array.from(dropdown.querySelectorAll('.dropdown-item')).filter(item => item.textContent.trim().toLowerCase() === 'my post');
+    myPostButtons.slice(1).forEach(item => item.remove());
+  });
+}
 function showPage(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const el = document.getElementById('page-' + page);
   if (el) { el.classList.add('active'); currentPage = page; }
   document.querySelector('staff-header')?.setActivePage(page);
+  normalizeRoleNavState(page);
   syncStaffPageUrl(page);
   closeAllDropdowns();
   closeMobileNav();
@@ -818,13 +830,12 @@ function openItemModal(card) {
   const claimBtn = document.getElementById('claimBtn');
   const reportBtn = document.getElementById('reportItemBtn');
 
-  if (type.toLowerCase() === 'found') {
-    claimBtn.style.display = 'block';
-    if (reportBtn) reportBtn.style.display = 'block';
+  if (String(type).toLowerCase() === 'found') {
+    if (claimBtn) claimBtn.style.display = 'block';
   } else {
-    claimBtn.style.display = 'none';
-    if (reportBtn) reportBtn.style.display = 'none';
+    if (claimBtn) claimBtn.style.display = 'none';
   }
+  if (reportBtn) reportBtn.style.display = 'block';
 
   document.getElementById('itemModal').classList.add('active');
 }
