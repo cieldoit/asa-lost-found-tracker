@@ -340,7 +340,7 @@ function dedupeMyPostDropdown(dropdown) {
   entries.slice(1).forEach(item => item.remove());
 }
 function normalizeRoleNavState(page) {
-  const navPage = ['report-lost', 'report-found'].includes(page) ? 'post' : page;
+  const navPage = page === 'mypost' ? 'my-posts' : (['report-lost', 'report-found'].includes(page) ? 'post' : page);
   document.querySelectorAll('.main-nav .nav-item, .mobile-nav .mnav-item').forEach(item => item.classList.remove('active'));
   document.getElementById(`snav-${navPage}`)?.classList.add('active');
   document.getElementById(`smnav-${navPage}`)?.classList.add('active');
@@ -350,6 +350,7 @@ function normalizeRoleNavState(page) {
   });
 }
 function showPage(page) {
+  if (page === 'mypost') page = 'my-posts';
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const el = document.getElementById('page-' + page);
   if (el) { el.classList.add('active'); currentPage = page; }
@@ -994,24 +995,42 @@ function ensureMyPostsPage() {
 function withMyPostsTimeout(promise) {
   return Promise.race([
     promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error('My Posts took too long to load.')), 8000))
+    new Promise((_, reject) => setTimeout(() => reject(new Error('My Posts took too long to load.')), 4000))
   ]);
+}
+
+async function loadMyPostsFallback() {
+  try {
+    const userName = String(localStorage.getItem('userName') || localStorage.getItem('asa_user') || '').trim().toLowerCase();
+    const items = await withMyPostsTimeout(ItemsAPI.browse());
+    const list = Array.isArray(items) ? items : [];
+    return list.filter(item => String(item.reporterName || item.userName || '').trim().toLowerCase() === userName);
+  } catch (err) {
+    console.warn('My Posts fallback failed:', err.message);
+    return [];
+  }
 }
 async function loadMyPosts() {
   ensureMyPostsPage();
   const grid = document.getElementById('myPostsGrid');
   if (!grid) return;
+  grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><h3>Loading your posts...</h3><p>Checking the database for your reports.</p></div>';
   try {
-    const posts = await withMyPostsTimeout(ItemsAPI.getMyPosts());
-    myPosts = Array.isArray(posts) ? posts : [];
+    let posts = await withMyPostsTimeout(ItemsAPI.getMyPosts());
+    if (!Array.isArray(posts)) posts = [];
+    if (!posts.length) posts = await loadMyPostsFallback();
+    myPosts = posts;
     renderMyPosts(myPosts);
   } catch (err) {
     console.error('Failed to load my posts:', err);
-    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><h3>Could not load your posts</h3><p>Please refresh the page and try again.</p></div>';
-    showToast('error', 'My Posts Error', err.message || 'Could not load your posts.');
+    const fallbackPosts = await loadMyPostsFallback();
+    myPosts = fallbackPosts;
+    renderMyPosts(myPosts);
+    if (!fallbackPosts.length) {
+      showToast('error', 'My Posts Error', err.message || 'Could not load your posts.');
+    }
   }
 }
-
 function renderMyPosts(posts) {
   const grid = document.getElementById('myPostsGrid');
   if (!grid) return;

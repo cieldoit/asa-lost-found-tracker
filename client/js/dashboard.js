@@ -508,7 +508,7 @@ function ensureDashClaimDecisionModal() {
   modal.className = 'popup-overlay';
   modal.id = 'dashClaimDecisionModal';
   modal.innerHTML = `
-    <div class="popup-box" style="max-width:520px;text-align:left">
+    <div class="popup-box claim-decision-box">
       <h3 id="dashClaimDecisionTitle">Claim Decision</h3>
       <p id="dashClaimDecisionSubtitle" style="color:#6b7280;margin-bottom:14px"></p>
       <input type="hidden" id="dashClaimDecisionID">
@@ -521,9 +521,9 @@ function ensureDashClaimDecisionModal() {
       </div>
       <label class="form-label" style="margin-top:12px">Message / Note</label>
       <textarea class="form-textarea" id="dashClaimAdminNote" placeholder="Optional note for the claimant"></textarea>
-      <div class="popup-actions">
-        <button class="btn-cancel" onclick="closeDashClaimDecisionModal()">Cancel</button>
-        <button class="btn-confirm-del" onclick="submitDashClaimDecision()">Send</button>
+      <div class="popup-actions claim-decision-actions">
+        <button class="btn-cancel claim-decision-cancel" onclick="closeDashClaimDecisionModal()">Cancel</button>
+        <button class="claim-decision-send" onclick="submitDashClaimDecision()">Send</button>
       </div>
     </div>
   `;

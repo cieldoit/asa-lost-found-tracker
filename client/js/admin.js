@@ -1179,7 +1179,7 @@ function ensureClaimDecisionModal() {
   modal.className = 'popup-overlay';
   modal.id = 'claimDecisionModal';
   modal.innerHTML = `
-    <div class="popup-box" style="max-width:520px;text-align:left">
+    <div class="popup-box claim-decision-box">
       <h3 id="claimDecisionTitle">Claim Decision</h3>
       <p id="claimDecisionSubtitle" style="color:#6b7280;margin-bottom:14px"></p>
       <input type="hidden" id="claimDecisionID">
@@ -1192,9 +1192,9 @@ function ensureClaimDecisionModal() {
       </div>
       <label class="form-label" style="margin-top:12px">Message / Note</label>
       <textarea class="form-textarea" id="claimAdminNote" placeholder="Optional note for the claimant"></textarea>
-      <div class="popup-actions">
-        <button class="btn-cancel" onclick="closeClaimDecisionModal()">Cancel</button>
-        <button class="btn-submit" onclick="submitClaimDecision()">Send</button>
+      <div class="popup-actions claim-decision-actions">
+        <button class="btn-cancel claim-decision-cancel" onclick="closeClaimDecisionModal()">Cancel</button>
+        <button class="claim-decision-send" onclick="submitClaimDecision()">Send</button>
       </div>
     </div>
   `;

@@ -1047,3 +1047,25 @@ body { font-family:'Poppins',sans-serif; background:var(--bg); color:var(--text-
   color:#166534;
   transform:translateY(-1px);
 }
+
+/* Claim decision modal */
+.claim-decision-box {
+  max-width: 520px;
+  text-align: left;
+  padding: 34px 32px;
+  border-radius: 16px;
+}
+.claim-decision-box h3 { color: var(--text-primary); font-size: 22px; margin-bottom: 10px; }
+.claim-decision-box p { margin-bottom: 18px; }
+.claim-decision-box .form-label { display: block; margin: 14px 0 6px; font-weight: 700; color: var(--text-mid); }
+.claim-decision-box .form-input,
+.claim-decision-box .form-textarea { width: 100%; }
+.claim-decision-actions { display: grid; grid-template-columns: 1fr 1.8fr; gap: 12px; margin-top: 22px; }
+.claim-decision-cancel,
+.claim-decision-send { min-height: 48px; border-radius: 10px; font-family: inherit; font-weight: 800; cursor: pointer; }
+.claim-decision-send { background: var(--green); color: #fff; border: 0; }
+.claim-decision-send:hover { background: var(--green-dark); }
+@media (max-width: 560px) {
+  .claim-decision-box { padding: 26px 20px; }
+  .claim-decision-actions { grid-template-columns: 1fr; }
+}
