@@ -210,7 +210,7 @@ class StudentHeader extends HTMLElement {
         </div>
         <div class="notif-text">
           <p>${n.message}</p>
-          <span class="notif-time">${new Date(n.createdAt).toLocaleDateString()}</span>
+          <span class="notif-time">${formatNotificationDate(n.createdAt)}</span>
         </div>
         ${isUnreadNotification(n) ? '<div class="status-dot"></div>' : ''}
       </div>
@@ -311,11 +311,25 @@ function closeMobileNav() {
 ============================================================ */
 let currentPage = 'dashboard';
  
+function syncStudentPageUrl(page) {
+  const hashPages = new Set(['lost', 'found', 'post', 'settings']);
+  const target = hashPages.has(page) ? `${window.location.pathname}#${page}` : window.location.pathname;
+  if (window.location.pathname + window.location.hash !== target) {
+    window.history.replaceState({}, '', target);
+  }
+}
+
+function getInitialStudentPage() {
+  const page = window.location.hash.replace('#', '');
+  return ['lost', 'found', 'post', 'settings'].includes(page) ? page : 'dashboard';
+}
+
 function showPage(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const el = document.getElementById('page-' + page);
   if (el) { el.classList.add('active'); currentPage = page; }
   document.querySelector('student-header')?.setActivePage(page);
+  syncStudentPageUrl(page);
   closeAllDropdowns();
   closeMobileNav();
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -359,6 +373,7 @@ function dismissToast(toast) {
    LOAD ITEMS FROM API
 ============================================================ */
 let allItems = [];
+const STUDENT_ITEMS_CACHE_KEY = 'asa_student_items_cache';
 let currentItemID = null; // tracks which item is open in modal
 let pickupLocations = [];
 let pickupLocationByID = {};
@@ -418,29 +433,50 @@ function updateFoundPickupPreview() {
   }
 }
  
+function applyStudentItems(items, shouldCache = true) {
+  const itemList = Array.isArray(items) ? items : [];
+  allItems = itemList;
+  if (shouldCache) {
+    try { localStorage.setItem(STUDENT_ITEMS_CACHE_KEY, JSON.stringify(itemList.slice(0, 40))); }
+    catch (err) { localStorage.removeItem(STUDENT_ITEMS_CACHE_KEY); }
+  }
+
+  const lostItems = itemList.filter(i => i.itemType === 'lost');
+  const foundItems = itemList.filter(i => i.itemType === 'found');
+  const claimedItems = itemList.filter(i => String(i.itemStatus || '').toLowerCase() === 'claimed');
+
+  const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+  set('statLost', lostItems.length);
+  set('statFound', foundItems.length);
+  set('statResolved', claimedItems.length);
+  set('statClaimed', claimedItems.length);
+
+  renderItemGrid('allItemsGrid', itemList);
+  renderItemGrid('lostItemsGrid', lostItems);
+  renderItemGrid('foundItemsGrid', foundItems);
+  renderRecentItems(itemList.slice(0, 4));
+}
+
+function hydrateStudentItemsFromCache() {
+  try {
+    const cached = JSON.parse(localStorage.getItem(STUDENT_ITEMS_CACHE_KEY) || 'null');
+    if (cached) applyStudentItems(cached, false);
+  } catch (err) {
+    localStorage.removeItem(STUDENT_ITEMS_CACHE_KEY);
+  }
+}
+
 async function loadItems() {
   try {
-    const items = await ItemsAPI.browse();
-    allItems = items;
- 
-    const lostItems  = items.filter(i => i.itemType === 'lost');
-    const foundItems = items.filter(i => i.itemType === 'found');
- 
-    // Update dashboard stats
-    document.getElementById('statLost').textContent  = lostItems.length;
-    document.getElementById('statFound').textContent = foundItems.length;
- 
-    renderItemGrid('allItemsGrid', items);
-    renderItemGrid('lostItemsGrid',  lostItems);
-    renderItemGrid('foundItemsGrid', foundItems);
-    renderRecentItems(items.slice(0, 4));
- 
+    const items = window.ASA_ITEMS_PRELOAD ? await window.ASA_ITEMS_PRELOAD : await ItemsAPI.browse();
+    applyStudentItems(items);
+    window.ASA_ITEMS_PRELOAD = null;
   } catch (err) {
     console.error('Failed to load items:', err);
     showToast('error', 'Connection Error', 'Could not load items. Is the server running?');
   }
 }
- 
+
 function getCategoryEmoji(cat) {
   if (!cat) return '📦';
   const map = {
@@ -457,9 +493,7 @@ function buildItemCard(item) {
     ? 'linear-gradient(135deg,#dbeafe,#bfdbfe)'
     : 'linear-gradient(135deg,#dcfce7,#bbf7d0)';
   const emoji = getCategoryEmoji(item.categoryName);
-  const date  = new Date(item.dateOccured).toLocaleDateString('en-US', {
-    year: 'numeric', month: 'long', day: 'numeric'
-  });
+  const date  = new Date(item.createdAt || item.dateOccured).toLocaleString();
  
   
   const pickupName = item.locationName || item.location || item.locationDetail || 'Campus';
@@ -1295,11 +1329,27 @@ document.addEventListener('keydown', e => {
 /* ============================================================
    INIT — runs on page load
 ============================================================ */
+
+const refreshStudentRealtime = (window.asaRealtimeDebounce || ((fn) => fn))(async event => {
+  const type = event.detail?.type;
+  if (type === 'connected' || type === 'heartbeat') return;
+
+  const tasks = [];
+  if (['items-changed', 'claims-changed', 'admin-data-changed'].includes(type) && typeof loadItems === 'function') tasks.push(loadItems());
+  if (['notifications-changed', 'items-changed', 'claims-changed'].includes(type) && typeof loadNotifications === 'function') tasks.push(loadNotifications());
+
+  await Promise.allSettled(tasks);
+}, 300);
+
+window.addEventListener('asa:realtime', refreshStudentRealtime);
+
 document.addEventListener('DOMContentLoaded', async () => {
   // 1. Guard — redirect to login if not logged in
   if (!requireAuth('/login/landing.html')) return;
  
   // 2. Sync the header and settings form with the current account.
+  showPage(getInitialStudentPage());
+  hydrateStudentItemsFromCache();
   await syncCurrentUserProfile();
  
   // 3. Load data
@@ -1311,6 +1361,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 setTimeout(loadFormDropdowns, 500);
+
  
 
 
@@ -1587,3 +1638,5 @@ if (typeof originalShowPage === 'function') {
     }
   };
 }
+
+

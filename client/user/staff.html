@@ -48,19 +48,19 @@
         <div class="stat-icon yellow">
           <svg viewBox="0 0 24 24" fill="none" stroke="#ca8a04" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         </div>
-        <div><div class="stat-label">Lost Items</div><div class="stat-value" id="statLost">0</div></div>
+        <div><div class="stat-label">Lost Items</div><div class="stat-value" id="statLost">...</div></div>
       </div>
       <div class="stat-card">
         <div class="stat-icon blue">
           <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         </div>
-        <div><div class="stat-label">Found Items</div><div class="stat-value" id="statFound">0</div></div>
+        <div><div class="stat-label">Found Items</div><div class="stat-value" id="statFound">...</div></div>
       </div>
       <div class="stat-card">
         <div class="stat-icon green">
           <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
         </div>
-        <div><div class="stat-label">Claimed</div><div class="stat-value" id="statClaimed">0</div></div>
+        <div><div class="stat-label">Claimed</div><div class="stat-value" id="statClaimed">...</div></div>
       </div>
     </div>
 
@@ -71,8 +71,8 @@
 
     <div class="empty-state">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="56" height="56"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-      <h3>No Recent Updates</h3>
-      <p>Looks like everyone is holding onto their belongings right now. Be a hero and report an item if you find one!</p>
+      <h3>Loading latest items...</h3>
+      <p>Checking the latest items from the database.</p>
     </div>
 
     <div class="tip-card">
@@ -662,6 +662,11 @@
 </div>
 
 <footer class="bottom-bar"></footer>
+<script>
+  window.ASA_ITEMS_PRELOAD = fetch('/api/items/browse')
+    .then(function (res) { return res.ok ? res.json() : []; })
+    .catch(function () { return []; });
+</script>
 <script src="/js/api.js"></script>
 <script src="/js/staff.js"></script>
 </body>

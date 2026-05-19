@@ -7,6 +7,25 @@ const DASH_TOKEN = localStorage.getItem('asa_token') || localStorage.getItem('to
 let buildingPhotos = {};
 let dashboardProfilePhotoData = null;
 
+function setDashboardStats(stats = {}) {
+  const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value ?? 0; };
+  set('countLost', stats.totalLost);
+  set('countFound', stats.totalFound);
+  set('countPending', stats.pendingClaims);
+  set('countUsers', stats.totalUsers);
+  set('countClaimed', stats.resolvedItems);
+}
+
+function hydrateDashboardStatsFromCache() {
+  try {
+    const cached = JSON.parse(localStorage.getItem('asa_dashboard_stats') || 'null');
+    if (cached) setDashboardStats(cached);
+  } catch (err) {
+    localStorage.removeItem('asa_dashboard_stats');
+  }
+}
+
+
 // ── Header dropdowns (Admin style) ──
 const headerNotifBtn = document.getElementById('headerNotifBtn');
 const headerNotifDropdown = document.getElementById('headerNotifDropdown');
@@ -302,10 +321,20 @@ document.querySelectorAll('.filter-reset').forEach(btn => {
 
 // Initialize building grid on page load
 document.addEventListener('DOMContentLoaded', () => {
+  hydrateDashboardStatsFromCache();
   loadDashboardProfile();
   loadDashboardData();
   buildBuildingGrid();
 });
+
+
+const refreshDashboardRealtime = (window.asaRealtimeDebounce || ((fn) => fn))(async event => {
+  const type = event.detail?.type;
+  if (type === 'connected' || type === 'heartbeat') return;
+  if (typeof loadDashboardData === 'function') await loadDashboardData();
+}, 300);
+
+window.addEventListener('asa:realtime', refreshDashboardRealtime);
 
 async function loadDashboardProfile() {
   if (!DASH_TOKEN) return;
@@ -342,29 +371,49 @@ function dashBadge(status) {
 
 async function loadDashboardData() {
   if (!DASH_TOKEN) return;
+
+  const updateStats = stats => {
+    localStorage.setItem('asa_dashboard_stats', JSON.stringify(stats));
+    setDashboardStats(stats);
+  };
+
   try {
-    const [stats, items, claims, users, appeals] = await Promise.all([
-      dashFetch('/admin/stats'),
-      dashFetch('/admin/items'),
-      dashFetch('/admin/claims'),
-      dashFetch('/admin/users'),
-      dashFetch('/admin/appeals').catch(() => [])
-    ]);
-    document.getElementById('countLost').textContent = stats.totalLost ?? 0;
-    document.getElementById('countFound').textContent = stats.totalFound ?? 0;
-    document.getElementById('countPending').textContent = items.filter(i => i.itemStatus === 'pending').length;
-    document.getElementById('countUsers').textContent = users.length;
-    document.getElementById('countClaimed').textContent = items.filter(i => i.itemStatus === 'claimed').length;
-    document.getElementById('countApproved').textContent = items.filter(i => i.itemStatus === 'approved').length;
-    renderItemRows('lost-tbody', items.filter(i => i.itemType === 'lost'));
-    renderItemRows('found-tbody', items.filter(i => i.itemType === 'found'));
-    renderItemRows('pending-tbody', items.filter(i => i.itemStatus === 'pending'));
-    renderItemRows('claimed-tbody', items.filter(i => i.itemStatus === 'claimed'));
-    renderItemRows('approved-tbody', items.filter(i => i.itemStatus === 'approved'));
-    renderUpdates(items);
-    renderClaims(claims);
-    renderUsers(users);
-    renderReports(appeals);
+    const statsPromise = dashFetch('/admin/stats').then(stats => {
+      updateStats(stats);
+      return stats;
+    });
+
+    const itemsPromise = dashFetch('/admin/items').then(items => {
+      const itemList = Array.isArray(items) ? items : [];
+      renderItemRows('lost-tbody', itemList.filter(i => i.itemType === 'lost'));
+      renderItemRows('found-tbody', itemList.filter(i => i.itemType === 'found'));
+      renderItemRows('claimed-tbody', itemList.filter(i => i.itemStatus === 'claimed'));
+      renderUpdates(itemList);
+      return itemList;
+    });
+
+    const claimsPromise = dashFetch('/admin/claims').then(claims => {
+      const claimList = Array.isArray(claims) ? claims : [];
+      document.getElementById('countPending').textContent = claimList.filter(c => c.claimStatus === 'pending').length;
+      renderClaims(claimList);
+      return claimList;
+    });
+
+    const usersPromise = dashFetch('/admin/users').then(users => {
+      const userList = Array.isArray(users) ? users : [];
+      document.getElementById('countUsers').textContent = userList.length;
+      renderUsers(userList);
+      return userList;
+    });
+
+    const appealsPromise = dashFetch('/admin/appeals').then(appeals => {
+      const appealList = Array.isArray(appeals) ? appeals : [];
+      renderReports(appealList);
+      return appealList;
+    }).catch(() => []);
+
+    const [items, claims, appeals] = await Promise.all([itemsPromise, claimsPromise, appealsPromise]);
+    await Promise.allSettled([statsPromise, usersPromise]);
     renderActivityLogs(items, claims, appeals);
   } catch (err) {
     showToast('error', 'Dashboard Error', err.message || 'Could not load dashboard data.');
@@ -374,20 +423,17 @@ async function loadDashboardData() {
 function renderItemRows(tbodyId, items) {
   const tbody = document.getElementById(tbodyId);
   if (!tbody) return;
-  tbody.innerHTML = items.length ? items.map(i => `
-    <tr data-item-id="${i.itemID}">
-      <td><div style="width:40px;height:40px;background:${i.itemType === 'lost' ? '#dbeafe' : '#dcfce7'};border-radius:8px;display:flex;align-items:center;justify-content:center">${i.itemType === 'lost' ? 'L' : 'F'}</div></td>
-      <td>${i.title}</td>
-      <td>${i.category || 'General'}</td>
-      <td>${new Date(i.createdAt || i.dateOccured).toLocaleDateString()}</td>
-      <td>${i.locationDetail || i.location || ''}</td>
-      <td>${dashBadge(i.itemStatus)}</td>
-      <td>
-        <button class="list-btn" title="View post" onclick="openDashboardItem(${i.itemID})"><i class="fa-solid fa-eye"></i></button>
-        <button class="list-btn" title="Delete post" onclick="deleteDashboardItem(${i.itemID})"><i class="fa-solid fa-trash"></i></button>
-      </td>
-    </tr>
-  `).join('') : `<tr><td colspan="7" style="text-align:center;padding:24px;color:#9ca3af">No records found.</td></tr>`;
+  const colspan = tbodyId === 'found-tbody' ? 7 : 6;
+  tbody.innerHTML = items.length ? items.map(i => {
+    const isFound = i.itemType === 'found';
+    const img = `<div style="width:40px;height:40px;background:${isFound ? '#dcfce7' : '#dbeafe'};border-radius:8px;display:flex;align-items:center;justify-content:center">${isFound ? 'F' : 'L'}</div>`;
+    const date = formatLogDate(i.createdAt || i.dateOccured);
+    const actions = `<button class="list-btn" title="View post" onclick="openDashboardItem(${i.itemID})"><i class="fa-solid fa-eye"></i></button><button class="list-btn" title="Delete post" onclick="deleteDashboardItem(${i.itemID})"><i class="fa-solid fa-trash"></i></button>`;
+    if (tbodyId === 'found-tbody') {
+      return `<tr data-item-id="${i.itemID}"><td>${img}</td><td>${i.title}</td><td>${i.category || 'General'}</td><td>${date}</td><td>${i.locationDetail || i.location || ''}</td><td>${dashBadge(i.itemStatus)}</td><td>${actions}</td></tr>`;
+    }
+    return `<tr data-item-id="${i.itemID}"><td>${img}</td><td>${i.title}</td><td>${i.category || 'General'}</td><td>${date}</td><td>${dashBadge(i.itemStatus)}</td><td>${actions}</td></tr>`;
+  }).join('') : `<tr><td colspan="${colspan}" style="text-align:center;padding:24px;color:#9ca3af">No records found.</td></tr>`;
 }
 
 function openDashboardItem(itemID) {
@@ -449,18 +495,136 @@ function renderActivityLogs(items, claims, appeals) {
   }
 }
 
+
+function safeJsText(value) {
+  return String(value || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+function ensureDashClaimDecisionModal() {
+  let modal = document.getElementById('dashClaimDecisionModal');
+  if (modal) return modal;
+
+  modal = document.createElement('div');
+  modal.className = 'popup-overlay';
+  modal.id = 'dashClaimDecisionModal';
+  modal.innerHTML = `
+    <div class="popup-box" style="max-width:520px;text-align:left">
+      <h3 id="dashClaimDecisionTitle">Claim Decision</h3>
+      <p id="dashClaimDecisionSubtitle" style="color:#6b7280;margin-bottom:14px"></p>
+      <input type="hidden" id="dashClaimDecisionID">
+      <input type="hidden" id="dashClaimDecisionAction">
+      <div id="dashClaimApproveFields">
+        <label class="form-label">Storage / Pick-Up Location</label>
+        <input class="form-input" id="dashClaimPickupLocation" readonly>
+        <label class="form-label" style="margin-top:12px">Available Schedule</label>
+        <input class="form-input" id="dashClaimPickupSchedule" placeholder="Example: May 18, 2026, 9:00 AM - 4:00 PM">
+      </div>
+      <label class="form-label" style="margin-top:12px">Message / Note</label>
+      <textarea class="form-textarea" id="dashClaimAdminNote" placeholder="Optional note for the claimant"></textarea>
+      <div class="popup-actions">
+        <button class="btn-cancel" onclick="closeDashClaimDecisionModal()">Cancel</button>
+        <button class="btn-confirm-del" onclick="submitDashClaimDecision()">Send</button>
+      </div>
+    </div>
+  `;
+  modal.addEventListener('click', e => {
+    if (e.target === modal) closeDashClaimDecisionModal();
+  });
+  document.body.appendChild(modal);
+  return modal;
+}
+
+function openDashClaimDecisionModal(claimID, action, itemTitle = 'this item', pickupLocation = '') {
+  const modal = ensureDashClaimDecisionModal();
+  document.getElementById('dashClaimDecisionID').value = claimID;
+  document.getElementById('dashClaimDecisionAction').value = action;
+  document.getElementById('dashClaimDecisionTitle').textContent = action === 'approve' ? 'Approve Claim' : 'Reject Claim';
+  document.getElementById('dashClaimDecisionSubtitle').textContent = action === 'approve'
+    ? `Tell the claimant when to verify ownership and pick up "${itemTitle}".`
+    : `Tell the claimant why the request for "${itemTitle}" was rejected.`;
+  document.getElementById('dashClaimApproveFields').style.display = action === 'approve' ? 'block' : 'none';
+  document.getElementById('dashClaimPickupLocation').value = pickupLocation || 'Stored location not specified';
+  document.getElementById('dashClaimPickupSchedule').value = '';
+  document.getElementById('dashClaimAdminNote').value = '';
+  modal.classList.add('active');
+}
+
+function closeDashClaimDecisionModal() {
+  document.getElementById('dashClaimDecisionModal')?.classList.remove('active');
+}
+
+async function submitDashClaimDecision() {
+  const claimID = document.getElementById('dashClaimDecisionID').value;
+  const action = document.getElementById('dashClaimDecisionAction').value;
+  const payload = {
+    pickupSchedule: document.getElementById('dashClaimPickupSchedule').value.trim(),
+    adminNote: document.getElementById('dashClaimAdminNote').value.trim()
+  };
+
+  if (action === 'approve' && !payload.pickupSchedule) {
+    showToast('error', 'Missing Details', 'Available schedule is required.');
+    return;
+  }
+
+  try {
+    await dashFetch(`/admin/claims/${claimID}/${action}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    });
+    closeDashClaimDecisionModal();
+    showToast(action === 'approve' ? 'success' : 'info', action === 'approve' ? 'Claim Approved' : 'Claim Rejected', action === 'approve' ? 'The claimant was notified with pickup instructions.' : 'The claimant was notified.');
+    await loadDashboardData();
+  } catch (err) {
+    showToast('error', 'Claim Update Failed', err.message);
+  }
+}
+window.openDashClaimDecisionModal = openDashClaimDecisionModal;
+window.closeDashClaimDecisionModal = closeDashClaimDecisionModal;
+window.submitDashClaimDecision = submitDashClaimDecision;
+function claimProofCell(claim) {
+  return claim.proof ? '<i class="fa-solid fa-paperclip" style="color:var(--green)"></i> Provided' : 'No proof';
+}
+
 function renderClaims(claims) {
-  const tbody = document.getElementById('overview-pending-body');
-  if (!tbody) return;
   const pending = claims.filter(c => c.claimStatus === 'pending');
-  tbody.innerHTML = pending.length ? pending.map(c => `
-    <tr><td>${c.itemTitle}</td><td>${c.userName}</td><td>${c.itemType}</td><td>${new Date(c.createdAt).toLocaleDateString()}</td><td>${dashBadge(c.claimStatus)}</td><td></td></tr>
-  `).join('') : `<tr><td colspan="6" style="text-align:center;padding:24px;color:#9ca3af">No pending claims.</td></tr>`;
+  const overview = document.getElementById('overview-pending-body');
+  if (overview) {
+    overview.innerHTML = pending.length ? pending.map(c => `
+      <tr>
+        <td>${c.itemTitle || 'Untitled item'}</td>
+        <td>${c.userName || 'Unknown'}${c.email ? ` (${c.email})` : ''}</td>
+        <td>${c.itemType || 'Item'}</td>
+        <td>${formatLogDate(c.createdAt)}</td>
+        <td>${dashBadge(c.claimStatus)}</td>
+        <td><button class="list-btn" title="View post" onclick="openDashboardItem(${c.itemID})"><i class="fa-solid fa-eye"></i></button> <button class="list-btn" title="Approve claim" onclick="openDashClaimDecisionModal(${c.claimID}, 'approve', '${safeJsText(c.itemTitle || "item")}', '${safeJsText(c.pickupLocationSource || "Campus")}')"><i class="fa-solid fa-check"></i></button> <button class="list-btn" title="Reject claim" onclick="openDashClaimDecisionModal(${c.claimID}, 'reject', '${safeJsText(c.itemTitle || "item")}')"><i class="fa-solid fa-xmark"></i></button></td>
+      </tr>
+    `).join('') : `<tr><td colspan="6" style="text-align:center;padding:24px;color:#9ca3af">No pending claims.</td></tr>`;
+  }
+
+  const pendingBody = document.getElementById('pending-tbody');
+  if (pendingBody) {
+    pendingBody.innerHTML = pending.length ? pending.map(c => `
+      <tr>
+        <td>${claimProofCell(c)}</td>
+        <td>${c.userName || 'Unknown'}${c.email ? ` (${c.email})` : ''}</td>
+        <td>${c.itemTitle || 'Untitled item'}</td>
+        <td>${c.itemType || 'Item'}</td>
+        <td>${formatLogDate(c.createdAt)}</td>
+        <td>${dashBadge(c.claimStatus)}</td>
+        <td><button class="list-btn" title="View post" onclick="openDashboardItem(${c.itemID})"><i class="fa-solid fa-eye"></i></button> <button class="list-btn" title="Approve claim" onclick="openDashClaimDecisionModal(${c.claimID}, 'approve', '${safeJsText(c.itemTitle || "item")}', '${safeJsText(c.pickupLocationSource || "Campus")}')"><i class="fa-solid fa-check"></i></button> <button class="list-btn" title="Reject claim" onclick="openDashClaimDecisionModal(${c.claimID}, 'reject', '${safeJsText(c.itemTitle || "item")}')"><i class="fa-solid fa-xmark"></i></button></td>
+      </tr>
+    `).join('') : `<tr><td colspan="7" style="text-align:center;padding:24px;color:#9ca3af">No pending claim items.</td></tr>`;
+  }
 }
 
 function renderUpdates(items) {
-  const rows = items.slice(0, 10).map(i => `<tr><td>${i.itemID}</td><td>${i.title}</td><td>${i.category || 'General'}</td><td>${new Date(i.createdAt).toLocaleDateString()}</td><td>${dashBadge(i.itemStatus)}</td></tr>`).join('');
-  ['overview-updates-body','updates-tbody'].forEach(id => { const tbody = document.getElementById(id); if (tbody) tbody.innerHTML = rows; });
+  const visible = items.filter(i => !['approved', 'rejected'].includes(String(i.itemStatus || '').toLowerCase())).slice(0, 10);
+  const overviewRows = visible.map(i => `<tr><td>${i.itemID}</td><td>${i.title}</td><td>${i.category || 'General'}</td><td>${formatLogDate(i.createdAt || i.dateOccured)}</td><td>${dashBadge(i.itemStatus)}</td></tr>`).join('');
+  const updateRows = visible.map(i => `<tr><td>${i.title}</td><td>${i.reporterName || 'Unknown'}</td><td>${i.category || 'General'}</td><td>${i.itemType || 'Item'}</td><td>${dashBadge(i.itemStatus)}</td><td>${formatLogDate(i.createdAt || i.dateOccured)}</td></tr>`).join('');
+  const overviewBody = document.getElementById('overview-updates-body');
+  const updatesBody = document.getElementById('updates-tbody');
+  if (overviewBody) overviewBody.innerHTML = overviewRows || `<tr><td colspan="5" style="text-align:center;padding:24px;color:#9ca3af">No recent updates.</td></tr>`;
+  if (updatesBody) updatesBody.innerHTML = updateRows || `<tr><td colspan="6" style="text-align:center;padding:24px;color:#9ca3af">No recent updates.</td></tr>`;
 }
 
 function renderUsers(users) {
@@ -478,7 +642,7 @@ function renderReports(appeals) {
       <td>${a.itemTitle}</td>
       <td>${a.role} (${a.userName})</td>
       <td>${a.reason}</td>
-      <td>${new Date(a.createdAt).toLocaleDateString()}</td>
+      <td>${formatLogDate(a.createdAt)}</td>
       <td>${dashBadge(a.itemStatus)}</td>
       <td></td>
     </tr>
