@@ -667,6 +667,7 @@ app.get('/api/items/browse', async (req, res) => {
     const [items] = await db.execute(`
       SELECT
         i.itemID,
+        i.userID,
         i.title,
         i.description,
         i.itemType,
@@ -677,10 +678,13 @@ app.get('/api/items/browse', async (req, res) => {
         i.createdAt,
         i.itemStatus,
         c.categoryName,
-        sl.photoData AS locationPhoto
+        sl.photoData AS locationPhoto,
+        u.userName AS reporterName,
+        u.role AS reporterRole
       FROM ITEMS i
       LEFT JOIN CATEGORIES c ON i.categoryID = c.categoryID
       LEFT JOIN STORAGE_LOCATIONS sl ON i.locationID = sl.locationID
+      LEFT JOIN USERS u ON i.userID = u.userID
       WHERE i.itemStatus IN ('pending', 'approved')
       ORDER BY i.createdAt DESC
     `);
@@ -703,6 +707,7 @@ app.get('/api/items/my', authenticateToken, async (req, res) => {
     const [items] = await db.execute(`
       SELECT
         i.itemID,
+        i.userID,
         i.title,
         i.description,
         i.itemType,
@@ -713,10 +718,13 @@ app.get('/api/items/my', authenticateToken, async (req, res) => {
         i.createdAt,
         i.itemStatus,
         c.categoryName,
-        sl.photoData AS locationPhoto
+        sl.photoData AS locationPhoto,
+        u.userName AS reporterName,
+        u.role AS reporterRole
       FROM ITEMS i
       LEFT JOIN CATEGORIES c ON i.categoryID = c.categoryID
       LEFT JOIN STORAGE_LOCATIONS sl ON i.locationID = sl.locationID
+      LEFT JOIN USERS u ON i.userID = u.userID
       WHERE i.userID = ?
       ORDER BY i.createdAt DESC
     `, [req.user.userID]);
