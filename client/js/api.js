@@ -212,6 +212,7 @@ const AuthAPI = {
 
 const ItemsAPI = {
   async browse() { return apiFetch('/items/browse'); },
+  async getMyPosts() { return apiFetch('/items/my'); },
   async getDetails(itemID) { return apiFetch(`/items/details/${itemID}`); },
   async report(itemData) {
   return apiFetch('/items/post', { method: 'POST', body: JSON.stringify(itemData) });

@@ -33,6 +33,10 @@ class StaffHeader extends HTMLElement {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
               Post Item
             </button>
+            <button class="nav-item" id="snav-my-posts" onclick="showPage('my-posts')">
+              <i class="fa-solid fa-pen-to-square"></i>
+              My Posts
+            </button>
           </nav>
           <div class="header-right">
             <div class="notif-container">
@@ -74,6 +78,9 @@ class StaffHeader extends HTMLElement {
                   <div class="pd-role">Staff</div>
                 </div>
                 <div class="dropdown-divider"></div>
+                <button class="dropdown-item" onclick="showPage('my-posts');closeAllDropdowns();">
+                  <i class="fa-solid fa-pen-to-square" style="width:16px;color:var(--text-muted)"></i> My Post
+                </button>
                 <button class="dropdown-item" onclick="showPage('settings');closeAllDropdowns();">
                   <i class="fa-solid fa-gear" style="width:16px;color:var(--text-muted)"></i> Settings
                 </button>
@@ -103,6 +110,10 @@ class StaffHeader extends HTMLElement {
           <button class="mnav-item" id="smnav-post" onclick="showPage('post');closeMobileNav()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
             Post Item
+          </button>
+          <button class="mnav-item" id="smnav-my-posts" onclick="showPage('my-posts');closeMobileNav()">
+            <i class="fa-solid fa-pen-to-square" style="width:16px"></i>
+            My Posts
           </button>
           <button class="mnav-item" onclick="showPage('settings');closeMobileNav()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="3"/><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/></svg>
@@ -155,7 +166,7 @@ class StaffHeader extends HTMLElement {
   }
 
   setActivePage(page) {
-    const navPages = ['dashboard','lost','found','post'];
+    const navPages = ['dashboard','lost','found','post','my-posts'];
     navPages.forEach(p => {
       const d = this.querySelector(`#snav-${p}`);
       const m = this.querySelector(`#smnav-${p}`);
@@ -382,7 +393,7 @@ function updateFoundPickupPreview() {
 }
 
 function syncStaffPageUrl(page) {
-  const hashPages = new Set(['lost', 'found', 'post', 'settings']);
+  const hashPages = new Set(['lost', 'found', 'post', 'my-posts', 'settings']);
   const target = hashPages.has(page) ? `${window.location.pathname}#${page}` : window.location.pathname;
   if (window.location.pathname + window.location.hash !== target) {
     window.history.replaceState({}, '', target);
@@ -391,7 +402,7 @@ function syncStaffPageUrl(page) {
 
 function getInitialStaffPage() {
   const page = window.location.hash.replace('#', '');
-  return ['lost', 'found', 'post', 'settings'].includes(page) ? page : 'dashboard';
+  return ['lost', 'found', 'post', 'my-posts', 'settings'].includes(page) ? page : 'dashboard';
 }
 
 function showPage(page) {
@@ -402,6 +413,7 @@ function showPage(page) {
   syncStaffPageUrl(page);
   closeAllDropdowns();
   closeMobileNav();
+  if (page === 'my-posts') loadMyPosts();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -689,6 +701,70 @@ async function submitFoundItem() {
 function closeSuccessPopup() {
   document.getElementById('successPopup').classList.remove('active');
   showPage('dashboard');
+}
+
+
+/* ============================================================
+   MY POSTS
+============================================================ */
+let myPosts = [];
+
+function ensureMyPostsPage() {
+  if (document.getElementById('page-my-posts')) return;
+  const anchor = document.getElementById('page-settings') || document.querySelector('.page:last-of-type');
+  const page = document.createElement('div');
+  page.className = 'page';
+  page.id = 'page-my-posts';
+  page.innerHTML = [
+    '<div class="home-container">',
+    '<div class="dir-header"><h1>My Posts</h1><p>Manage all the items you have reported as lost or found.</p></div>',
+    '<div class="dir-controls">',
+    '<div class="search-bar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input type="text" placeholder="Search my posts..." id="myPostsSearch" oninput="filterMyPosts()"></div>',
+    '<select class="filter-select" id="myPostsTypeFilter" onchange="filterMyPosts()"><option value="">All Posts</option><option value="lost">Lost Posts</option><option value="found">Found Posts</option></select>',
+    '<button class="btn-report-lost" type="button" onclick="showPage(\'post\')"><i class="fa-solid fa-circle-plus"></i> New Post</button>',
+    '</div>',
+    '<div class="items-grid" id="myPostsGrid"><div class="empty-state" style="grid-column:1/-1"><h3>Loading your posts...</h3><p>Checking the database for your reports.</p></div></div>',
+    '</div>'
+  ].join('');
+  if (anchor?.parentElement) anchor.parentElement.insertBefore(page, anchor);
+  else document.body.appendChild(page);
+}
+
+async function loadMyPosts() {
+  ensureMyPostsPage();
+  const grid = document.getElementById('myPostsGrid');
+  if (!grid) return;
+  try {
+    const posts = await ItemsAPI.getMyPosts();
+    myPosts = Array.isArray(posts) ? posts : [];
+    renderMyPosts(myPosts);
+  } catch (err) {
+    console.error('Failed to load my posts:', err);
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><h3>Could not load your posts</h3><p>Please refresh the page and try again.</p></div>';
+    showToast('error', 'My Posts Error', err.message || 'Could not load your posts.');
+  }
+}
+
+function renderMyPosts(posts) {
+  const grid = document.getElementById('myPostsGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  if (!posts.length) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><h3>No Posts Yet</h3><p>Your lost and found reports will appear here after you post them.</p></div>';
+    return;
+  }
+  posts.forEach(item => grid.appendChild(buildItemCard(item)));
+}
+
+function filterMyPosts() {
+  const term = (document.getElementById('myPostsSearch')?.value || '').trim().toLowerCase();
+  const type = document.getElementById('myPostsTypeFilter')?.value || '';
+  const filtered = myPosts.filter(item => {
+    const matchesType = !type || item.itemType === type;
+    const haystack = [item.title, item.description, item.categoryName, item.locationName, item.locationDetail, item.itemStatus].join(' ').toLowerCase();
+    return matchesType && haystack.includes(term);
+  });
+  renderMyPosts(filtered);
 }
 
 /* ============================================================
@@ -1313,6 +1389,7 @@ const refreshStaffRealtime = (window.asaRealtimeDebounce || ((fn) => fn))(async 
 
   const tasks = [];
   if (['items-changed', 'claims-changed', 'admin-data-changed'].includes(type) && typeof loadItems === 'function') tasks.push(loadItems());
+  if (currentPage === 'my-posts' && ['items-changed', 'claims-changed', 'admin-data-changed'].includes(type)) tasks.push(loadMyPosts());
   if (['notifications-changed', 'items-changed', 'claims-changed'].includes(type) && typeof loadNotifications === 'function') tasks.push(loadNotifications());
 
   await Promise.allSettled(tasks);
@@ -1322,6 +1399,7 @@ window.addEventListener('asa:realtime', refreshStaffRealtime);
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (typeof requireAuth === 'function' && !requireAuth('/login/landing.html')) return;
+  ensureMyPostsPage();
   showPage(getInitialStaffPage());
   hydrateStaffItemsFromCache();
   await syncCurrentUserProfile();
