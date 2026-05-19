@@ -1,5 +1,5 @@
 /* ============================================================
-   api.js — ASA Lost and Found Tracker
+   api.js â€” ASA Lost and Found Tracker
 ============================================================ */
 
 const API_BASE = window.ASA_API_BASE || `${window.location.origin}/api`;
@@ -292,6 +292,145 @@ function asaRealtimeDebounce(fn, delay = 300) {
   };
 }
 
+
+function ensureImagePreviewModal() {
+  if (!document.getElementById('asaImagePreviewStyles')) {
+    const style = document.createElement('style');
+    style.id = 'asaImagePreviewStyles';
+    style.textContent = `
+      [data-preview-src],
+      .card-img-wrap img,
+      .building-thumb,
+      .modal-image-sec img,
+      .modal-building-photo img,
+      .pickup-preview-photo img,
+      .profile-avatar img,
+      .main-avatar img,
+      .building-photo-wrap img,
+      .img-preview-wrap img {
+        cursor: zoom-in;
+      }
+      .asa-image-preview-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 9000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 28px;
+        background: rgba(3, 7, 18, 0.9);
+      }
+      .asa-image-preview-overlay.active { display: flex; }
+      .asa-image-preview-frame {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .asa-image-preview-frame img {
+        max-width: min(96vw, 1280px);
+        max-height: 88vh;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+      }
+      .asa-image-preview-close {
+        position: fixed;
+        top: 18px;
+        right: 18px;
+        width: 44px;
+        height: 44px;
+        border: 1px solid rgba(255,255,255,0.32);
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.74);
+        color: #fff;
+        font-size: 24px;
+        cursor: pointer;
+      }
+      @media (max-width: 640px) {
+        .asa-image-preview-overlay { padding: 14px; }
+        .asa-image-preview-frame img {
+          max-width: 96vw;
+          max-height: 82vh;
+          border-radius: 8px;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  let overlay = document.getElementById('asaImagePreviewOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'asaImagePreviewOverlay';
+    overlay.className = 'asa-image-preview-overlay';
+    overlay.innerHTML = `
+      <button type="button" class="asa-image-preview-close" aria-label="Close image preview">&times;</button>
+      <div class="asa-image-preview-frame" role="dialog" aria-modal="true" aria-label="Image preview">
+        <img id="asaImagePreviewImg" alt="">
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', event => {
+      if (event.target === overlay || event.target.closest('.asa-image-preview-close')) {
+        closeImagePreview();
+      }
+    });
+  }
+  return overlay;
+}
+
+function openImagePreview(src, alt = 'Photo') {
+  if (!src || !String(src).trim()) return;
+  const overlay = ensureImagePreviewModal();
+  const img = overlay.querySelector('#asaImagePreviewImg');
+  img.src = src;
+  img.alt = alt || 'Photo';
+  overlay.classList.add('active');
+  document.body.dataset.imagePreviewWasOverflow = document.body.style.overflow || '';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeImagePreview() {
+  const overlay = document.getElementById('asaImagePreviewOverlay');
+  if (!overlay) return;
+  overlay.classList.remove('active');
+  overlay.querySelector('#asaImagePreviewImg')?.removeAttribute('src');
+  document.body.style.overflow = document.body.dataset.imagePreviewWasOverflow || '';
+  delete document.body.dataset.imagePreviewWasOverflow;
+}
+
+const ASA_PREVIEW_IMAGE_SELECTOR = [
+  '[data-preview-src]',
+  '.card-img-wrap img',
+  '.building-thumb',
+  '.modal-image-sec img',
+  '.modal-building-photo img',
+  '.pickup-preview-photo img',
+  '.profile-avatar img',
+  '.main-avatar img',
+  '.building-photo-wrap img',
+  '.img-preview-wrap img'
+].join(',');
+
+document.addEventListener('click', event => {
+  const target = event.target.closest?.(ASA_PREVIEW_IMAGE_SELECTOR);
+  if (!target) return;
+  const src = target.dataset.previewSrc || target.currentSrc || target.src;
+  if (!src || src.includes('/ASA_logo/')) return;
+  event.preventDefault();
+  event.stopPropagation();
+  event.stopImmediatePropagation();
+  openImagePreview(src, target.dataset.previewAlt || target.alt || 'Photo');
+}, true);
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') closeImagePreview();
+});
 const RealtimeAPI = (() => {
   let source = null;
   let reconnectTimer = null;
@@ -346,5 +485,7 @@ window.AdminAPI = AdminAPI;
 window.requireAuth = requireAuth;
 window.asaRealtimeDebounce = asaRealtimeDebounce;
 window.RealtimeAPI = RealtimeAPI;
+window.openImagePreview = openImagePreview;
+window.closeImagePreview = closeImagePreview;
 document.addEventListener('DOMContentLoaded', () => RealtimeAPI.connect());
 window.addEventListener('beforeunload', () => RealtimeAPI.disconnect());
