@@ -134,6 +134,7 @@ class VisitorHeader extends HTMLElement {
 
     profileBtn.addEventListener('click', e => {
       e.stopPropagation();
+      dedupeMyPostDropdown(profileDropdown);
       profileDropdown.classList.toggle('show');
       notifDropdown.classList.remove('show');
     });
@@ -411,6 +412,12 @@ function getInitialVisitorPage() {
 }
 
 
+
+function dedupeMyPostDropdown(dropdown) {
+  if (!dropdown) return;
+  const entries = Array.from(dropdown.querySelectorAll('.dropdown-item')).filter(item => item.textContent.trim().toLowerCase() === 'my post');
+  entries.slice(1).forEach(item => item.remove());
+}
 function normalizeRoleNavState(page) {
   const navPage = ['report-lost', 'report-found'].includes(page) ? 'post' : page;
   document.querySelectorAll('.main-nav .nav-item, .mobile-nav .mnav-item').forEach(item => item.classList.remove('active'));
@@ -749,12 +756,19 @@ function ensureMyPostsPage() {
   else document.body.appendChild(page);
 }
 
+
+function withMyPostsTimeout(promise) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('My Posts took too long to load.')), 8000))
+  ]);
+}
 async function loadMyPosts() {
   ensureMyPostsPage();
   const grid = document.getElementById('myPostsGrid');
   if (!grid) return;
   try {
-    const posts = await ItemsAPI.getMyPosts();
+    const posts = await withMyPostsTimeout(ItemsAPI.getMyPosts());
     myPosts = Array.isArray(posts) ? posts : [];
     renderMyPosts(myPosts);
   } catch (err) {
@@ -1396,6 +1410,7 @@ window.addEventListener('asa:realtime', refreshVisitorRealtime);
 document.addEventListener('DOMContentLoaded', async () => {
   if (typeof requireAuth === 'function' && !requireAuth('/login/landing.html')) return;
   ensureMyPostsPage();
+  dedupeMyPostDropdown(document.getElementById('headerProfileDropdown'));
   showPage(getInitialVisitorPage());
   hydrateVisitorItemsFromCache();
   await syncCurrentUserProfile();

@@ -74,14 +74,7 @@ class StudentHeader extends HTMLElement {
                   <div class="pd-role" id="headerDropRole">Student</div>
                 </div>
                 <div class="dropdown-divider"></div>
-
                 <button class="dropdown-item" onclick="showPage('my-posts');closeAllDropdowns();">
-                  <i class="fa-solid fa-pen-to-square" style="width:16px;color:var(--text-muted)"></i> My Post
-                </button>
-
-                
-                <!-- Added My Post button -->
-                <button class="dropdown-item" onclick="showPage('mypost');closeAllDropdowns();">
                   <i class="fa-solid fa-pen-to-square" style="width:16px;color:var(--text-muted)"></i> My Post
                 </button>
                 
@@ -142,6 +135,7 @@ class StudentHeader extends HTMLElement {
     const seeAllBtn       = this.querySelector('#headerSeeAllNotifications');
     profileBtn.addEventListener('click', e => {
       e.stopPropagation();
+      dedupeMyPostDropdown(profileDropdown);
       profileDropdown.classList.toggle('show');
       notifDropdown.classList.remove('show');
     });
@@ -339,6 +333,12 @@ function getInitialStudentPage() {
 }
 
 
+
+function dedupeMyPostDropdown(dropdown) {
+  if (!dropdown) return;
+  const entries = Array.from(dropdown.querySelectorAll('.dropdown-item')).filter(item => item.textContent.trim().toLowerCase() === 'my post');
+  entries.slice(1).forEach(item => item.remove());
+}
 function normalizeRoleNavState(page) {
   const navPage = ['report-lost', 'report-found'].includes(page) ? 'post' : page;
   document.querySelectorAll('.main-nav .nav-item, .mobile-nav .mnav-item').forEach(item => item.classList.remove('active'));
@@ -990,12 +990,19 @@ function ensureMyPostsPage() {
   else document.body.appendChild(page);
 }
 
+
+function withMyPostsTimeout(promise) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('My Posts took too long to load.')), 8000))
+  ]);
+}
 async function loadMyPosts() {
   ensureMyPostsPage();
   const grid = document.getElementById('myPostsGrid');
   if (!grid) return;
   try {
-    const posts = await ItemsAPI.getMyPosts();
+    const posts = await withMyPostsTimeout(ItemsAPI.getMyPosts());
     myPosts = Array.isArray(posts) ? posts : [];
     renderMyPosts(myPosts);
   } catch (err) {
@@ -1440,6 +1447,7 @@ document.addEventListener('DOMContentLoaded', async () => {
  
   // 2. Sync the header and settings form with the current account.
   ensureMyPostsPage();
+  dedupeMyPostDropdown(document.getElementById('headerProfileDropdown'));
   showPage(getInitialStudentPage());
   hydrateStudentItemsFromCache();
   await syncCurrentUserProfile();
@@ -1468,267 +1476,3 @@ setTimeout(loadFormDropdowns, 500);
 
 
 // ============================================================
-// MY POSTS FUNCTIONALITY
-// ============================================================
-
-// Sample user posts data (replace with your actual API calls)
-let userPosts = [
-  {
-    id: 'post1',
-    title: 'Blue Leather Wallet',
-    type: 'lost',
-    category: 'Accessories',
-    description: 'Blue leather wallet with student ID and some cash inside.',
-    location: 'Library Floor 2',
-    date: 'April 15, 2026',
-    status: 'pending',
-    image: null
-  },
-  {
-    id: 'post2',
-    title: 'Engineering Textbook',
-    type: 'found',
-    category: 'Books',
-    description: 'Engineering Mathematics textbook with name written on first page.',
-    location: 'CCIS LSG Office',
-    date: 'April 18, 2026',
-    status: 'claimed',
-    image: null
-  }
-];
-
-// Load user posts when page is shown
-function loadMyPosts() {
-  const grid = document.getElementById('myPostsGrid');
-  const emptyState = document.getElementById('myPostsEmpty');
-  
-  if (!grid) return;
-  
-  if (userPosts.length === 0) {
-    grid.innerHTML = '';
-    emptyState.style.display = 'block';
-    return;
-  }
-  
-  emptyState.style.display = 'none';
-  grid.innerHTML = userPosts.map(post => createPostCard(post)).join('');
-}
-
-// Create post card HTML (using item-card style)
-function createPostCard(post) {
-  const typeBadgeClass = post.type === 'lost' ? 'badge-lost' : 'badge-found';
-  const typeText = post.type === 'lost' ? 'LOST' : 'FOUND';
-  const statusText = post.status === 'claimed' ? 'CLAIMED' : 'PENDING';
-  const statusClass = post.status === 'claimed' ? 'badge-claimed' : 'badge-pending';
-  
-  // Determine icon/emoji based on category
-  const categoryIcon = getCategoryIcon(post.category);
-  
-  return `
-    <div class="item-card" data-post-id="${post.id}" data-type="${post.type}" data-title="${post.title.toLowerCase()}">
-      <div class="card-img-wrap" style="position: relative;">
-        <div style="width:100%;height:100%;background:linear-gradient(135deg,#dbeafe,#bfdbfe);display:flex;align-items:center;justify-content:center;font-size:48px;">
-          ${categoryIcon}
-        </div>
-        <span class="badge ${typeBadgeClass}">${typeText}</span>
-        <span class="badge ${statusClass}">${statusText}</span>
-        
-        <!-- Post action buttons -->
-        <div class="post-actions-overlay">
-          <button class="post-action-btn edit-btn" onclick="event.stopPropagation(); openEditPostModal('${post.id}')">
-            <i class="fa-solid fa-pen" style="font-size: 14px;"></i>
-          </button>
-          <button class="post-action-btn delete-btn" onclick="event.stopPropagation(); confirmDeletePost('${post.id}')">
-            <i class="fa-solid fa-trash" style="font-size: 14px;"></i>
-          </button>
-        </div>
-      </div>
-      <div class="card-info">
-        <h3>${escapeHtml(post.title)}</h3>
-        <span class="category-tag">${post.category}</span>
-        <p class="card-desc">${escapeHtml(post.description.substring(0, 80))}${post.description.length > 80 ? '...' : ''}</p>
-        <div class="card-footer-row">
-          <span>📍 ${post.location}</span>
-          <span class="view-link" onclick="openItemModalFromPost('${post.id}')">VIEW DETAILS</span>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-// Get icon based on category
-function getCategoryIcon(category) {
-  const icons = {
-    'Electronics': '📱',
-    'Clothing': '👕',
-    'Accessories': '⌚',
-    'Documents': '📄',
-    'Books': '📚',
-    'Keys': '🔑',
-    'Others': '📦'
-  };
-  return icons[category] || '📦';
-}
-
-// Escape HTML to prevent XSS
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-// Filter my posts
-function filterMyPosts() {
-  const searchTerm = document.getElementById('myPostsSearch')?.value.toLowerCase() || '';
-  const typeFilter = document.getElementById('myPostsTypeFilter')?.value || '';
-  
-  let filtered = [...userPosts];
-  
-  if (searchTerm) {
-    filtered = filtered.filter(post => 
-      post.title.toLowerCase().includes(searchTerm) || 
-      post.description.toLowerCase().includes(searchTerm)
-    );
-  }
-  
-  if (typeFilter) {
-    filtered = filtered.filter(post => post.type === typeFilter);
-  }
-  
-  const grid = document.getElementById('myPostsGrid');
-  const emptyState = document.getElementById('myPostsEmpty');
-  
-  if (filtered.length === 0) {
-    grid.innerHTML = '';
-    emptyState.style.display = 'block';
-  } else {
-    emptyState.style.display = 'none';
-    grid.innerHTML = filtered.map(post => createPostCard(post)).join('');
-  }
-}
-
-// Open edit modal
-function openEditPostModal(postId) {
-  const post = userPosts.find(p => p.id === postId);
-  if (!post) return;
-  
-  // Create modal if not exists
-  let modal = document.getElementById('editPostModal');
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.id = 'editPostModal';
-    modal.className = 'edit-modal-overlay';
-    modal.innerHTML = `
-      <div class="edit-modal-container">
-        <h3>Edit Post</h3>
-        <div class="form-group">
-          <label>Title</label>
-          <input type="text" id="editTitle" class="form-input">
-        </div>
-        <div class="form-group">
-          <label>Category</label>
-          <select id="editCategory" class="form-select">
-            <option>Electronics</option><option>Clothing</option><option>Accessories</option>
-            <option>Documents</option><option>Books</option><option>Keys</option><option>Others</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Location</label>
-          <input type="text" id="editLocation" class="form-input">
-        </div>
-        <div class="form-group">
-          <label>Description</label>
-          <textarea id="editDescription" class="form-textarea" rows="4"></textarea>
-        </div>
-        <div class="edit-actions">
-          <button class="cancel-btn" onclick="closeEditModal()">Cancel</button>
-          <button class="save-btn" onclick="savePostEdit('${postId}')">Save Changes</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-  }
-  
-  // Fill form with post data
-  document.getElementById('editTitle').value = post.title;
-  document.getElementById('editCategory').value = post.category;
-  document.getElementById('editLocation').value = post.location;
-  document.getElementById('editDescription').value = post.description;
-  
-  modal.style.display = 'flex';
-}
-
-// Close edit modal
-function closeEditModal() {
-  const modal = document.getElementById('editPostModal');
-  if (modal) modal.style.display = 'none';
-}
-
-// Save post edit
-function savePostEdit(postId) {
-  const post = userPosts.find(p => p.id === postId);
-  if (post) {
-    post.title = document.getElementById('editTitle').value;
-    post.category = document.getElementById('editCategory').value;
-    post.location = document.getElementById('editLocation').value;
-    post.description = document.getElementById('editDescription').value;
-    
-    loadMyPosts();
-    showToast('Post updated successfully!', 'success');
-  }
-  closeEditModal();
-}
-
-// Confirm delete post
-function confirmDeletePost(postId) {
-  if (confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
-    userPosts = userPosts.filter(p => p.id !== postId);
-    loadMyPosts();
-    showToast('Post deleted successfully!', 'success');
-  }
-}
-
-// Open item modal from my posts
-function openItemModalFromPost(postId) {
-  const post = userPosts.find(p => p.id === postId);
-  if (post) {
-    // Simulate opening modal with post data
-    // You can reuse your existing openItemModal logic here
-    console.log('Opening post:', post);
-    // Show success message or open a view modal
-    showToast(`Viewing: ${post.title}`, 'info');
-  }
-}
-
-// Toast notification
-function showToast(message, type = 'success') {
-  const container = document.getElementById('toast-container');
-  if (!container) return;
-  
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.innerHTML = `
-    <div class="toast-content">
-      <i class="fa-solid ${type === 'success' ? 'fa-check-circle' : 'fa-info-circle'}"></i>
-      <span>${message}</span>
-    </div>
-  `;
-  container.appendChild(toast);
-  
-  setTimeout(() => {
-    toast.remove();
-  }, 3000);
-}
-
-// Override or update showPage to refresh my posts when shown
-const originalShowPage = showPage;
-if (typeof originalShowPage === 'function') {
-  window.showPage = function(pageName) {
-    originalShowPage(pageName);
-    if (pageName === 'mypost') {
-      loadMyPosts();
-    }
-  };
-}
-
-
