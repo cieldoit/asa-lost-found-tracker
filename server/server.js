@@ -115,7 +115,7 @@ function authenticateAdmin(req, res, next) {
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
     if (err) return res.sendStatus(403);
 
-    if (String(user.role || '').toLowerCase() !== 'admin') {
+    if (!isAdminRole(user.role)) {
       return res.status(403).json({ error: "Admin only" });
     }
 
@@ -209,6 +209,7 @@ async function ensureClaimPickupColumns() {
     }
   }
 }
+ 
 async function ensureDatabaseColumns() {
   await ensureStoragePhotoColumn();
   await ensureItemPhotoColumn();
@@ -216,6 +217,14 @@ async function ensureDatabaseColumns() {
   await ensureUserCreatedAtColumn();
   await ensureClaimPickupColumns();
 }
+
+
+ensureStoragePhotoColumn();
+ensureItemPhotoColumn();
+ensureUserProfilePhotoColumn();
+ensureUserCreatedAtColumn();
+ensureClaimPickupColumns();
+
 
 function normalizeUsername(value) {
   return String(value || '')
@@ -233,6 +242,14 @@ function compactUsername(value) {
     .toLowerCase()
     .replace(/@.*$/, '')
     .replace(/[^a-z0-9]+/g, '');
+}
+
+function isAdminRole(role) {
+  return ['admin', 'administrator'].includes(String(role || '').trim().toLowerCase());
+}
+
+function isAdminLoginAlias(value) {
+  return ['admin', 'administrator', 'ccisadmin'].includes(compactUsername(value));
 }
 
 function usernameFromRegistration(name, email) {
@@ -311,18 +328,20 @@ app.post('/api/login', async (req, res) => {
           OR LOWER(userName) = LOWER(?)
           OR userName = ?
           OR LOWER(REPLACE(REPLACE(REPLACE(userName, ' ', ''), '_', ''), '.', '')) = ?
+          OR (? = 1 AND LOWER(role) IN ('admin', 'administrator'))
        LIMIT 1`,
-      [identifier, identifier, normalizeUsername(identifier), compactUsername(identifier)]
+      [identifier, identifier, normalizeUsername(identifier), compactUsername(identifier), isAdminLoginAlias(identifier) ? 1 : 0]
     );
 
    if (users.length === 0)
   return res.status(401).json({ error: "Invalid credentials" });
 
 const user = users[0];
+const role = isAdminRole(user.role) ? "Admin" : user.role;
 
 /* ================= USER STATUS CHECK ================= */
 
-if (user.userStatus === "pending") {
+if (!isAdminRole(user.role) && user.userStatus === "pending") {
   return res.status(403).json({
     error: "Please verify your email first."
   });
@@ -342,7 +361,7 @@ const match = await bcrypt.compare(password, user.password);
     const token = jwt.sign(
       {
         userID: user.userID,
-        role: user.role,
+        role,
         userName: user.userName
       },
       process.env.JWT_SECRET,
@@ -351,7 +370,7 @@ const match = await bcrypt.compare(password, user.password);
 
     res.json({
       token,
-      role: user.role,
+      role,
       userName: user.userName
     });
 
@@ -454,8 +473,30 @@ await Promise.all(admins.map(admin => db.execute(`
 app.post('/api/claims', authenticateToken, async (req, res) => {
   const { itemID, proof } = req.body;
   const userID = req.user.userID;
+  const isAdmin = String(req.user.role || "").toLowerCase() === "admin";
 
   try {
+    if (isAdmin) {
+      await db.execute(`
+        INSERT INTO NOTIFICATIONS (userID, itemID, message, createdAt)
+        SELECT
+          ?,
+          c.itemID,
+          CONCAT(u.userName, ' requested to claim ', i.itemType, ' item: "', i.title, '".'),
+          c.createdAt
+        FROM CLAIMS c
+        JOIN USERS u ON c.userID = u.userID
+        JOIN ITEMS i ON c.itemID = i.itemID
+        WHERE c.userID <> ?
+          AND NOT EXISTS (
+            SELECT 1
+            FROM NOTIFICATIONS n
+            WHERE n.userID = ?
+              AND n.itemID = c.itemID
+              AND n.message = CONCAT(u.userName, ' requested to claim ', i.itemType, ' item: "', i.title, '".')
+          )
+      `, [userID, userID, userID]);
+    }
     const [claimants] = await db.execute(
       `SELECT userName, email FROM USERS WHERE userID = ?`,
       [userID]
@@ -964,15 +1005,16 @@ app.post('/api/admin/login', async (req, res) => {
 
     const [users] = await db.execute(
       `SELECT * FROM USERS
-       WHERE LOWER(role) = 'admin'
+       WHERE LOWER(role) IN ('admin', 'administrator')
          AND (
            LOWER(email) = LOWER(?)
            OR LOWER(userName) = LOWER(?)
            OR userName = ?
            OR LOWER(REPLACE(REPLACE(REPLACE(userName, ' ', ''), '_', ''), '.', '')) = ?
+           OR ? = 1
          )
        LIMIT 1`,
-      [managedBy, managedBy, normalizeUsername(managedBy), compactUsername(managedBy)]
+      [managedBy, managedBy, normalizeUsername(managedBy), compactUsername(managedBy), isAdminLoginAlias(managedBy) ? 1 : 0]
     );
 
     if (users.length === 0)
@@ -988,12 +1030,12 @@ app.post('/api/admin/login', async (req, res) => {
       return res.status(401).json({ error: "Invalid admin credentials" });
 
     const token = jwt.sign(
-      { userID: user.userID, role: user.role, userName: user.userName },
+      { userID: user.userID, role: "Admin", userName: user.userName },
       process.env.JWT_SECRET,
       { expiresIn: '1d' }
     );
 
-    res.json({ token, role: user.role, userName: user.userName, managedBy: user.userName });
+    res.json({ token, role: "Admin", userName: user.userName, managedBy: user.userName });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1142,8 +1184,30 @@ app.put('/api/users/change-password', authenticateToken, async (req, res) => {
 app.put('/api/users/profile', authenticateToken, async (req, res) => {
   const { userName, profilePhotoData } = req.body;
   const userID = req.user.userID;
+  const isAdmin = String(req.user.role || "").toLowerCase() === "admin";
 
   try {
+    if (isAdmin) {
+      await db.execute(`
+        INSERT INTO NOTIFICATIONS (userID, itemID, message, createdAt)
+        SELECT
+          ?,
+          c.itemID,
+          CONCAT(u.userName, ' requested to claim ', i.itemType, ' item: "', i.title, '".'),
+          c.createdAt
+        FROM CLAIMS c
+        JOIN USERS u ON c.userID = u.userID
+        JOIN ITEMS i ON c.itemID = i.itemID
+        WHERE c.userID <> ?
+          AND NOT EXISTS (
+            SELECT 1
+            FROM NOTIFICATIONS n
+            WHERE n.userID = ?
+              AND n.itemID = c.itemID
+              AND n.message = CONCAT(u.userName, ' requested to claim ', i.itemType, ' item: "', i.title, '".')
+          )
+      `, [userID, userID, userID]);
+    }
     if (!userName || !userName.trim()) {
       return res.status(400).json({ error: "Name is required." });
     }
