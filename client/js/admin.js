@@ -365,6 +365,89 @@ async function executeDelete() {
   }
   closeDeletePopup();
 }
+
+let adminMyPosts = [];
+
+function ensureAdminMyPostsPage() {
+  let page = document.getElementById('page-my-posts');
+  const isNested = page?.parentElement?.closest?.('.page');
+  if (!page || isNested || page.parentElement !== document.body) {
+    document.querySelectorAll('#page-my-posts, #page-mypost').forEach(existing => existing.remove());
+    page = document.createElement('div');
+    page.className = 'page';
+    page.id = 'page-my-posts';
+    const firstPopup = document.querySelector('.popup-overlay, footer.bottom-bar');
+    if (firstPopup?.parentElement) firstPopup.parentElement.insertBefore(page, firstPopup);
+    else document.body.appendChild(page);
+  }
+  page.className = page.classList.contains('active') ? 'page active' : 'page';
+  page.innerHTML = [
+    '<div class="home-container">',
+    '<div class="dir-header"><h1>My Posts</h1><p>Manage the lost and found items posted from this admin account.</p></div>',
+    '<div class="dir-controls">',
+    '<div class="search-bar"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search my posts..." id="adminMyPostsSearch" oninput="filterAdminMyPosts()"></div>',
+    '<select class="filter-select" id="adminMyPostsTypeFilter" onchange="filterAdminMyPosts()"><option value="">All Posts</option><option value="lost">Lost Posts</option><option value="found">Found Posts</option></select>',
+    '<button class="btn-report-lost" type="button" onclick="showPage(\'post\')"><i class="fa-solid fa-circle-plus"></i> New Post</button>',
+    '</div>',
+    '<div class="items-grid" id="adminMyPostsGrid"><div class="empty-state" style="grid-column:1/-1"><h3>Loading your posts...</h3><p>Checking the database for your admin reports.</p></div></div>',
+    '</div>'
+  ].join('');
+  return page;
+}
+
+async function loadAdminMyPosts() {
+  const page = ensureAdminMyPostsPage();
+  const grid = page?.querySelector('#adminMyPostsGrid');
+  if (!grid) return;
+  grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><h3>Loading your posts...</h3><p>Checking the database for your admin reports.</p></div>';
+  try {
+    const posts = await ItemsAPI.getMyPosts();
+    adminMyPosts = Array.isArray(posts) ? posts : [];
+    renderAdminMyPosts(adminMyPosts);
+  } catch (err) {
+    console.error('ADMIN MY POSTS ERROR:', err);
+    const adminUserID = getCurrentAdminUserID();
+    adminMyPosts = adminItemsCache.filter(item => adminUserID && String(item.userID || '') === adminUserID);
+    renderAdminMyPosts(adminMyPosts);
+    if (!adminMyPosts.length) showToast('error', 'My Posts Error', err.message || 'Could not load admin posts.');
+  }
+}
+
+function getCurrentAdminUserID() {
+  const parts = String(token || '').split('.');
+  if (parts.length < 2) return '';
+  try {
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return String(payload.userID || payload.id || '').trim();
+  } catch (err) {
+    return '';
+  }
+}
+
+function renderAdminMyPosts(posts) {
+  const grid = document.getElementById('adminMyPostsGrid');
+  if (!grid) return;
+  const list = Array.isArray(posts) ? posts : [];
+  grid.innerHTML = '';
+  if (!list.length) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><h3>No Posts Yet</h3><p>Items posted by this admin account will appear here.</p></div>';
+    return;
+  }
+  list.forEach(item => grid.appendChild(buildAdminItemCard(item)));
+}
+
+function filterAdminMyPosts() {
+  const term = (document.getElementById('adminMyPostsSearch')?.value || '').trim().toLowerCase();
+  const type = document.getElementById('adminMyPostsTypeFilter')?.value || '';
+  const filtered = adminMyPosts.filter(item => {
+    const itemType = String(item.itemType || '').toLowerCase();
+    const matchesType = !type || itemType === type;
+    const haystack = [item.title, item.description, item.category, item.categoryName, item.location, item.locationName, item.locationDetail, item.itemStatus].join(' ').toLowerCase();
+    return matchesType && haystack.includes(term);
+  });
+  renderAdminMyPosts(filtered);
+}
+
 function openItemModal(card) {
   currentModalCard = card;
   const type = card.dataset.type;
@@ -603,7 +686,7 @@ function updateBuildingThumbnails() {
   });
 }
 function syncAdminPageUrl(page) {
-  const hashPages = new Set(['lost', 'found', 'post', 'claims', 'users', 'appeals']);
+  const hashPages = new Set(['lost', 'found', 'post', 'my-posts', 'claims', 'users', 'appeals']);
   const target = hashPages.has(page) ? `/admin#${page}` : '/admin';
   if (window.location.pathname + window.location.hash !== target) {
     window.history.replaceState({}, '', target);
@@ -645,6 +728,7 @@ function showPage(page) {
   if (page === 'claims') loadAdminClaims();
   if (page === 'users') loadAdminUsers();
   if (page === 'appeals') loadAdminAppeals();
+  if (page === 'my-posts') loadAdminMyPosts();
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function closeAllDropdowns() { const hdr=document.querySelector('admin-header'); if(hdr){ hdr.querySelector('#headerProfileDropdown')?.classList.remove('show'); hdr.querySelector('#headerNotifDropdown')?.classList.remove('show'); } }
@@ -659,8 +743,8 @@ function addAdminManagementNav(header) {
   if (!header || header.querySelector('#anav-claims')) return;
   const mainNav = header.querySelector('.main-nav');
   const mobileNav = header.querySelector('#mobileNav');
-  const postNav = header.querySelector('#anav-post');
-  const mobilePostNav = header.querySelector('#amnav-post');
+  const postNav = header.querySelector('#anav-my-posts') || header.querySelector('#anav-post');
+  const mobilePostNav = header.querySelector('#amnav-my-posts') || header.querySelector('#amnav-post');
   const managementNav = [
     adminNavButton('claims', 'fa-solid fa-clipboard-check', 'Claims'),
     adminNavButton('users', 'fa-solid fa-users', 'Users'),
@@ -779,7 +863,7 @@ async function ensureAdminSession() {
 class AdminHeader extends HTMLElement {
   connectedCallback() { this.render(); this.initListeners(); }
   render() {
-    this.innerHTML = `<div><header class="home-header"><span class="logo-link" onclick="showPage('dashboard')"><img src="/ASA_logo/Final logo.png" alt="ASA Logo" class="main-logo"></span><nav class="main-nav"><button class="nav-item active" id="anav-dashboard" onclick="showPage('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Home</button><button class="nav-item" id="anav-lost" onclick="showPage('lost')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>Lost Items</button><button class="nav-item" id="anav-found" onclick="showPage('found')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>Found Items</button><button class="nav-item" id="anav-post" onclick="showPage('post')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>Post Item</button></nav><div class="header-right"><div class="notif-container"><button class="notif-btn" id="headerNotifBtn" title="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div class="notif-badge-dot hidden" id="headerNotifDot">1</div></button><div class="notif-dropdown" id="headerNotifDropdown"><div class="notif-panel-header"><h3>Notifications</h3><span class="mark-read" id="headerMarkRead">Mark all as read</span></div><div class="notif-list" id="headerNotifList"><div class="notif-item unread"><div class="notif-icon-box admin-bg"><i class="fa-solid fa-shield-halved"></i></div><div class="notif-text"><p><strong>Admin!</strong> Full control over listings.</p><span class="notif-time">Just now</span></div><div class="status-dot"></div></div></div><div class="notif-panel-footer"><button type="button" id="headerSeeAllNotif">See all notifications</button></div></div></div><div class="profile-wrap"><button class="profile-btn" id="headerProfileBtn"><div class="profile-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><span class="profile-name" id="headerProfileName">CCIS Admin</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg></button><div class="dropdown-content" id="headerProfileDropdown"><div class="user-info"><div class="pd-name" id="headerDropName">CCIS Admin</div><div class="pd-role">Administrator</div></div><div class="dropdown-divider"></div><a href="/dashboard" class="dropdown-item" onclick="closeAllDropdowns();"><i class="fa-solid fa-chart-line" style="width:16px;color:var(--text-muted)"></i> Dashboard</a><button class="dropdown-item" onclick="showPage('settings');closeAllDropdowns();"><i class="fa-solid fa-gear" style="width:16px;color:var(--text-muted)"></i> Settings</button><a href="/login/landing.html" class="dropdown-item logout-item" onclick="window.Auth?.logout?.(); return false;"><i class="fa-solid fa-right-from-bracket" style="width:16px"></i> Log Out</a></div></div><button class="mobile-nav-toggle" onclick="toggleMobileNav()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></header><div class="mobile-nav" id="mobileNav"><button class="mnav-item active" id="amnav-dashboard" onclick="showPage('dashboard');closeMobileNav()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Home</button><button class="mnav-item" id="amnav-lost" onclick="showPage('lost');closeMobileNav()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>Lost Items</button><button class="mnav-item" id="amnav-found" onclick="showPage('found');closeMobileNav()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>Found Items</button><button class="mnav-item" id="amnav-post" onclick="showPage('post');closeMobileNav()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>Post Item</button><button class="mnav-item" onclick="showPage('settings');closeMobileNav()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="3"/></svg>Settings</button></div></div>`;
+    this.innerHTML = `<div><header class="home-header"><span class="logo-link" onclick="showPage('dashboard')"><img src="/ASA_logo/Final logo.png" alt="ASA Logo" class="main-logo"></span><nav class="main-nav"><button class="nav-item active" id="anav-dashboard" onclick="showPage('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Home</button><button class="nav-item" id="anav-lost" onclick="showPage('lost')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>Lost Items</button><button class="nav-item" id="anav-found" onclick="showPage('found')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>Found Items</button><button class="nav-item" id="anav-post" onclick="showPage('post')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>Post Item</button><button class="nav-item" id="anav-my-posts" onclick="showPage('my-posts')"><i class="fa-solid fa-pen-to-square" style="width:16px"></i>My Posts</button></nav><div class="header-right"><div class="notif-container"><button class="notif-btn" id="headerNotifBtn" title="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div class="notif-badge-dot hidden" id="headerNotifDot">1</div></button><div class="notif-dropdown" id="headerNotifDropdown"><div class="notif-panel-header"><h3>Notifications</h3><span class="mark-read" id="headerMarkRead">Mark all as read</span></div><div class="notif-list" id="headerNotifList"><div class="notif-item unread"><div class="notif-icon-box admin-bg"><i class="fa-solid fa-shield-halved"></i></div><div class="notif-text"><p><strong>Admin!</strong> Full control over listings.</p><span class="notif-time">Just now</span></div><div class="status-dot"></div></div></div><div class="notif-panel-footer"><button type="button" id="headerSeeAllNotif">See all notifications</button></div></div></div><div class="profile-wrap"><button class="profile-btn" id="headerProfileBtn"><div class="profile-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><span class="profile-name" id="headerProfileName">CCIS Admin</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg></button><div class="dropdown-content" id="headerProfileDropdown"><div class="user-info"><div class="pd-name" id="headerDropName">CCIS Admin</div><div class="pd-role">Administrator</div></div><div class="dropdown-divider"></div><a href="/dashboard" class="dropdown-item" onclick="closeAllDropdowns();"><i class="fa-solid fa-chart-line" style="width:16px;color:var(--text-muted)"></i> Dashboard</a><button class="dropdown-item" onclick="showPage('my-posts');closeAllDropdowns();"><i class="fa-solid fa-pen-to-square" style="width:16px;color:var(--text-muted)"></i> My Posts</button><button class="dropdown-item" onclick="showPage('settings');closeAllDropdowns();"><i class="fa-solid fa-gear" style="width:16px;color:var(--text-muted)"></i> Settings</button><a href="/login/landing.html" class="dropdown-item logout-item" onclick="window.Auth?.logout?.(); return false;"><i class="fa-solid fa-right-from-bracket" style="width:16px"></i> Log Out</a></div></div><button class="mobile-nav-toggle" onclick="toggleMobileNav()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></header><div class="mobile-nav" id="mobileNav"><button class="mnav-item active" id="amnav-dashboard" onclick="showPage('dashboard');closeMobileNav()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Home</button><button class="mnav-item" id="amnav-lost" onclick="showPage('lost');closeMobileNav()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>Lost Items</button><button class="mnav-item" id="amnav-found" onclick="showPage('found');closeMobileNav()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>Found Items</button><button class="mnav-item" id="amnav-post" onclick="showPage('post');closeMobileNav()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>Post Item</button><button class="mnav-item" id="amnav-my-posts" onclick="showPage('my-posts');closeMobileNav()"><i class="fa-solid fa-pen-to-square" style="width:16px"></i>My Posts</button><button class="mnav-item" onclick="showPage('settings');closeMobileNav()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="3"/></svg>Settings</button></div></div>`;
   }
 
 initListeners() {
@@ -841,7 +925,7 @@ initListeners() {
     }
   });
 }
-  setActivePage(page) { ['dashboard','lost','found','post','claims','users','appeals'].forEach(p=>{ this.querySelector(`#anav-${p}`)?.classList.remove('active'); this.querySelector(`#amnav-${p}`)?.classList.remove('active'); }); this.querySelector(`#anav-${page}`)?.classList.add('active'); this.querySelector(`#amnav-${page}`)?.classList.add('active'); }
+  setActivePage(page) { ['dashboard','lost','found','post','my-posts','claims','users','appeals'].forEach(p=>{ this.querySelector(`#anav-${p}`)?.classList.remove('active'); this.querySelector(`#amnav-${p}`)?.classList.remove('active'); }); this.querySelector(`#anav-${page}`)?.classList.add('active'); this.querySelector(`#amnav-${page}`)?.classList.add('active'); }
   setUsername(name) { const n1=this.querySelector('#headerProfileName'), n2=this.querySelector('#headerDropName'); if(n1) n1.textContent=name; if(n2) n2.textContent=name; }
   renderNotifications(notifs) {
 
@@ -1398,6 +1482,7 @@ const refreshAdminRealtime = (window.asaRealtimeDebounce || ((fn) => fn))(async 
   }
   if (['claims-changed', 'admin-data-changed'].includes(type) && typeof loadAdminClaims === 'function') tasks.push(loadAdminClaims());
   if (['items-changed', 'claims-changed', 'admin-data-changed'].includes(type) && typeof loadAdminItems === 'function') tasks.push(loadAdminItems());
+  if (currentPage === 'my-posts' && ['items-changed', 'claims-changed', 'admin-data-changed'].includes(type)) tasks.push(loadAdminMyPosts());
   if (type === 'admin-data-changed' && typeof loadAdminUsers === 'function') tasks.push(loadAdminUsers());
   if (type === 'admin-data-changed' && typeof loadAdminAppeals === 'function') tasks.push(loadAdminAppeals());
 
