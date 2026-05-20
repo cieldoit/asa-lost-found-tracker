@@ -979,25 +979,21 @@ function closeSuccessPopup() {
 ============================================================ */
 let myPosts = [];
 
-function ensureMyPostsPage() {
+function ensureMyPostsPage(forceFresh = false) {
   let page = document.getElementById('page-my-posts');
-  const legacyPage = document.getElementById('page-mypost');
+  const isNestedInHiddenPage = page?.parentElement?.closest?.('.page');
 
-  if (!page && legacyPage) {
-    legacyPage.id = 'page-my-posts';
-    page = legacyPage;
-  }
-
-  if (!page) {
-    const anchor = document.getElementById('page-settings') || document.querySelector('.page:last-of-type');
+  if (forceFresh || !page || isNestedInHiddenPage || page.parentElement !== document.body) {
+    document.querySelectorAll('#page-my-posts, #page-mypost').forEach(existing => existing.remove());
     page = document.createElement('div');
     page.className = 'page';
     page.id = 'page-my-posts';
-    if (anchor?.parentElement) anchor.parentElement.insertBefore(page, anchor);
+    const firstPopup = document.querySelector('.popup-overlay, footer.bottom-bar');
+    if (firstPopup?.parentElement) firstPopup.parentElement.insertBefore(page, firstPopup);
     else document.body.appendChild(page);
   }
 
-  page.className = 'page';
+  page.className = page.classList.contains('active') ? 'page active' : 'page';
   page.innerHTML = [
     '<div class="home-container">',
     '<div class="dir-header"><h1>My Posts</h1><p>Manage all the items you have reported as lost or found.</p></div>',
@@ -1009,6 +1005,7 @@ function ensureMyPostsPage() {
     '<div class="items-grid" id="myPostsGrid"><div class="empty-state" style="grid-column:1/-1"><h3>Loading your posts...</h3><p>Checking the database for your reports.</p></div></div>',
     '</div>'
   ].join('');
+  return page;
 }
 
 
@@ -1060,8 +1057,7 @@ async function loadMyPostsFallback() {
 }
 
 async function loadMyPosts() {
-  ensureMyPostsPage();
-  const page = document.getElementById('page-my-posts');
+  const page = ensureMyPostsPage();
   const grid = page?.querySelector('#myPostsGrid');
   if (!grid) return;
 
@@ -1074,7 +1070,7 @@ async function loadMyPosts() {
   }
 
   try {
-    let posts = await withMyPostsTimeout(ItemsAPI.getMyPosts());
+    let posts = await ItemsAPI.getMyPosts();
     if (!Array.isArray(posts)) posts = [];
     if (!posts.length) posts = await loadMyPostsFallback();
     myPosts = posts;
