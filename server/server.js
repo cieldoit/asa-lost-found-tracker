@@ -7,6 +7,7 @@ require('dotenv').config();
 
 const db = require('./db');
 const transporter = require('./mailer');
+const realtime = require('./realtime');
 
 const app = express();
 
@@ -129,6 +130,17 @@ const adminRoutes = require('./routes/admin');
 const notificationRoutes = require('./routes/notifications');
 app.use('/api/notifications', notificationRoutes);
 
+app.get('/api/events', (req, res) => {
+  const token = req.query.token;
+  if (!token) return res.sendStatus(401);
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) return res.sendStatus(403);
+    realtime.addClient(user, res);
+  });
+});
+
+
 async function ensureStoragePhotoColumn() {
   try {
     await db.execute(`
@@ -168,9 +180,51 @@ async function ensureUserProfilePhotoColumn() {
   }
 }
 
+async function ensureUserCreatedAtColumn() {
+  try {
+    await db.execute(`
+      ALTER TABLE USERS
+      ADD COLUMN createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `);
+  } catch (err) {
+    if (err.code !== 'ER_DUP_FIELDNAME') {
+      console.warn('Could not ensure USERS.createdAt:', err.message);
+    }
+  }
+}
+async function ensureClaimPickupColumns() {
+  const columns = [
+    ['pickupLocation', 'VARCHAR(255) NULL'],
+    ['pickupSchedule', 'VARCHAR(255) NULL'],
+    ['adminNote', 'TEXT NULL']
+  ];
+
+  for (const [column, definition] of columns) {
+    try {
+      await db.execute(`ALTER TABLE CLAIMS ADD COLUMN ${column} ${definition}`);
+    } catch (err) {
+      if (err.code !== 'ER_DUP_FIELDNAME') {
+        console.warn(`Could not ensure CLAIMS.${column}:`, err.message);
+      }
+    }
+  }
+}
+ 
+async function ensureDatabaseColumns() {
+  await ensureStoragePhotoColumn();
+  await ensureItemPhotoColumn();
+  await ensureUserProfilePhotoColumn();
+  await ensureUserCreatedAtColumn();
+  await ensureClaimPickupColumns();
+}
+
+
 ensureStoragePhotoColumn();
 ensureItemPhotoColumn();
 ensureUserProfilePhotoColumn();
+ensureUserCreatedAtColumn();
+ensureClaimPickupColumns();
+
 
 function normalizeUsername(value) {
   return String(value || '')
@@ -231,11 +285,17 @@ async function ensureDefaultAdminAccount() {
     );
 
     if (admins.length) {
+      const shouldResetPassword = String(process.env.ADMIN_FORCE_PASSWORD_RESET || '').toLowerCase() === 'true';
+      const passwordSql = shouldResetPassword ? ', password = ?' : '';
+      const params = shouldResetPassword
+        ? [adminDisplayName, adminEmail, passwordHash, admins[0].userID]
+        : [adminDisplayName, adminEmail, admins[0].userID];
+
       await db.execute(
         `UPDATE USERS
-         SET userName = ?, email = ?, password = ?, role = 'Admin', userStatus = 'active'
+         SET userName = ?, email = ?${passwordSql}, role = 'Admin', userStatus = 'active'
          WHERE userID = ?`,
-        [adminDisplayName, adminEmail, passwordHash, admins[0].userID]
+        params
       );
     } else {
       await db.execute(
@@ -377,6 +437,23 @@ await db.execute(`
   `${userName} reported a ${itemType} item: "${title}".`
 ]);
 
+const [admins] = await db.execute(
+  `SELECT userID FROM USERS WHERE LOWER(role) = 'admin' AND userID <> ?`,
+  [userID]
+);
+await Promise.all(admins.map(admin => db.execute(`
+  INSERT INTO NOTIFICATIONS (userID, itemID, message)
+  VALUES (?, ?, ?)
+`, [
+  admin.userID,
+  result.insertId,
+  `${userName} reported a ${itemType} item: "${title}".`
+])));
+
+    realtime.emitToAll('items-changed', { reason: 'item-posted', itemID: result.insertId });
+    realtime.emitToRole('admin', 'admin-data-changed', { reason: 'item-posted', itemID: result.insertId });
+    realtime.emitToUser(userID, 'notifications-changed', { reason: 'item-posted', itemID: result.insertId });
+
     res.status(201).json({
       message: "Item posted successfully.",
       itemID: result.insertId
@@ -396,8 +473,43 @@ await db.execute(`
 app.post('/api/claims', authenticateToken, async (req, res) => {
   const { itemID, proof } = req.body;
   const userID = req.user.userID;
+  const isAdmin = String(req.user.role || "").toLowerCase() === "admin";
 
   try {
+    if (isAdmin) {
+      await db.execute(`
+        INSERT INTO NOTIFICATIONS (userID, itemID, message, createdAt)
+        SELECT
+          ?,
+          c.itemID,
+          CONCAT(u.userName, ' requested to claim ', i.itemType, ' item: "', i.title, '".'),
+          c.createdAt
+        FROM CLAIMS c
+        JOIN USERS u ON c.userID = u.userID
+        JOIN ITEMS i ON c.itemID = i.itemID
+        WHERE c.userID <> ?
+          AND NOT EXISTS (
+            SELECT 1
+            FROM NOTIFICATIONS n
+            WHERE n.userID = ?
+              AND n.itemID = c.itemID
+              AND n.message = CONCAT(u.userName, ' requested to claim ', i.itemType, ' item: "', i.title, '".')
+          )
+      `, [userID, userID, userID]);
+    }
+    const [claimants] = await db.execute(
+      `SELECT userName, email FROM USERS WHERE userID = ?`,
+      [userID]
+    );
+    const [items] = await db.execute(
+      `SELECT title, itemType FROM ITEMS WHERE itemID = ?`,
+      [itemID]
+    );
+
+    const claimantName = claimants[0]?.userName || 'Someone';
+    const itemTitle = items[0]?.title || 'an item';
+    const itemType = items[0]?.itemType || 'item';
+
     await db.execute(`
       INSERT INTO CLAIMS (userID, itemID, proof, claimStatus)
       VALUES (?, ?, ?, 'pending')
@@ -409,8 +521,24 @@ app.post('/api/claims', authenticateToken, async (req, res) => {
     `, [
       userID,
       itemID,
-      `Your claim request has been submitted.`
+      `Your claim request for "${itemTitle}" has been submitted.`
     ]);
+
+    const [admins] = await db.execute(
+      `SELECT userID FROM USERS WHERE LOWER(role) = 'admin' AND userID <> ?`,
+      [userID]
+    );
+    await Promise.all(admins.map(admin => db.execute(`
+      INSERT INTO NOTIFICATIONS (userID, itemID, message)
+      VALUES (?, ?, ?)
+    `, [
+      admin.userID,
+      itemID,
+      `${claimantName} requested to claim ${itemType} item: "${itemTitle}".`
+    ])));
+
+    realtime.emitToRole('admin', 'claims-changed', { reason: 'claim-submitted', itemID });
+    realtime.emitToUser(userID, 'notifications-changed', { reason: 'claim-submitted', itemID });
 
     res.json({ message: "Claim submitted" });
 
@@ -427,7 +555,7 @@ app.post('/api/appeals', authenticateToken, async (req, res) => {
 
   try {
     const [items] = await db.execute(
-      'SELECT * FROM ITEMS WHERE itemID = ?',
+      'SELECT title FROM ITEMS WHERE itemID = ?',
       [itemID]
     );
 
@@ -448,6 +576,22 @@ app.post('/api/appeals', authenticateToken, async (req, res) => {
       itemID,
       `Your appeal has been submitted.`
     ]);
+
+    const [admins] = await db.execute(
+      `SELECT userID FROM USERS WHERE LOWER(role) = "admin" AND userID <> ?`,
+      [userID]
+    );
+    await Promise.all(admins.map(admin => db.execute(`
+      INSERT INTO NOTIFICATIONS (userID, itemID, message)
+      VALUES (?, ?, ?)
+    `, [
+      admin.userID,
+      itemID,
+      `${userName} submitted an appeal for "${itemTitle}".`
+    ])));
+
+    realtime.emitToRole('admin', 'admin-data-changed', { reason: 'appeal-submitted', itemID });
+    realtime.emitToUser(userID, 'notifications-changed', { reason: 'appeal-submitted', itemID });
 
     res.json({ message: "Appeal submitted" });
 
@@ -483,6 +627,8 @@ app.put('/api/notifications/:id/read', authenticateToken, async (req, res) => {
     [notifID, userID]
   );
 
+  realtime.emitToUser(userID, 'notifications-changed', { reason: 'notification-read' });
+
   res.json({ message: "Marked as read" });
 });
 
@@ -493,6 +639,8 @@ app.put('/api/notifications/read-all', authenticateToken, async (req, res) => {
     'UPDATE NOTIFICATIONS SET isRead = 1 WHERE userID = ?',
     [userID]
   );
+
+  realtime.emitToUser(userID, 'notifications-changed', { reason: 'notifications-read-all' });
 
   res.json({ message: "All notifications marked as read" });
 });
@@ -511,6 +659,7 @@ app.get('/api/items/browse', async (req, res) => {
         i.itemPhotoData,
         sl.storageName AS locationName,
         i.dateOccured,
+        i.createdAt,
         i.itemStatus,
         c.categoryName,
         sl.photoData AS locationPhoto
@@ -989,8 +1138,30 @@ app.put('/api/users/change-password', authenticateToken, async (req, res) => {
 app.put('/api/users/profile', authenticateToken, async (req, res) => {
   const { userName, profilePhotoData } = req.body;
   const userID = req.user.userID;
+  const isAdmin = String(req.user.role || "").toLowerCase() === "admin";
 
   try {
+    if (isAdmin) {
+      await db.execute(`
+        INSERT INTO NOTIFICATIONS (userID, itemID, message, createdAt)
+        SELECT
+          ?,
+          c.itemID,
+          CONCAT(u.userName, ' requested to claim ', i.itemType, ' item: "', i.title, '".'),
+          c.createdAt
+        FROM CLAIMS c
+        JOIN USERS u ON c.userID = u.userID
+        JOIN ITEMS i ON c.itemID = i.itemID
+        WHERE c.userID <> ?
+          AND NOT EXISTS (
+            SELECT 1
+            FROM NOTIFICATIONS n
+            WHERE n.userID = ?
+              AND n.itemID = c.itemID
+              AND n.message = CONCAT(u.userName, ' requested to claim ', i.itemType, ' item: "', i.title, '".')
+          )
+      `, [userID, userID, userID]);
+    }
     if (!userName || !userName.trim()) {
       return res.status(400).json({ error: "Name is required." });
     }
@@ -1060,6 +1231,16 @@ app.use((req, res) => {
   res.sendFile(path.join(clientDir, 'login/index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+async function startServer() {
+  try {
+    await ensureDatabaseColumns();
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (err) {
+    console.error('Server startup failed:', err);
+    process.exit(1);
+  }
+}
+
+startServer();

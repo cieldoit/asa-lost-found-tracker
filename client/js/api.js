@@ -31,6 +31,7 @@ const Auth = {
       showLogoutConfirmation();
       return;
     }
+    window.RealtimeAPI?.disconnect?.();
     ['asa_token','asa_role','asa_user','token','role','userName'].forEach(k => localStorage.removeItem(k));
     window.location.href = '/login/landing.html';
   }
@@ -282,6 +283,56 @@ function requireAuth(redirectTo = '/login/landing.html', requiredRole = null) {
   return true;
 }
 
+
+function asaRealtimeDebounce(fn, delay = 300) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}
+
+const RealtimeAPI = (() => {
+  let source = null;
+  let reconnectTimer = null;
+
+  function publish(event) {
+    window.dispatchEvent(new CustomEvent('asa:realtime', { detail: event }));
+    if (event?.type) {
+      window.dispatchEvent(new CustomEvent(`asa:realtime:${event.type}`, { detail: event.payload || {} }));
+    }
+  }
+
+  function connect() {
+    const token = Auth.getToken();
+    if (!token || !window.EventSource) return;
+    if (source) source.close();
+
+    source = new EventSource(`${API_BASE}/events?token=${encodeURIComponent(token)}`);
+    source.onmessage = event => {
+      try {
+        publish(JSON.parse(event.data));
+      } catch (err) {
+        console.warn('Realtime message ignored:', err.message);
+      }
+    };
+    source.onerror = () => {
+      source?.close();
+      source = null;
+      clearTimeout(reconnectTimer);
+      reconnectTimer = setTimeout(connect, 5000);
+    };
+  }
+
+  function disconnect() {
+    clearTimeout(reconnectTimer);
+    source?.close();
+    source = null;
+  }
+
+  return { connect, disconnect };
+})();
+
 window.API_BASE = API_BASE;
 window.Auth = Auth;
 window.AuthAPI = AuthAPI;
@@ -293,3 +344,7 @@ window.MetaAPI = MetaAPI;
 window.NotifAPI = NotifAPI;
 window.AdminAPI = AdminAPI;
 window.requireAuth = requireAuth;
+window.asaRealtimeDebounce = asaRealtimeDebounce;
+window.RealtimeAPI = RealtimeAPI;
+document.addEventListener('DOMContentLoaded', () => RealtimeAPI.connect());
+window.addEventListener('beforeunload', () => RealtimeAPI.disconnect());

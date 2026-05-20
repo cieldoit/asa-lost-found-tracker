@@ -27,6 +27,8 @@ let currentModalCard  = null;
 let pendingTagDelete  = null;
 let currentAdminUser = null;
 let adminItemsCache = [];
+const ADMIN_ITEMS_CACHE_KEY = 'asa_admin_items_cache';
+let currentAdminModalItem = null;
 let pendingAdminItemID = new URLSearchParams(window.location.search).get('itemID');
 
 function showToast(type, title, message) {
@@ -400,9 +402,72 @@ function openItemModal(card) {
 
   document.getElementById('itemModal').classList.add('active');
 }
-function closeItemModal() { document.getElementById('itemModal').classList.remove('active'); currentModalCard = null; }
-function resolveFromModal() { if(currentModalCard){ const btn=currentModalCard.querySelector('.btn-card-resolve'); if(btn) resolveItem(btn); document.getElementById('modalStatusBadge').textContent='RESOLVED'; document.getElementById('modalStatusBadge').classList.remove('badge-pending'); document.getElementById('modalStatusBadge').classList.add('badge-claimed'); } }
-function deleteFromModal() { if(currentModalCard){ const btn=currentModalCard.querySelector('.btn-card-delete'); if(btn) confirmDelete(btn); closeItemModal(); } }
+function closeItemModal() { document.getElementById('itemModal').classList.remove('active'); currentModalCard = null; currentAdminModalItem = null; }
+async function resolveFromModal() {
+  if (currentModalCard) {
+    const btn = currentModalCard.querySelector('.btn-card-resolve');
+    if (btn) resolveItem(btn);
+    document.getElementById('modalStatusBadge').textContent = 'RESOLVED';
+    document.getElementById('modalStatusBadge').classList.remove('badge-pending');
+    document.getElementById('modalStatusBadge').classList.add('badge-claimed');
+    return;
+  }
+
+  const itemID = currentAdminModalItem?.itemID;
+  if (!itemID) return;
+
+  try {
+    await fetch(`${ADMIN_API_BASE}/admin/items/${itemID}/resolve`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}` }
+    }).then(res => {
+      if (!res.ok) throw new Error('Resolve failed');
+      return res.json();
+    });
+
+    currentAdminModalItem.itemStatus = 'claimed';
+    document.getElementById('modalStatusBadge').textContent = 'RESOLVED';
+    document.getElementById('modalStatusBadge').classList.remove('badge-pending');
+    document.getElementById('modalStatusBadge').classList.add('badge-claimed');
+    showToast('success', 'Resolved', `"${currentAdminModalItem.title || 'Item'}" marked as resolved.`);
+    await loadAdminStats();
+    await loadAdminItems();
+    await loadAdminNotifications();
+  } catch (err) {
+    showToast('error', 'Error', 'Could not resolve item.');
+  }
+}
+
+async function deleteFromModal() {
+  if (currentModalCard) {
+    const btn = currentModalCard.querySelector('.btn-card-delete');
+    if (btn) confirmDelete(btn);
+    closeItemModal();
+    return;
+  }
+
+  const itemID = currentAdminModalItem?.itemID;
+  const title = currentAdminModalItem?.title || 'Item';
+  if (!itemID) return;
+
+  try {
+    await fetch(`${ADMIN_API_BASE}/admin/items/${itemID}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    }).then(res => {
+      if (!res.ok) throw new Error('Delete failed');
+      return res.json();
+    });
+
+    showToast('info', 'Deleted', `"${title}" has been removed.`);
+    closeItemModal();
+    await loadAdminStats();
+    await loadAdminItems();
+    await loadAdminNotifications();
+  } catch (err) {
+    showToast('error', 'Error', 'Could not delete item.');
+  }
+}
 function filterItems(type) { const query=document.getElementById(`${type}Search`).value.toLowerCase(); const catVal=document.getElementById(`${type}CatFilter`).value.toLowerCase(); document.querySelectorAll(`#${type}ItemsGrid .item-card`).forEach(card=>{ const matchQuery=!query||(card.dataset.title||'').toLowerCase().includes(query)||(card.dataset.desc||'').toLowerCase().includes(query)||(card.dataset.reporterName||'').toLowerCase().includes(query); const matchCat=!catVal||(card.dataset.cat||'').toLowerCase()===catVal; card.style.display=matchQuery&&matchCat?'':'none'; }); }
 function filterAllItems() {
   const query = document.getElementById('allItemsSearch')?.value.toLowerCase() || '';
@@ -537,6 +602,30 @@ function updateBuildingThumbnails() {
     }
   });
 }
+function syncAdminPageUrl(page) {
+  const hashPages = new Set(['lost', 'found', 'post', 'claims', 'users', 'appeals']);
+  const target = hashPages.has(page) ? `/admin#${page}` : '/admin';
+  if (window.location.pathname + window.location.hash !== target) {
+    window.history.replaceState({}, '', target);
+  }
+}
+
+function hydrateAdminStatsFromCache() {
+  try {
+    const cached = JSON.parse(localStorage.getItem('asa_admin_stats') || 'null');
+    if (!cached) return;
+    const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value ?? 0; };
+    set('statLost', cached.totalLost);
+    set('statFound', cached.totalFound);
+    set('statTotal', (cached.totalLost ?? 0) + (cached.totalFound ?? 0));
+    set('statResolved', cached.resolvedItems);
+    set('statTotalUsers', cached.totalUsers);
+    set('statPendingClaims', cached.pendingClaims);
+  } catch (err) {
+    localStorage.removeItem('asa_admin_stats');
+  }
+}
+
 function closeSuccessPopup() { document.getElementById('successPopup').classList.remove('active'); showPage('dashboard'); }
 let currentPage='dashboard';
 function showPage(page) {
@@ -549,6 +638,7 @@ function showPage(page) {
   const header = document.querySelector('admin-header');
   addAdminManagementNav(header);
   header?.setActivePage(page);
+  syncAdminPageUrl(page);
   if(window.closeAllDropdowns) window.closeAllDropdowns();
   const mobileNav=document.getElementById('mobileNav');
   if(mobileNav) mobileNav.classList.remove('open');
@@ -791,7 +881,7 @@ initListeners() {
 
     <div 
       class="notif-item ${n.isRead ? 'read' : 'unread'}"
-      onclick="markSingleNotificationRead(${n.notifID})"
+      onclick="openAdminNotification(${n.notifID}, ${n.itemID || 'null'})"
     >
 
       <div class="notif-icon-box admin-bg">
@@ -868,7 +958,7 @@ function renderAdminNotificationsModal(notifs) {
   }
 
   list.innerHTML = notifs.map(n => `
-    <button type="button" class="admin-notif-row ${n.isRead ? 'read' : 'unread'}" onclick="markSingleNotificationRead(${n.notifID})">
+    <button type="button" class="admin-notif-row ${n.isRead ? 'read' : 'unread'}" onclick="openAdminNotification(${n.notifID}, ${n.itemID || 'null'})">
       <span class="notif-icon-box admin-bg"><i class="fa-solid fa-bell"></i></span>
       <span class="admin-notif-row-text">
         <strong>${escapeHtml(n.message)}</strong>
@@ -910,9 +1000,6 @@ function closeAdminNotificationsModal() {
 async function loadAdminStats() {
   try {
 
-    console.log("loadAdminStats running...");
-    console.log("token:", token);
-    console.log("role:", role);
 
     const res = await fetch(`${ADMIN_API_BASE}/admin/stats`, {
       headers: {
@@ -921,13 +1008,12 @@ async function loadAdminStats() {
     });
     
 
-    console.log("response status:", res.status);
 
     if (!res.ok) throw new Error("Failed to load stats");
 
     const stats = await res.json();
+    localStorage.setItem('asa_admin_stats', JSON.stringify(stats));
 
-    console.log("stats:", stats);
 
     document.getElementById("statLost").textContent = stats.totalLost ?? 0;
     document.getElementById("statFound").textContent = stats.totalFound ?? 0;
@@ -949,46 +1035,56 @@ async function loadAdminStats() {
     showToast("error", "Stats Error", "Could not load admin dashboard stats.");
   }
 }
+function renderAdminItemsFromData(items, shouldCache = true) {
+  const itemList = Array.isArray(items) ? items : [];
+  adminItemsCache = itemList;
+  if (shouldCache) {
+    try { localStorage.setItem(ADMIN_ITEMS_CACHE_KEY, JSON.stringify(itemList.slice(0, 40))); }
+    catch (err) { localStorage.removeItem(ADMIN_ITEMS_CACHE_KEY); }
+  }
+
+  const lostGrid = document.getElementById('lostItemsGrid');
+  const foundGrid = document.getElementById('foundItemsGrid');
+  const allGrid = document.getElementById('allItemsGrid');
+  const recentBox = document.getElementById('recentItemsContainer');
+
+  if (lostGrid) lostGrid.innerHTML = '';
+  if (foundGrid) foundGrid.innerHTML = '';
+  if (allGrid) allGrid.innerHTML = '';
+  if (recentBox) recentBox.innerHTML = '';
+
+  itemList.forEach(item => {
+    allGrid?.appendChild(buildAdminItemCard(item));
+    if (item.itemType === 'lost') lostGrid?.appendChild(buildAdminItemCard(item));
+    else foundGrid?.appendChild(buildAdminItemCard(item));
+    recentBox?.appendChild(buildAdminItemCard(item));
+  });
+}
+
+function hydrateAdminItemsFromCache() {
+  try {
+    const cached = JSON.parse(localStorage.getItem(ADMIN_ITEMS_CACHE_KEY) || 'null');
+    if (cached) renderAdminItemsFromData(cached, false);
+  } catch (err) {
+    localStorage.removeItem(ADMIN_ITEMS_CACHE_KEY);
+  }
+}
+
 async function loadAdminItems() {
   try {
     const res = await fetch(`${ADMIN_API_BASE}/admin/items`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+      headers: { Authorization: `Bearer ${token}` }
     });
 
-    if (!res.ok) throw new Error("Failed to load items");
+    if (!res.ok) throw new Error('Failed to load items');
 
     const items = await res.json();
-    adminItemsCache = Array.isArray(items) ? items : [];
-
-    const lostGrid = document.getElementById("lostItemsGrid");
-    const foundGrid = document.getElementById("foundItemsGrid");
-    const allGrid = document.getElementById("allItemsGrid");
-    const recentBox = document.getElementById("recentItemsContainer");
-
-    if (lostGrid) lostGrid.innerHTML = "";
-    if (foundGrid) foundGrid.innerHTML = "";
-    if (allGrid) allGrid.innerHTML = "";
-    if (recentBox) recentBox.innerHTML = "";
-
-    items.forEach(item => {
-      allGrid?.appendChild(buildAdminItemCard(item));
-
-      if (item.itemType === "lost") {
-        lostGrid?.appendChild(buildAdminItemCard(item));
-      } else {
-        foundGrid?.appendChild(buildAdminItemCard(item));
-      }
-
-      recentBox?.appendChild(buildAdminItemCard(item));
-    });
+    renderAdminItemsFromData(items);
 
     openPendingAdminItem();
     return adminItemsCache;
-
   } catch (err) {
-    console.error("LOAD ITEMS ERROR:", err);
+    console.error('LOAD ITEMS ERROR:', err);
     return [];
   }
 }
@@ -1037,6 +1133,25 @@ async function markAllAdminNotificationsRead() {
   }
 }
 
+
+async function openAdminNotification(notifID, itemID) {
+  try {
+    if (notifID) await markSingleNotificationRead(notifID);
+  } catch (err) {
+    console.warn('Could not mark notification read:', err.message);
+  }
+
+  closeAllDropdowns();
+  closeAdminNotificationsModal();
+
+  if (itemID) {
+    window.location.href = `/admin?itemID=${encodeURIComponent(itemID)}`;
+  } else {
+    window.location.href = '/admin#claims';
+  }
+}
+window.openAdminNotification = openAdminNotification;
+
 async function markSingleNotificationRead(notificationID) {
   try {
 
@@ -1055,6 +1170,128 @@ async function markSingleNotificationRead(notificationID) {
   }
 }
 
+
+function ensureClaimDecisionModal() {
+  let modal = document.getElementById('claimDecisionModal');
+  if (modal) return modal;
+
+  modal = document.createElement('div');
+  modal.className = 'popup-overlay';
+  modal.id = 'claimDecisionModal';
+  modal.innerHTML = `
+    <div class="popup-box" style="max-width:520px;text-align:left">
+      <h3 id="claimDecisionTitle">Claim Decision</h3>
+      <p id="claimDecisionSubtitle" style="color:#6b7280;margin-bottom:14px"></p>
+      <input type="hidden" id="claimDecisionID">
+      <input type="hidden" id="claimDecisionAction">
+      <div id="claimApproveFields">
+        <label class="form-label">Storage / Pick-Up Location</label>
+        <input class="form-input" id="claimPickupLocation" readonly>
+        <label class="form-label" style="margin-top:12px">Available Schedule</label>
+        <input class="form-input" id="claimPickupSchedule" placeholder="Example: May 18, 2026, 9:00 AM - 4:00 PM">
+      </div>
+      <label class="form-label" style="margin-top:12px">Message / Note</label>
+      <textarea class="form-textarea" id="claimAdminNote" placeholder="Optional note for the claimant"></textarea>
+      <div class="popup-actions">
+        <button class="btn-cancel" onclick="closeClaimDecisionModal()">Cancel</button>
+        <button class="btn-submit" onclick="submitClaimDecision()">Send</button>
+      </div>
+    </div>
+  `;
+  modal.addEventListener('click', e => {
+    if (e.target === modal) closeClaimDecisionModal();
+  });
+  document.body.appendChild(modal);
+  return modal;
+}
+
+function openClaimDecisionModal(claimID, action, itemTitle = 'this item', pickupLocation = '') {
+  const modal = ensureClaimDecisionModal();
+  document.getElementById('claimDecisionID').value = claimID;
+  document.getElementById('claimDecisionAction').value = action;
+  document.getElementById('claimDecisionTitle').textContent = action === 'approve' ? 'Approve Claim' : 'Reject Claim';
+  document.getElementById('claimDecisionSubtitle').textContent = action === 'approve'
+    ? `Tell the claimant when to verify ownership and pick up "${itemTitle}".`
+    : `Tell the claimant why the request for "${itemTitle}" was rejected.`;
+  document.getElementById('claimApproveFields').style.display = action === 'approve' ? 'block' : 'none';
+  document.getElementById('claimPickupLocation').value = pickupLocation || 'Stored location not specified';
+  document.getElementById('claimPickupSchedule').value = '';
+  document.getElementById('claimAdminNote').value = '';
+  modal.classList.add('active');
+}
+
+function closeClaimDecisionModal() {
+  document.getElementById('claimDecisionModal')?.classList.remove('active');
+}
+
+async function submitClaimDecision() {
+  const claimID = document.getElementById('claimDecisionID').value;
+  const action = document.getElementById('claimDecisionAction').value;
+  const payload = {
+    pickupSchedule: document.getElementById('claimPickupSchedule').value.trim(),
+    adminNote: document.getElementById('claimAdminNote').value.trim()
+  };
+
+  if (action === 'approve' && !payload.pickupSchedule) {
+    showToast('error', 'Missing Details', 'Available schedule is required.');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${ADMIN_API_BASE}/admin/claims/${claimID}/${action}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || data.message || 'Claim update failed');
+
+    closeClaimDecisionModal();
+    closeItemModal();
+    showToast(action === 'approve' ? 'success' : 'info', action === 'approve' ? 'Claim Approved' : 'Claim Rejected', action === 'approve' ? 'The claimant was notified with pickup instructions.' : 'The claimant was notified.');
+    await loadAdminClaims();
+    await loadAdminStats();
+    await loadAdminItems();
+    await loadAdminNotifications();
+  } catch (err) {
+    showToast('error', 'Claim Update Failed', err.message);
+  }
+}
+
+function renderAdminModalActions(item) {
+  const actionBox = document.querySelector('.modal-admin-actions');
+  if (!actionBox) return;
+  actionBox.innerHTML = '';
+
+  if (item.pendingClaimID) {
+    const approve = document.createElement('button');
+    approve.className = 'btn-modal-resolve';
+    approve.textContent = 'Approve Claim';
+    approve.onclick = () => openClaimDecisionModal(item.pendingClaimID, 'approve', item.title || 'item', item.location || item.locationName || item.locationDetail || 'Campus');
+    actionBox.appendChild(approve);
+
+    const reject = document.createElement('button');
+    reject.className = 'btn-modal-delete';
+    reject.textContent = 'Reject Claim';
+    reject.onclick = () => openClaimDecisionModal(item.pendingClaimID, 'reject', item.title || 'item');
+    actionBox.appendChild(reject);
+  }
+
+  const resolve = document.createElement('button');
+  resolve.className = 'btn-modal-resolve';
+  resolve.textContent = '✓ Mark as Resolved';
+  resolve.onclick = resolveFromModal;
+  actionBox.appendChild(resolve);
+
+  const del = document.createElement('button');
+  del.className = 'btn-modal-delete';
+  del.textContent = 'Delete Post';
+  del.onclick = deleteFromModal;
+  actionBox.appendChild(del);
+}
+window.openClaimDecisionModal = openClaimDecisionModal;
+window.closeClaimDecisionModal = closeClaimDecisionModal;
+window.submitClaimDecision = submitClaimDecision;
 function buildAdminItemCard(item) {
   const isLost = item.itemType === "lost";
   const statusClass = { pending: 'badge-pending', approved: 'badge-approved', rejected: 'badge-danger', claimed: 'badge-claimed' }[item.itemStatus] || 'badge-pending';
@@ -1089,19 +1326,18 @@ function buildAdminItemCard(item) {
       <div class="card-footer-row"><span>${!isLost ? `<img class="building-thumb" src="${pickupPhoto || "data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='1.5' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 21h18M3 7v1a4 4 0 004 4h10a4 4 0 004-4V7M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16'/%3E%3C/svg%3E"}" alt="${pickupName} building photo">` : '\u{1F4CD}'} ${pickupName}</span><button class="view-btn" onclick='openAdminItemModal(${JSON.stringify(item)})'>View Details</button></div>
     </div>
     <div class="card-admin-actions">
-      ${item.itemStatus === 'pending' ? '<button class="btn-card-action btn-card-approve">Approve</button><button class="btn-card-action btn-card-reject">Reject</button>' : ''}
       <button class="btn-card-action btn-card-resolve">\u2713 Resolve</button>
       <button class="btn-card-action btn-card-delete">\u{1F5D1} Delete</button>
     </div>
   `;
-  card.querySelector('.btn-card-approve')?.addEventListener('click', function(e) { e.stopPropagation(); setAdminItemStatus(this, 'approve'); });
-  card.querySelector('.btn-card-reject')?.addEventListener('click', function(e) { e.stopPropagation(); setAdminItemStatus(this, 'reject'); });
   card.querySelector('.btn-card-resolve').addEventListener('click', function(e) { e.stopPropagation(); resolveItem(this); });
   card.querySelector('.btn-card-delete').addEventListener('click', function(e) { e.stopPropagation(); confirmDelete(this); });
   return card;
 }
 
 function openAdminItemModal(item) {
+  currentAdminModalItem = item;
+  currentModalCard = null;
   document.getElementById("modalTypeBadge").textContent = item.itemType.toUpperCase();
   document.getElementById("modalTypeBadge").className = `badge badge-${item.itemType}`;
 
@@ -1110,7 +1346,7 @@ function openAdminItemModal(item) {
   document.getElementById("modalTitle").textContent = item.title;
   document.getElementById("modalCat").innerHTML = `<span class="category-tag">${item.category || "General"}</span>`;
   document.getElementById("modalLoc").textContent = `📍 ${item.locationDetail || item.location || "Campus"}`;
-  document.getElementById("modalDate").textContent = `🗓 ${new Date(item.createdAt).toLocaleDateString()}`;
+  document.getElementById("modalDate").textContent = `🗓 ${formatNotifDate(item.createdAt)}`;
   document.getElementById("modalDesc").textContent = item.description || "No description";
 
   document.getElementById("modalReporterName").textContent = item.reporterName || "Unknown User";
@@ -1146,8 +1382,29 @@ function openAdminItemModal(item) {
     </div>
   `;
 
+  renderAdminModalActions(item);
   document.getElementById("itemModal").classList.add("active");
 }
+
+
+const refreshAdminRealtime = (window.asaRealtimeDebounce || ((fn) => fn))(async event => {
+  const type = event.detail?.type;
+  if (type === 'connected' || type === 'heartbeat') return;
+
+  const tasks = [];
+  if (['notifications-changed', 'claims-changed', 'admin-data-changed', 'items-changed'].includes(type)) {
+    if (typeof loadAdminNotifications === 'function') tasks.push(loadAdminNotifications());
+    if (typeof loadAdminStats === 'function') tasks.push(loadAdminStats());
+  }
+  if (['claims-changed', 'admin-data-changed'].includes(type) && typeof loadAdminClaims === 'function') tasks.push(loadAdminClaims());
+  if (['items-changed', 'claims-changed', 'admin-data-changed'].includes(type) && typeof loadAdminItems === 'function') tasks.push(loadAdminItems());
+  if (type === 'admin-data-changed' && typeof loadAdminUsers === 'function') tasks.push(loadAdminUsers());
+  if (type === 'admin-data-changed' && typeof loadAdminAppeals === 'function') tasks.push(loadAdminAppeals());
+
+  await Promise.allSettled(tasks);
+}, 300);
+
+window.addEventListener('asa:realtime', refreshAdminRealtime);
 
 document.addEventListener('DOMContentLoaded', async () => {
 
@@ -1162,17 +1419,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (!(await ensureAdminSession())) return;
 
+  hydrateAdminStatsFromCache();
+  hydrateAdminItemsFromCache();
+  loadAdminStats();
+  const adminItemsReady = loadAdminItems();
   await loadAdminMeta();
   document.getElementById('foundPickup')?.addEventListener('change', updateFoundPickupPreview);
-  loadAdminStats();
   loadAdminClaims();
   loadAdminUsers();
   loadAdminAppeals();
   loadAdminNotifications();
-  await loadAdminItems();
-  if (window.location.hash === '#post') {
-    showPage('post');
+  if (!window.adminNotificationPoll) {
+    window.adminNotificationPoll = setInterval(loadAdminNotifications, 30000);
   }
+  window.addEventListener('focus', loadAdminNotifications);
+  await adminItemsReady;
+  const hashPage = { '#lost': 'lost', '#found': 'found', '#post': 'post', '#claims': 'claims', '#users': 'users', '#appeals': 'appeals' }[window.location.hash];
+  if (hashPage) showPage(hashPage);
 
   buildTagEditor('catTagsEditor', categories, populateAllSelects);
   buildTagEditor('locTagsEditor', locations, populateAllSelects);
@@ -1232,9 +1495,9 @@ async function loadAdminClaims() {
         <td><span class="badge badge-${c.claimStatus === 'pending' ? 'pending' : c.claimStatus === 'approved' ? 'claimed' : 'danger'}">${c.claimStatus.toUpperCase()}</span></td>
         <td>
           ${c.claimStatus === 'pending' ? `
-            <button class="btn-action btn-approve" onclick="approveClaim(${c.claimID}, this)">Approve</button>
-            <button class="btn-action btn-reject" onclick="rejectClaim(${c.claimID}, this)">Reject</button>
-          ` : '—'}
+            <button class="btn-action btn-approve" onclick="openClaimDecisionModal(${c.claimID}, 'approve', '${String(c.itemTitle || 'item').replace(/'/g, '&#39;')}', '${String(c.pickupLocationSource || 'Campus').replace(/'/g, '&#39;')}')">Approve</button>
+            <button class="btn-action btn-reject" onclick="openClaimDecisionModal(${c.claimID}, 'reject', '${String(c.itemTitle || 'item').replace(/'/g, '&#39;')}')">Reject</button>
+          ` : '-'}
         </td>
       </tr>
     `).join('');
@@ -1417,4 +1680,3 @@ async function submitAdminPasswordChange(e) {
     showToast('error', 'Error', err.message || 'Could not update password.');
   }
 }
-
