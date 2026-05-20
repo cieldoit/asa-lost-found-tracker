@@ -469,6 +469,7 @@ function ensureAdminMyPostActionStyles() {
     '.my-post-icon-btn{width:34px;height:34px;border:1px solid #d1d5db;border-radius:999px;background:rgba(255,255,255,.95);color:#0f172a;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 8px 20px rgba(15,23,42,.12);transition:transform .15s ease,background .15s ease}',
     '.my-post-icon-btn:hover{transform:translateY(-1px);background:#fff}',
     '.my-post-icon-btn.delete{color:#dc2626}',
+    '.post-edited-stamp{display:inline-flex;align-items:center;gap:6px;margin:8px 0 2px;color:#64748b;font-size:12px;font-weight:700}',
     '.my-post-edit-overlay{position:fixed;inset:0;z-index:7000;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(15,23,42,.48);backdrop-filter:blur(4px)}',
     '.my-post-edit-overlay.active{display:flex}',
     '.my-post-edit-dialog{width:min(100%,520px);background:#fff;border-radius:16px;border:1px solid #e5e7eb;box-shadow:0 24px 70px rgba(15,23,42,.22);padding:26px;font-family:Poppins,Arial,sans-serif}',
@@ -480,7 +481,17 @@ function ensureAdminMyPostActionStyles() {
     '.my-post-edit-actions{display:flex;gap:12px;margin-top:22px}',
     '.my-post-edit-actions button{border:0;border-radius:10px;padding:12px 18px;font-family:inherit;font-weight:800;cursor:pointer}',
     '.my-post-edit-cancel{background:#f3f4f6;color:#374151}',
-    '.my-post-edit-save{flex:1;background:#166534;color:#fff}'
+    '.my-post-edit-save{flex:1;background:#166534;color:#fff}',
+    '.my-post-delete-overlay{position:fixed;inset:0;z-index:7100;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(15,23,42,.52);backdrop-filter:blur(5px)}',
+    '.my-post-delete-overlay.active{display:flex}',
+    '.my-post-delete-dialog{width:min(100%,460px);background:#fff;border-radius:18px;border:1px solid #fee2e2;box-shadow:0 24px 70px rgba(15,23,42,.24);padding:26px;font-family:Poppins,Arial,sans-serif}',
+    '.my-post-delete-icon{width:48px;height:48px;border-radius:999px;background:#fee2e2;color:#dc2626;display:flex;align-items:center;justify-content:center;margin-bottom:14px;font-size:20px}',
+    '.my-post-delete-dialog h2{margin:0 0 8px;font-size:22px;font-weight:800;color:#111827}',
+    '.my-post-delete-dialog p{margin:0;color:#64748b;font-size:14px;line-height:1.6}',
+    '.my-post-delete-actions{display:flex;gap:12px;margin-top:24px}',
+    '.my-post-delete-actions button{border:0;border-radius:10px;padding:12px 18px;font-family:inherit;font-weight:800;cursor:pointer}',
+    '.my-post-delete-cancel{background:#f3f4f6;color:#374151}',
+    '.my-post-delete-confirm{flex:1;background:#dc2626;color:#fff}'
   ].join('');
   document.head.appendChild(style);
 }
@@ -530,11 +541,39 @@ async function saveAdminMyPostEdit() {
   }
 }
 
-async function deleteAdminMyPost(item) {
-  if (!item?.itemID) return;
-  if (!window.confirm('Delete "' + (item.title || 'this post') + '"? This cannot be undone.')) return;
+function ensureAdminMyPostDeleteModal() {
+  ensureAdminMyPostActionStyles();
+  let overlay = document.getElementById('myPostDeleteOverlay');
+  if (overlay) return overlay;
+  overlay = document.createElement('div');
+  overlay.id = 'myPostDeleteOverlay';
+  overlay.className = 'my-post-delete-overlay';
+  overlay.innerHTML = '<div class="my-post-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="myPostDeleteTitle"><div class="my-post-delete-icon"><i class="fa-solid fa-trash"></i></div><h2 id="myPostDeleteTitle">Delete this post?</h2><p id="myPostDeleteMessage">This post will be removed from the database. This action cannot be undone.</p><input type="hidden" id="myPostDeleteID"><div class="my-post-delete-actions"><button type="button" class="my-post-delete-cancel" onclick="closeAdminMyPostDeleteModal()">Cancel</button><button type="button" class="my-post-delete-confirm" onclick="confirmAdminMyPostDelete()">Delete Post</button></div></div>';
+  overlay.addEventListener('click', event => {
+    if (event.target === overlay) closeAdminMyPostDeleteModal();
+  });
+  document.body.appendChild(overlay);
+  return overlay;
+}
+
+function openAdminMyPostDeleteModal(item) {
+  const overlay = ensureAdminMyPostDeleteModal();
+  document.getElementById('myPostDeleteID').value = item.itemID || '';
+  const title = item.title || 'this post';
+  document.getElementById('myPostDeleteMessage').textContent = `Delete "${title}"? It will be removed from the database and cannot be undone.`;
+  overlay.classList.add('active');
+}
+
+function closeAdminMyPostDeleteModal() {
+  document.getElementById('myPostDeleteOverlay')?.classList.remove('active');
+}
+
+async function confirmAdminMyPostDelete() {
+  const itemID = document.getElementById('myPostDeleteID')?.value;
+  if (!itemID) return;
   try {
-    await ItemsAPI.deleteMyPost(item.itemID);
+    await ItemsAPI.deleteMyPost(itemID);
+    closeAdminMyPostDeleteModal();
     showToast('success', 'Post Deleted', 'Your post was removed from the database.');
     await loadAdminMyPosts();
     await loadAdminItems();
@@ -542,6 +581,11 @@ async function deleteAdminMyPost(item) {
   } catch (err) {
     showToast('error', 'Delete Failed', err.message || 'Could not delete your post.');
   }
+}
+
+async function deleteAdminMyPost(item) {
+  if (!item?.itemID) return;
+  openAdminMyPostDeleteModal(item);
 }
 
 function filterAdminMyPosts() {
@@ -1486,18 +1530,21 @@ window.closeClaimDecisionModal = closeClaimDecisionModal;
 window.submitClaimDecision = submitClaimDecision;
 function buildAdminItemCard(item) {
   const isLost = item.itemType === "lost";
+  const categoryName = item.category || item.categoryName || "General";
   const statusClass = { pending: 'badge-pending', approved: 'badge-approved', rejected: 'badge-danger', claimed: 'badge-claimed' }[item.itemStatus] || 'badge-pending';
   const card = document.createElement("div");
   card.className = "item-card";
   card.dataset.itemId = item.itemID;
   card.dataset.title  = item.title;
-  card.dataset.cat    = item.category || 'General';
+  card.dataset.cat    = categoryName;
   card.dataset.desc   = item.description || '';
   card.dataset.loc    = item.location || item.locationName || item.locationDetail || 'Campus';
   card.dataset.type   = item.itemType;
   const pickupName = item.location || item.locationName || item.locationDetail || "Campus";
   const pickupPhoto = item.locationPhoto || buildingPhotos[pickupName] || buildingPhotos[item.locationDetail] || "";
   const itemPhoto = item.itemPhotoData || "";
+  const editedRaw = item.editedAt || null;
+  const editedDate = editedRaw && !Number.isNaN(new Date(editedRaw).getTime()) ? new Date(editedRaw).toLocaleString() : "";
   card.dataset.reporterName = item.reporterName || 'Unknown';
   card.dataset.reporterRole = item.reporterRole || 'Student';
   card.innerHTML = `
@@ -1512,9 +1559,10 @@ function buildAdminItemCard(item) {
     </div>
     <div class="card-info">
       <h3>${item.title}</h3>
-      <span class="category-tag">${item.category || "General"}</span>
+      <span class="category-tag">${categoryName}</span>
       <div class="reporter-info"><i class="fa-solid fa-user"></i> <span class="reporter-name">${item.reporterName || "Unknown"}</span> <span>(${item.reporterRole || "Student"})</span></div>
       <p class="card-desc">${(item.description || "No description").substring(0, 80)}</p>
+      ${editedDate ? `<div class="post-edited-stamp"><i class="fa-regular fa-clock"></i> Edited ${editedDate}</div>` : ""}
       <div class="card-footer-row"><span>${!isLost ? `<img class="building-thumb" src="${pickupPhoto || "data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='1.5' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 21h18M3 7v1a4 4 0 004 4h10a4 4 0 004-4V7M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16'/%3E%3C/svg%3E"}" alt="${pickupName} building photo">` : '\u{1F4CD}'} ${pickupName}</span><button class="view-btn" onclick='openAdminItemModal(${JSON.stringify(item)})'>View Details</button></div>
     </div>
     <div class="card-admin-actions">
