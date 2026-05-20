@@ -33,7 +33,7 @@ async function loadStudentItems() {
 }
 
 function createItemCard(item) {
-  const typeColor = item.itemType === "lost" ? "#ef4444" : "#22c55e";
+  const typeColor = item.itemType === "lost" <i class="fa-solid fa-check" aria-hidden="true"></i> "#ef4444" : "#22c55e";
 
   return `
     <div style="
@@ -60,9 +60,9 @@ function createItemCard(item) {
         </span>
       </div>
 
-      <p><strong>📂</strong> ${item.categoryName}</p>
-      <p><strong>📍</strong> ${item.locationDetail}</p>
-      <p><strong>📅</strong> ${formatDate(item.dateOccured)}</p>
+      <p><strong><i class="fa-solid fa-folder-open" aria-hidden="true"></i></strong> ${item.categoryName}</p>
+      <p><strong><i class="fa-solid fa-location-dot" aria-hidden="true"></i></strong> ${item.locationDetail}</p>
+      <p><strong><i class="fa-solid fa-calendar-days" aria-hidden="true"></i></strong> ${formatDate(item.dateOccured)}</p>
 
     </div>
   `;

@@ -605,7 +605,7 @@
             </form>
             <p style="font-size: 13px; color: #6b7280; text-align: center; margin-top: 16px;">
               Didn't receive code? 
-              <a href="#" onclick="resendOtp(); return false;" style="font-weight: 700; color: #1a5c2a;">Resend OTP</a>
+              <a href="#" id="resend-otp-link" onclick="resendOtp(); return false;" style="font-weight: 700; color: #1a5c2a;">Resend OTP</a>
             </p>
           </div>
 
@@ -619,10 +619,24 @@
 <footer class="bottom-bar"></footer>
 
 <script>
+const API_URL = window.ASA_API_BASE || `${window.location.origin}/api`;
+let registeredEmail = '';
+let resendCooldownTimer = null;
+const RESEND_COOLDOWN_SECONDS = 60;
+
+async function postJson(endpoint, body) {
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || data.message || 'Request failed.');
+  return data;
+}
 
 function showToast(message, type = "success") {
   const toast = document.createElement("div");
-
   toast.textContent = message;
   toast.style.position = "fixed";
   toast.style.top = "25px";
@@ -637,24 +651,146 @@ function showToast(message, type = "success") {
   toast.style.opacity = "0";
   toast.style.transform = "translateY(-12px)";
   toast.style.transition = "0.3s ease";
-
   document.body.appendChild(toast);
-
   setTimeout(() => {
     toast.style.opacity = "1";
     toast.style.transform = "translateY(0)";
   }, 50);
-
   setTimeout(() => {
     toast.style.opacity = "0";
     toast.style.transform = "translateY(-12px)";
     setTimeout(() => toast.remove(), 300);
-  }, 1600);
+  }, 1800);
 }
 
+function clearAllErrors() {
+  document.querySelectorAll('.field-error').forEach(div => {
+    div.classList.remove('show');
+    const span = div.querySelector('span');
+    if (span) span.textContent = '';
+  });
+  document.querySelectorAll('.form-input').forEach(input => input.classList.remove('input-error'));
+}
 
-// Helper: clear all field errors and remove red borders
+function setFieldError(fieldId, message) {
+  const input = document.getElementById(fieldId);
+  if (input) input.classList.add('input-error');
+  const errorDiv = document.getElementById('error-' + fieldId);
+  if (errorDiv) {
+    const span = errorDiv.querySelector('span');
+    if (span) span.textContent = message;
+    errorDiv.classList.add('show');
+  }
+}
+
+function setButtonLoading(btn, loading, defaultText = 'Create Account') {
+  if (!btn) return;
+  btn.disabled = loading;
+  btn.textContent = loading ? 'Please wait...' : defaultText;
+}
+
+function startResendCooldown(seconds = RESEND_COOLDOWN_SECONDS) {
+  const link = document.getElementById('resend-otp-link');
+  if (!link) return;
+  clearInterval(resendCooldownTimer);
+  let remaining = Math.max(1, Number(seconds) || RESEND_COOLDOWN_SECONDS);
+  link.style.pointerEvents = 'none';
+  link.style.opacity = '0.55';
+  link.textContent = `Resend in ${remaining}s`;
+  resendCooldownTimer = setInterval(() => {
+    remaining -= 1;
+    if (remaining <= 0) {
+      clearInterval(resendCooldownTimer);
+      link.style.pointerEvents = '';
+      link.style.opacity = '';
+      link.textContent = 'Resend OTP';
+      return;
+    }
+    link.textContent = `Resend in ${remaining}s`;
+  }, 1000);
+}
+
+async function handleSignup(event) {
+  event.preventDefault();
+  clearAllErrors();
+
+  const firstName = document.getElementById('first-name').value.trim();
+  const lastName = document.getElementById('last-name').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const confirmPassword = document.getElementById('confirm-password').value;
+  const btn = event.target.querySelector('.btn-submit');
+  let hasError = false;
+  const carsuEmailPattern = /^[a-zA-Z]+(\.[a-zA-Z]+)+@carsu\.edu\.ph$/;
+
+  if (!firstName) { setFieldError('first-name', 'First name is required'); hasError = true; }
+  if (!lastName) { setFieldError('last-name', 'Last name is required'); hasError = true; }
+  if (!email) { setFieldError('email', 'Email is required'); hasError = true; }
+  else if (!carsuEmailPattern.test(email)) { setFieldError('email', 'Use firstname.lastname@carsu.edu.ph format'); hasError = true; }
+  if (!password) { setFieldError('password', 'Password is required'); hasError = true; }
+  else if (password.length < 8) { setFieldError('password', 'Password must be at least 8 characters'); hasError = true; }
+  if (!confirmPassword) { setFieldError('confirm-password', 'Please confirm your password'); hasError = true; }
+  else if (password !== confirmPassword) { setFieldError('confirm-password', 'Passwords do not match'); hasError = true; }
+  if (hasError) return;
+
+  setButtonLoading(btn, true);
+  try {
+    await postJson('/register', { name: `${firstName} ${lastName}`, email, password, role: 'Staff' });
+    registeredEmail = email;
+    document.getElementById('step1-container').style.display = 'none';
+    document.getElementById('step2-container').style.display = 'block';
+    document.getElementById('otp-input').value = '';
+    startResendCooldown();
+    showToast('OTP sent successfully!', 'success');
+  } catch (err) {
+    setFieldError('email', err.message || 'Registration failed.');
+  } finally {
+    setButtonLoading(btn, false);
+  }
+}
+
+async function handleOtpVerify(event) {
+  event.preventDefault();
+  const otpCode = document.getElementById('otp-input').value.trim();
+  const btn = event.target.querySelector('.btn-submit');
+  if (!otpCode || otpCode.length !== 6) {
+    showToast('Please enter the 6-digit OTP.', 'error');
+    return;
+  }
+  setButtonLoading(btn, true, 'Verify OTP');
+  try {
+    await postJson('/verify-otp', { email: registeredEmail, otpCode });
+    showToast('Account verified! Redirecting...', 'success');
+    setTimeout(() => { window.location.href = '/login/landing.html'; }, 1500);
+  } catch (err) {
+    showToast(err.message || 'Invalid OTP.', 'error');
+  } finally {
+    setButtonLoading(btn, false, 'Verify OTP');
+  }
+}
+
+async function resendOtp() {
+  if (!registeredEmail) {
+    showToast('Email not found.', 'error');
+    return;
+  }
+  try {
+    await postJson('/resend-otp', { email: registeredEmail });
+    document.getElementById('otp-input').value = '';
+    startResendCooldown();
+    showToast('New OTP sent!', 'success');
+  } catch (err) {
+    const waitMatch = String(err.message || '').match(/(\d+) seconds/);
+    if (waitMatch) startResendCooldown(Number(waitMatch[1]));
+    showToast(err.message || 'Could not resend OTP.', 'error');
+  }
+}
+
+function goBackToForm() {
+  document.getElementById('step2-container').style.display = 'none';
+  document.getElementById('step1-container').style.display = 'block';
+  clearAllErrors();
+}
 </script>
-
 </body>
 </html>

@@ -715,7 +715,7 @@ async function submitFoundItem() {
     updateFoundPickupPreview();
 
     document.getElementById('successTitle').textContent = 'Found Item Submitted!';
-    document.getElementById('successMsg').textContent = `"${title}" has been listed. Thank you for being a good samaritan! 🎉`;
+    document.getElementById('successMsg').textContent = `"${title}" has been listed. Thank you for being a good samaritan! `;
     document.getElementById('successPopup').classList.add('active');
 
     if (typeof loadItems === 'function') loadItems();
@@ -978,7 +978,7 @@ function ensureMyPostDeleteModal() {
   overlay = document.createElement('div');
   overlay.id = 'myPostDeleteOverlay';
   overlay.className = 'my-post-delete-overlay';
-  overlay.innerHTML = '<div class="my-post-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="myPostDeleteTitle"><div class="my-post-delete-icon"><i class="fa-solid fa-trash"></i></div><h2 id="myPostDeleteTitle">Delete this post?</h2><p id="myPostDeleteMessage">This post will be removed from the database. This action cannot be undone.</p><input type="hidden" id="myPostDeleteID"><div class="my-post-delete-actions"><button type="button" class="my-post-delete-cancel" onclick="closeMyPostDeleteModal()">Cancel</button><button type="button" class="my-post-delete-confirm" onclick="confirmMyPostDelete()">Delete Post</button></div></div>';
+  overlay.innerHTML = '<div class="my-post-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="myPostDeleteTitle"><div class="my-post-delete-icon"><i class="fa-solid fa-trash"></i></div><h2 id="myPostDeleteTitle">Delete this post<i class="fa-solid fa-check" aria-hidden="true"></i></h2><p id="myPostDeleteMessage">This post will be removed from the database. This action cannot be undone.</p><input type="hidden" id="myPostDeleteID"><div class="my-post-delete-actions"><button type="button" class="my-post-delete-cancel" onclick="closeMyPostDeleteModal()">Cancel</button><button type="button" class="my-post-delete-confirm" onclick="confirmMyPostDelete()">Delete Post</button></div></div>';
   overlay.addEventListener('click', event => {
     if (event.target === overlay) closeMyPostDeleteModal();
   });
@@ -1059,8 +1059,8 @@ function openItemModal(card) {
 
   document.getElementById('modalTitle').textContent = title;
   document.getElementById('modalCat').innerHTML  = `<span class="category-tag">${cat}</span>`;
-  document.getElementById('modalLoc').textContent  = `📍 ${loc}`;
-  document.getElementById('modalDate').textContent = `🗓 ${date}`;
+  document.getElementById('modalLoc').textContent = `Location: ${loc}`;
+  document.getElementById('modalDate').textContent = `Date: ${date}`;
   document.getElementById('modalDesc').textContent = desc;
 
   let buildingPhoto = document.getElementById('modalBuildingPhoto');
@@ -1473,14 +1473,14 @@ async function loadItems() {
     window.ASA_ITEMS_PRELOAD = null;
   } catch (err) {
     console.error('Failed to load items:', err);
-    showToast('error', 'Connection Error', 'Could not load items. Is the server running?');
+    showToast('error', 'Connection Error', 'Could not load items. Is the server running<i class="fa-solid fa-check" aria-hidden="true"></i>');
   }
 }
 
 function getCategoryEmoji(cat) {
-  if (!cat) return '📦';
-  const map = { 'electronics':'📱','clothing':'👕','accessories':'👓','documents':'📄','books':'📚','keys':'🔑','others':'📦' };
-  return map[cat.toLowerCase()] || '📦';
+  if (!cat) return '<i class="fa-solid fa-box" aria-hidden="true"></i>';
+  const map = { 'electronics':'<i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i>','clothing':'<i class="fa-solid fa-shirt" aria-hidden="true"></i>','accessories':'<i class="fa-solid fa-glasses" aria-hidden="true"></i>','documents':'<i class="fa-solid fa-file-lines" aria-hidden="true"></i>','books':'<i class="fa-solid fa-book" aria-hidden="true"></i>','keys':'<i class="fa-solid fa-key" aria-hidden="true"></i>','others':'<i class="fa-solid fa-box" aria-hidden="true"></i>' };
+  return map[cat.toLowerCase()] || '<i class="fa-solid fa-box" aria-hidden="true"></i>';
 }
 
 function buildItemCard(item) {
@@ -1517,7 +1517,7 @@ function buildItemCard(item) {
     ? `<img src="${itemPhoto}" alt="${title} photo">`
     : !isLost && pickupPhoto
       ? `<img src="${pickupPhoto}" alt="${pickupName} building photo">`
-      : `<div style="width:100%;height:100%;background:${gradient};display:flex;align-items:center;justify-content:center;font-size:48px;">${isLost ? '&#128091;' : emoji}</div>`;
+      : `<div style="width:100%;height:100%;background:${gradient};display:flex;align-items:center;justify-content:center;font-size:48px;">${isLost ? '<i class="fa-solid fa-wallet" aria-hidden="true"></i>' : emoji}</div>`;
 
   div.innerHTML = `
     <div class="card-img-wrap">
@@ -1596,7 +1596,7 @@ async function loadFormDropdowns() {
     if (foundPickup) {
       pickupLocations = locations;
       pickupLocationByID = Object.fromEntries(locations.map(l => [String(l.locationID), l]));
-      foundPickup.innerHTML = `<option value="">Where is the item kept now?</option>` +
+      foundPickup.innerHTML = `<option value="">Where is the item kept now<i class="fa-solid fa-check" aria-hidden="true"></i></option>` +
         locations.map(l => {
           const photo = l.photoData ? String(l.photoData).replace(/"/g, '&quot;') : '';
           const building = l.building && l.building !== l.storageName ? " - " + l.building : "";

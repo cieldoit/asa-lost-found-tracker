@@ -211,8 +211,8 @@ function openItemModal(card) {
   document.getElementById("modalTypeBadge").className = `badge badge-${type}`;
   document.getElementById("modalTitle").textContent = title;
   document.getElementById("modalCat").innerHTML = `<span class="category-tag">${cat}</span>`;
-  document.getElementById("modalLoc").textContent = `📍 ${loc}`;
-  document.getElementById("modalDate").textContent = `🗓 ${date}`;
+  document.getElementById("modalLoc").textContent = `Location: ${loc}`;
+  document.getElementById("modalDate").textContent = `Date: ${date}`;
   document.getElementById("modalDesc").textContent = desc;
 
   const claimBtn = document.querySelector("#itemModal .btn-claim");
@@ -281,19 +281,19 @@ function filterItems(type) {
 }
 
 function getGuestEmoji(category, type) {
-  if (type === "lost") return "👛";
+  if (type === "lost") return `<i class="fa-solid fa-wallet" aria-hidden="true"></i>`;
 
   const key = (category || "").toLowerCase();
 
-  if (key.includes("electronic")) return "📱";
-  if (key.includes("document") || key.includes("id")) return "🪪";
-  if (key.includes("key")) return "🔑";
-  if (key.includes("book")) return "📚";
-  if (key.includes("bag")) return "🎒";
-  if (key.includes("clothing")) return "👕";
-  if (key.includes("accessor")) return "👓";
+  if (key.includes("electronic")) return `<i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i>`;
+  if (key.includes("document") || key.includes("id")) return `<i class="fa-solid fa-id-card" aria-hidden="true"></i>`;
+  if (key.includes("key")) return `<i class="fa-solid fa-key" aria-hidden="true"></i>`;
+  if (key.includes("book")) return `<i class="fa-solid fa-book" aria-hidden="true"></i>`;
+  if (key.includes("bag")) return `<i class="fa-solid fa-briefcase" aria-hidden="true"></i>`;
+  if (key.includes("clothing")) return `<i class="fa-solid fa-shirt" aria-hidden="true"></i>`;
+  if (key.includes("accessor")) return `<i class="fa-solid fa-glasses" aria-hidden="true"></i>`;
 
-  return "📦";
+  return `<i class="fa-solid fa-box" aria-hidden="true"></i>`;
 }
 
 function escapeHtml(value) {
