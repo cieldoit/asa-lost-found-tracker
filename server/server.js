@@ -671,6 +671,8 @@ app.get('/api/items/browse', async (req, res) => {
         i.title,
         i.description,
         i.itemType,
+        i.categoryID,
+        i.locationID,
         i.locationDetail,
         i.itemPhotoData,
         sl.storageName AS locationName,
@@ -733,6 +735,69 @@ app.get('/api/items/my', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('MY POSTS ERROR:', err);
     res.status(500).json({ error: 'Could not fetch your posts.', details: err.message });
+  }
+});
+
+app.put('/api/items/my/:id', authenticateToken, async (req, res) => {
+  const itemID = req.params.id;
+  const userID = req.user.userID;
+  const title = String(req.body.title || '').trim();
+  const description = String(req.body.description || '').trim();
+
+  if (!title || !description) {
+    return res.status(400).json({ error: 'Title and description are required.' });
+  }
+
+  try {
+    const [items] = await db.execute(
+      'SELECT itemID FROM ITEMS WHERE itemID = ? AND userID = ? LIMIT 1',
+      [itemID, userID]
+    );
+    if (!items.length) {
+      return res.status(404).json({ error: 'Post not found or not owned by this account.' });
+    }
+
+    await db.execute(
+      'UPDATE ITEMS SET title = ?, description = ? WHERE itemID = ? AND userID = ?',
+      [title, description, itemID, userID]
+    );
+
+    realtime.emitToAll('items-changed', { reason: 'item-updated', itemID });
+    realtime.emitToRole('admin', 'admin-data-changed', { reason: 'item-updated', itemID });
+    realtime.emitToUser(userID, 'items-changed', { reason: 'item-updated', itemID });
+
+    res.json({ message: 'Post updated successfully.' });
+  } catch (err) {
+    console.error('UPDATE MY POST ERROR:', err);
+    res.status(500).json({ error: 'Could not update your post.', details: err.message });
+  }
+});
+
+app.delete('/api/items/my/:id', authenticateToken, async (req, res) => {
+  const itemID = req.params.id;
+  const userID = req.user.userID;
+
+  try {
+    const [items] = await db.execute(
+      'SELECT itemID FROM ITEMS WHERE itemID = ? AND userID = ? LIMIT 1',
+      [itemID, userID]
+    );
+    if (!items.length) {
+      return res.status(404).json({ error: 'Post not found or not owned by this account.' });
+    }
+
+    await db.execute('DELETE FROM CLAIMS WHERE itemID = ?', [itemID]);
+    await db.execute('DELETE FROM NOTIFICATIONS WHERE itemID = ?', [itemID]);
+    await db.execute('DELETE FROM ITEMS WHERE itemID = ? AND userID = ?', [itemID, userID]);
+
+    realtime.emitToAll('items-changed', { reason: 'item-deleted', itemID });
+    realtime.emitToRole('admin', 'admin-data-changed', { reason: 'item-deleted', itemID });
+    realtime.emitToUser(userID, 'items-changed', { reason: 'item-deleted', itemID });
+
+    res.json({ message: 'Post deleted successfully.' });
+  } catch (err) {
+    console.error('DELETE MY POST ERROR:', err);
+    res.status(500).json({ error: 'Could not delete your post.', details: err.message });
   }
 });
 
