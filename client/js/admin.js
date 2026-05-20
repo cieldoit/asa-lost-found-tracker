@@ -898,14 +898,10 @@ function addAdminManagementNav(header) {
   const postNav = header.querySelector('#anav-my-posts') || header.querySelector('#anav-post');
   const mobilePostNav = header.querySelector('#amnav-my-posts') || header.querySelector('#amnav-post');
   const managementNav = [
-    adminNavButton('claims', 'fa-solid fa-clipboard-check', 'Claims'),
-    adminNavButton('users', 'fa-solid fa-users', 'Users'),
-    adminNavButton('appeals', 'fa-solid fa-flag', 'Reports')
+    adminNavButton('claims', 'fa-solid fa-clipboard-check', 'Claims')
   ].join('');
   const mobileManagementNav = [
-    adminNavButton('claims', 'fa-solid fa-clipboard-check', 'Claims', true),
-    adminNavButton('users', 'fa-solid fa-users', 'Users', true),
-    adminNavButton('appeals', 'fa-solid fa-flag', 'Reports', true)
+    adminNavButton('claims', 'fa-solid fa-clipboard-check', 'Claims', true)
   ].join('');
   if (mainNav && postNav) postNav.insertAdjacentHTML('afterend', managementNav);
   if (mobileNav && mobilePostNav) mobilePostNav.insertAdjacentHTML('afterend', mobileManagementNav);
