@@ -853,7 +853,13 @@ function renderMyPosts(posts) {
     grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><h3>No Posts Yet</h3><p>Your lost and found reports will appear here after you post them.</p></div>';
     return;
   }
-  list.forEach(item => grid.appendChild(buildItemCard(item)));
+  list.forEach(item => {
+    try {
+      grid.appendChild(buildItemCard(item));
+    } catch (err) {
+      console.warn('Could not render my post card:', err.message, item);
+    }
+  });
 }
 
 function filterMyPosts() {
@@ -861,7 +867,8 @@ function filterMyPosts() {
   const term = (page?.querySelector('#myPostsSearch')?.value || '').trim().toLowerCase();
   const type = page?.querySelector('#myPostsTypeFilter')?.value || '';
   const filtered = myPosts.filter(item => {
-    const matchesType = !type || item.itemType === type;
+    const itemType = String(item.itemType || '').toLowerCase();
+    const matchesType = !type || itemType === type;
     const haystack = [item.title, item.description, item.categoryName, item.locationName, item.locationDetail, item.itemStatus].join(' ').toLowerCase();
     return matchesType && haystack.includes(term);
   });
@@ -1337,41 +1344,48 @@ function getCategoryEmoji(cat) {
 }
 
 function buildItemCard(item) {
-  const isLost   = item.itemType === 'lost';
+  const data = item || {};
+  const itemType = String(data.itemType || 'lost').toLowerCase();
+  const title = data.title || 'Untitled Item';
+  const categoryName = data.categoryName || 'General';
+  const description = data.description || '';
+  const isLost = itemType === 'lost';
   const gradient = isLost ? 'linear-gradient(135deg,#dbeafe,#bfdbfe)' : 'linear-gradient(135deg,#dcfce7,#bbf7d0)';
-  const emoji = getCategoryEmoji(item.categoryName);
-  const date  = new Date(item.createdAt || item.dateOccured).toLocaleString();
+  const emoji = getCategoryEmoji(categoryName);
+  const rawDate = data.createdAt || data.dateOccured || new Date().toISOString();
+  const date = Number.isNaN(new Date(rawDate).getTime()) ? '' : new Date(rawDate).toLocaleString();
+  const pickupName = data.locationName || data.location || data.locationDetail || 'Campus';
+  const pickupPhoto = data.locationPhoto || '';
+  const itemPhoto = data.itemPhotoData || '';
 
-  
-  const pickupName = item.locationName || item.location || item.locationDetail || 'Campus';
-  const pickupPhoto = item.locationPhoto || '';
-  const itemPhoto = item.itemPhotoData || '';
   const div = document.createElement('div');
   div.className = 'item-card';
-  div.dataset.itemId = item.itemID;
-  div.dataset.title  = item.title;
-  div.dataset.cat    = item.categoryName;
-  div.dataset.desc   = item.description || '';
-  div.dataset.loc    = pickupName;
-  div.dataset.date   = date;
-  div.dataset.type   = item.itemType;
-  div.dataset.photo  = item.locationPhoto || '';
+  div.dataset.itemId = data.itemID || '';
+  div.dataset.title = title;
+  div.dataset.cat = categoryName;
+  div.dataset.desc = description;
+  div.dataset.loc = pickupName;
+  div.dataset.date = date;
+  div.dataset.type = itemType;
+  div.dataset.photo = pickupPhoto;
   div.dataset.itemPhoto = itemPhoto;
   div.setAttribute('onclick', 'openItemModal(this)');
 
+  const imageMarkup = isLost && itemPhoto
+    ? `<img src="${itemPhoto}" alt="${title} photo">`
+    : !isLost && pickupPhoto
+      ? `<img src="${pickupPhoto}" alt="${pickupName} building photo">`
+      : `<div style="width:100%;height:100%;background:${gradient};display:flex;align-items:center;justify-content:center;font-size:48px;">${isLost ? '&#128091;' : emoji}</div>`;
+
   div.innerHTML = `
     <div class="card-img-wrap">
-      ${isLost && itemPhoto
-        ? `<img src="${itemPhoto}" alt="${item.title} photo">`
-        : !isLost && pickupPhoto
-          ? `<img src="${pickupPhoto}" alt="${pickupName} building photo">`
-          : `<div style="width:100%;height:100%;background:${gradient};display:flex;align-items:center;justify-content:center;font-size:48px;">${isLost ? '\u{1F45B}' : emoji}</div>`}
-      <span class="badge badge-${item.itemType}">${item.itemType.toUpperCase()}</span>
+      ${imageMarkup}
+      <span class="badge badge-${itemType}">${itemType.toUpperCase()}</span>
     </div>
     <div class="card-info">
-      <h3>${item.title}</h3>
-      <span class="category-tag">${item.categoryName || 'General'}</span>
-      <p class="card-desc">${(item.description||'').substring(0,80)}${(item.description||'').length > 80 ? '…' : ''}</p>
+      <h3>${title}</h3>
+      <span class="category-tag">${categoryName}</span>
+      <p class="card-desc">${description.substring(0, 80)}${description.length > 80 ? '...' : ''}</p>
       <div class="card-footer-row">
         <span>${!isLost && pickupPhoto ? `<img class="building-thumb" src="${pickupPhoto}" alt="${pickupName} building photo">` : '<i class="fa-solid fa-location-dot"></i>'} ${pickupName}</span>
         <span class="view-link">VIEW DETAILS</span>
