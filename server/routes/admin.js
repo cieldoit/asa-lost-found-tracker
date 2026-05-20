@@ -204,6 +204,7 @@ router.get('/claims', async (req, res) => {
         c.adminNote,
         u.userName,
         u.email,
+        u.role,
         i.title AS itemTitle,
         i.itemType,
         i.itemID,

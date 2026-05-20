@@ -1381,9 +1381,18 @@ async function openAdminNotification(notifID, itemID) {
   closeAdminNotificationsModal();
 
   if (itemID) {
-    window.location.href = `/admin?itemID=${encodeURIComponent(itemID)}`;
+    pendingAdminItemID = String(itemID);
+    const item = adminItemsCache.find(i => String(i.itemID) === String(itemID));
+    if (item) {
+      showPage(item.itemType === 'found' ? 'found' : 'lost');
+      openAdminItemModal(item);
+      pendingAdminItemID = null;
+      return;
+    }
+    await loadAdminItems();
+    openPendingAdminItem();
   } else {
-    window.location.href = '/admin#claims';
+    showPage('claims');
   }
 }
 window.openAdminNotification = openAdminNotification;
