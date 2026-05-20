@@ -37,6 +37,10 @@ const Auth = {
   }
 };
 
+const ASA_INACTIVITY_LIMIT_MS = 15 * 60 * 1000;
+let asaInactivityTimer = null;
+let asaBackGuardReady = false;
+
 function ensureLogoutConfirmation() {
   if (!document.getElementById('logoutConfirmStyles')) {
     const style = document.createElement('style');
@@ -142,6 +146,94 @@ function ensureLogoutConfirmation() {
     overlay.querySelector('#logoutConfirmProceed')?.addEventListener('click', () => Auth.logout(true));
   }
   return overlay;
+}
+
+function forceSessionLogout(reason = '') {
+  if (reason && typeof showToast === 'function') {
+    showToast('info', 'Session Ended', reason);
+  }
+  Auth.logout(true);
+}
+
+function resetInactivityTimer() {
+  if (!Auth.isLoggedIn()) return;
+  clearTimeout(asaInactivityTimer);
+  asaInactivityTimer = setTimeout(() => {
+    forceSessionLogout('You were logged out after 15 minutes of inactivity.');
+  }, ASA_INACTIVITY_LIMIT_MS);
+}
+
+function ensureBackNavigationWarning() {
+  if (document.getElementById('backSessionGuardStyles')) return;
+  const style = document.createElement('style');
+  style.id = 'backSessionGuardStyles';
+  style.textContent = `
+    .back-session-overlay{position:fixed;inset:0;z-index:6500;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(15,23,42,.5);backdrop-filter:blur(4px)}
+    .back-session-overlay.active{display:flex}
+    .back-session-dialog{width:min(100%,440px);background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 24px 70px rgba(15,23,42,.22);padding:26px;font-family:Poppins,Arial,sans-serif;color:#111827}
+    .back-session-icon{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:#fef3c7;color:#b45309;margin-bottom:16px;font-size:20px}
+    .back-session-dialog h2{font-size:21px;font-weight:800;margin:0 0 8px}
+    .back-session-dialog p{font-size:14px;line-height:1.65;color:#6b7280;margin:0}
+    .back-session-actions{display:flex;gap:12px;justify-content:flex-end;margin-top:24px}
+    .back-session-actions button{border:0;border-radius:10px;padding:11px 18px;font-family:inherit;font-weight:800;cursor:pointer}
+    .back-session-stay{background:#f3f4f6;color:#374151}
+    .back-session-leave{background:#dc2626;color:#fff}
+    @media (max-width:480px){.back-session-dialog{padding:22px}.back-session-actions{flex-direction:column-reverse}.back-session-actions button{width:100%}}
+  `;
+  document.head.appendChild(style);
+}
+
+function showBackNavigationWarning() {
+  ensureBackNavigationWarning();
+  let overlay = document.getElementById('backSessionGuardOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'backSessionGuardOverlay';
+    overlay.className = 'back-session-overlay';
+    overlay.innerHTML = `
+      <div class="back-session-dialog" role="dialog" aria-modal="true" aria-labelledby="backSessionGuardTitle">
+        <div class="back-session-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <h2 id="backSessionGuardTitle">Leave your logged-in session?</h2>
+        <p>Going back may return you to the login page and end your current ASA session. Are you sure you want to log out and leave this page?</p>
+        <div class="back-session-actions">
+          <button type="button" class="back-session-stay" id="backSessionStay">Stay here</button>
+          <button type="button" class="back-session-leave" id="backSessionLeave">Yes, log me out</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.querySelector('#backSessionStay')?.addEventListener('click', () => {
+      overlay.classList.remove('active');
+      history.pushState({ asaSessionGuard: true }, '', window.location.href);
+    });
+    overlay.querySelector('#backSessionLeave')?.addEventListener('click', () => Auth.logout(true));
+    overlay.addEventListener('click', event => {
+      if (event.target === overlay) overlay.querySelector('#backSessionStay')?.click();
+    });
+  }
+  overlay.classList.add('active');
+  overlay.querySelector('#backSessionStay')?.focus();
+}
+
+function setupBackNavigationGuard() {
+  if (asaBackGuardReady || !Auth.isLoggedIn()) return;
+  if (/\/login\//.test(window.location.pathname) || window.location.pathname === '/login') return;
+  asaBackGuardReady = true;
+  history.replaceState({ asaPage: true }, '', window.location.href);
+  history.pushState({ asaSessionGuard: true }, '', window.location.href);
+  window.addEventListener('popstate', () => {
+    if (!Auth.isLoggedIn()) return;
+    showBackNavigationWarning();
+  });
+}
+
+function startSessionSafety() {
+  if (!Auth.isLoggedIn()) return;
+  ['click','keydown','mousemove','scroll','touchstart','visibilitychange'].forEach(eventName => {
+    window.addEventListener(eventName, resetInactivityTimer, { passive: true });
+  });
+  resetInactivityTimer();
+  setupBackNavigationGuard();
 }
 
 function showLogoutConfirmation() {
@@ -494,5 +586,8 @@ window.asaRealtimeDebounce = asaRealtimeDebounce;
 window.RealtimeAPI = RealtimeAPI;
 window.openImagePreview = openImagePreview;
 window.closeImagePreview = closeImagePreview;
-document.addEventListener('DOMContentLoaded', () => RealtimeAPI.connect());
+document.addEventListener('DOMContentLoaded', () => {
+  RealtimeAPI.connect();
+  startSessionSafety();
+});
 window.addEventListener('beforeunload', () => RealtimeAPI.disconnect());
