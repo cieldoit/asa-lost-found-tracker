@@ -167,6 +167,19 @@ async function ensureItemPhotoColumn() {
   }
 }
 
+async function ensureItemEditedAtColumn() {
+  try {
+    await db.execute(`
+      ALTER TABLE ITEMS
+      ADD COLUMN editedAt TIMESTAMP NULL DEFAULT NULL
+    `);
+  } catch (err) {
+    if (err.code !== 'ER_DUP_FIELDNAME') {
+      console.warn('Could not ensure ITEMS.editedAt:', err.message);
+    }
+  }
+}
+
 async function ensureUserProfilePhotoColumn() {
   try {
     await db.execute(`
@@ -213,6 +226,7 @@ async function ensureClaimPickupColumns() {
 async function ensureDatabaseColumns() {
   await ensureStoragePhotoColumn();
   await ensureItemPhotoColumn();
+  await ensureItemEditedAtColumn();
   await ensureUserProfilePhotoColumn();
   await ensureUserCreatedAtColumn();
   await ensureClaimPickupColumns();
@@ -221,6 +235,7 @@ async function ensureDatabaseColumns() {
 
 ensureStoragePhotoColumn();
 ensureItemPhotoColumn();
+ensureItemEditedAtColumn();
 ensureUserProfilePhotoColumn();
 ensureUserCreatedAtColumn();
 ensureClaimPickupColumns();
@@ -678,6 +693,7 @@ app.get('/api/items/browse', async (req, res) => {
         sl.storageName AS locationName,
         i.dateOccured,
         i.createdAt,
+        i.editedAt,
         i.itemStatus,
         c.categoryName,
         sl.photoData AS locationPhoto,
@@ -718,6 +734,7 @@ app.get('/api/items/my', authenticateToken, async (req, res) => {
         sl.storageName AS locationName,
         i.dateOccured,
         i.createdAt,
+        i.editedAt,
         i.itemStatus,
         c.categoryName,
         sl.photoData AS locationPhoto,
@@ -758,7 +775,7 @@ app.put('/api/items/my/:id', authenticateToken, async (req, res) => {
     }
 
     await db.execute(
-      'UPDATE ITEMS SET title = ?, description = ? WHERE itemID = ? AND userID = ?',
+      'UPDATE ITEMS SET title = ?, description = ?, editedAt = CURRENT_TIMESTAMP WHERE itemID = ? AND userID = ?',
       [title, description, itemID, userID]
     );
 
@@ -766,7 +783,7 @@ app.put('/api/items/my/:id', authenticateToken, async (req, res) => {
     realtime.emitToRole('admin', 'admin-data-changed', { reason: 'item-updated', itemID });
     realtime.emitToUser(userID, 'items-changed', { reason: 'item-updated', itemID });
 
-    res.json({ message: 'Post updated successfully.' });
+    res.json({ message: 'Post updated successfully.', editedAt: new Date().toISOString() });
   } catch (err) {
     console.error('UPDATE MY POST ERROR:', err);
     res.status(500).json({ error: 'Could not update your post.', details: err.message });

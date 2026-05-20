@@ -70,6 +70,7 @@ router.get('/items', async (req, res) => {
         i.itemPhotoData,
         i.dateOccured,
         i.createdAt,
+        i.editedAt,
         c.categoryName AS category,
         u.userName AS reporterName,
         u.role AS reporterRole,
