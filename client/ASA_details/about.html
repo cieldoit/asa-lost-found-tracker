@@ -314,6 +314,20 @@
             color: white;
             padding: 10px 28px;
             border-radius: 40px;
+            border: None;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: inline-block;
+        }
+
+        .btn-primary-a{
+            background-color: white;
+            color: #15803d;
+            padding: 10px 28px;
+            border-radius: 40px;
+            border: solid;
+            border-color: #15803d;
             text-decoration: none;
             font-weight: 600;
             transition: all 0.2s;
@@ -323,6 +337,13 @@
         .btn-primary:hover {
             background-color: #fcf806;
             color: #035c03;
+            transform: translateY(-2px);
+        }
+
+        .btn-primary-a:hover {
+            background-color: #fcf806;
+            color: #035c03;
+            border-color: #fcf806;
             transform: translateY(-2px);
         }
 
@@ -911,7 +932,7 @@
     </button>
 
     <button 
-        class="btn-primary"
+        class="btn-primary-a"
         onclick="window.location.href='../user/guest.html'">
         Browse
     </button>
