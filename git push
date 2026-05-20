@@ -1,0 +1,11 @@
+warning: in the working copy of 'client/js/admin.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'client/js/dashboard.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'client/js/staff.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'client/js/student.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'client/js/visitor.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'server/server.js', LF will be replaced by CRLF the next time Git touches it
+client/js/admin.js:1416: new blank line at EOF.
+client/js/staff.js:1281: new blank line at EOF.
+client/js/student.js:1304: new blank line at EOF.
+client/js/visitor.js:1262: new blank line at EOF.
+server/server.js:1095: new blank line at EOF.
