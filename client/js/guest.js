@@ -59,6 +59,19 @@ function gShowPage(page) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+async function loadGuestStats() {
+  try {
+    const res = await fetch(`${API_URL}/items/stats`);
+    const stats = await res.json();
+    if (!res.ok) throw new Error(stats.error || 'Failed to load stats.');
+    const lost = document.getElementById('guestLostCount');
+    const found = document.getElementById('guestFoundCount');
+    if (lost) lost.textContent = Number(stats.totalLost || 0);
+    if (found) found.textContent = Number(stats.totalFound || 0);
+  } catch (err) {
+    console.warn('Guest stats error:', err.message);
+  }
+}
 async function loadGuestItems() {
   try {
     const res = await fetch(`${API_URL}/items/browse`);
@@ -77,8 +90,7 @@ async function loadGuestItems() {
     renderGuestItems("foundItemsGrid", foundItems);
     renderGuestItems("recentItemsGrid", items.slice(0, 4));
 
-    document.getElementById("guestLostCount").textContent = lostItems.length;
-    document.getElementById("guestFoundCount").textContent = foundItems.length;
+    await loadGuestStats();
 
   } catch (err) {
     console.error("Guest items error:", err);

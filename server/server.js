@@ -679,6 +679,29 @@ app.put('/api/notifications/read-all', authenticateToken, async (req, res) => {
 
 /* ================= SERVER ================= */
 
+app.get('/api/items/stats', async (req, res) => {
+  try {
+    const [[stats]] = await db.execute(`
+      SELECT
+        SUM(CASE WHEN itemType = 'lost' THEN 1 ELSE 0 END) AS totalLost,
+        SUM(CASE WHEN itemType = 'found' THEN 1 ELSE 0 END) AS totalFound,
+        SUM(CASE WHEN itemStatus = 'claimed' THEN 1 ELSE 0 END) AS totalClaimed
+      FROM ITEMS
+    `);
+
+    res.json({
+      totalLost: Number(stats?.totalLost || 0),
+      totalFound: Number(stats?.totalFound || 0),
+      totalClaimed: Number(stats?.totalClaimed || 0)
+    });
+  } catch (err) {
+    console.error('ITEM STATS ERROR:', err);
+    res.status(500).json({
+      error: 'Could not fetch item statistics.',
+      details: err.message
+    });
+  }
+});
 app.get('/api/items/browse', async (req, res) => {
   try {
     const [items] = await db.execute(`
