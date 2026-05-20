@@ -360,6 +360,7 @@ function showPage(page) {
   closeAllDropdowns();
   closeMobileNav();
   if (page === 'my-posts') loadMyPosts();
+  requestAnimationFrame(() => normalizeRoleNavState(page));
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
  
@@ -971,11 +972,24 @@ function closeSuccessPopup() {
 let myPosts = [];
 
 function ensureMyPostsPage() {
-  if (document.getElementById('page-my-posts')) return;
-  const anchor = document.getElementById('page-settings') || document.querySelector('.page:last-of-type');
-  const page = document.createElement('div');
+  let page = document.getElementById('page-my-posts');
+  const legacyPage = document.getElementById('page-mypost');
+
+  if (!page && legacyPage) {
+    legacyPage.id = 'page-my-posts';
+    page = legacyPage;
+  }
+
+  if (!page) {
+    const anchor = document.getElementById('page-settings') || document.querySelector('.page:last-of-type');
+    page = document.createElement('div');
+    page.className = 'page';
+    page.id = 'page-my-posts';
+    if (anchor?.parentElement) anchor.parentElement.insertBefore(page, anchor);
+    else document.body.appendChild(page);
+  }
+
   page.className = 'page';
-  page.id = 'page-my-posts';
   page.innerHTML = [
     '<div class="home-container">',
     '<div class="dir-header"><h1>My Posts</h1><p>Manage all the items you have reported as lost or found.</p></div>',
@@ -987,8 +1001,6 @@ function ensureMyPostsPage() {
     '<div class="items-grid" id="myPostsGrid"><div class="empty-state" style="grid-column:1/-1"><h3>Loading your posts...</h3><p>Checking the database for your reports.</p></div></div>',
     '</div>'
   ].join('');
-  if (anchor?.parentElement) anchor.parentElement.insertBefore(page, anchor);
-  else document.body.appendChild(page);
 }
 
 
@@ -999,12 +1011,26 @@ function withMyPostsTimeout(promise) {
   ]);
 }
 
+function getMyPostsUserKey() {
+  return String(localStorage.getItem('userName') || localStorage.getItem('asa_user') || '').trim().toLowerCase();
+}
+
+function filterOwnPostsFromList(items) {
+  const userKey = getMyPostsUserKey();
+  const list = Array.isArray(items) ? items : [];
+  if (!userKey) return [];
+  return list.filter(item => {
+    const reporter = String(item.reporterName || item.userName || '').trim().toLowerCase();
+    return reporter === userKey;
+  });
+}
+
 async function loadMyPostsFallback() {
   try {
-    const userName = String(localStorage.getItem('userName') || localStorage.getItem('asa_user') || '').trim().toLowerCase();
+    const cached = filterOwnPostsFromList(allItems);
+    if (cached.length) return cached;
     const items = await withMyPostsTimeout(ItemsAPI.browse());
-    const list = Array.isArray(items) ? items : [];
-    return list.filter(item => String(item.reporterName || item.userName || '').trim().toLowerCase() === userName);
+    return filterOwnPostsFromList(items);
   } catch (err) {
     console.warn('My Posts fallback failed:', err.message);
     return [];
@@ -1012,9 +1038,18 @@ async function loadMyPostsFallback() {
 }
 async function loadMyPosts() {
   ensureMyPostsPage();
-  const grid = document.getElementById('myPostsGrid');
+  const page = document.getElementById('page-my-posts');
+  const grid = page?.querySelector('#myPostsGrid');
   if (!grid) return;
-  grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><h3>Loading your posts...</h3><p>Checking the database for your reports.</p></div>';
+
+  const immediatePosts = filterOwnPostsFromList(allItems);
+  if (immediatePosts.length) {
+    myPosts = immediatePosts;
+    renderMyPosts(myPosts);
+  } else {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><h3>Loading your posts...</h3><p>Checking the database for your reports.</p></div>';
+  }
+
   try {
     let posts = await withMyPostsTimeout(ItemsAPI.getMyPosts());
     if (!Array.isArray(posts)) posts = [];
@@ -1032,19 +1067,22 @@ async function loadMyPosts() {
   }
 }
 function renderMyPosts(posts) {
-  const grid = document.getElementById('myPostsGrid');
+  const page = document.getElementById('page-my-posts');
+  const grid = page?.querySelector('#myPostsGrid');
   if (!grid) return;
+  const list = Array.isArray(posts) ? posts : [];
   grid.innerHTML = '';
-  if (!posts.length) {
+  if (!list.length) {
     grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><h3>No Posts Yet</h3><p>Your lost and found reports will appear here after you post them.</p></div>';
     return;
   }
-  posts.forEach(item => grid.appendChild(buildItemCard(item)));
+  list.forEach(item => grid.appendChild(buildItemCard(item)));
 }
 
 function filterMyPosts() {
-  const term = (document.getElementById('myPostsSearch')?.value || '').trim().toLowerCase();
-  const type = document.getElementById('myPostsTypeFilter')?.value || '';
+  const page = document.getElementById('page-my-posts');
+  const term = (page?.querySelector('#myPostsSearch')?.value || '').trim().toLowerCase();
+  const type = page?.querySelector('#myPostsTypeFilter')?.value || '';
   const filtered = myPosts.filter(item => {
     const matchesType = !type || item.itemType === type;
     const haystack = [item.title, item.description, item.categoryName, item.locationName, item.locationDetail, item.itemStatus].join(' ').toLowerCase();
