@@ -213,6 +213,12 @@ const AuthAPI = {
 const ItemsAPI = {
   async browse() { return apiFetch('/items/browse'); },
   async getMyPosts() { return apiFetch('/items/my'); },
+  async updateMyPost(itemID, itemData) {
+    return apiFetch(`/items/my/${itemID}`, { method: 'PUT', body: JSON.stringify(itemData) });
+  },
+  async deleteMyPost(itemID) {
+    return apiFetch(`/items/my/${itemID}`, { method: 'DELETE' });
+  },
   async getDetails(itemID) { return apiFetch(`/items/details/${itemID}`); },
   async report(itemData) {
   return apiFetch('/items/post', { method: 'POST', body: JSON.stringify(itemData) });

@@ -396,6 +396,7 @@ function ensureAdminMyPostsPage() {
 }
 
 async function loadAdminMyPosts() {
+  ensureAdminMyPostActionStyles();
   const page = ensureAdminMyPostsPage();
   const grid = page?.querySelector('#adminMyPostsGrid');
   if (!grid) return;
@@ -433,7 +434,114 @@ function renderAdminMyPosts(posts) {
     grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><h3>No Posts Yet</h3><p>Items posted by this admin account will appear here.</p></div>';
     return;
   }
-  list.forEach(item => grid.appendChild(buildAdminItemCard(item)));
+  list.forEach(item => {
+    const card = buildAdminItemCard(item);
+    attachAdminMyPostActions(card, item);
+    grid.appendChild(card);
+  });
+}
+
+
+function attachAdminMyPostActions(card, item) {
+  if (!card || !item?.itemID) return;
+  const wrap = card.querySelector('.card-img-wrap') || card;
+  if (getComputedStyle(wrap).position === 'static') wrap.style.position = 'relative';
+  const actions = document.createElement('div');
+  actions.className = 'my-post-card-actions';
+  actions.innerHTML = '<button type="button" class="my-post-icon-btn edit" title="Edit post" aria-label="Edit post"><i class="fa-solid fa-pen-to-square"></i></button><button type="button" class="my-post-icon-btn delete" title="Delete post" aria-label="Delete post"><i class="fa-solid fa-trash"></i></button>';
+  actions.querySelector('.edit')?.addEventListener('click', event => {
+    event.stopPropagation();
+    openAdminMyPostEditModal(item);
+  });
+  actions.querySelector('.delete')?.addEventListener('click', event => {
+    event.stopPropagation();
+    deleteAdminMyPost(item);
+  });
+  wrap.appendChild(actions);
+}
+
+function ensureAdminMyPostActionStyles() {
+  if (document.getElementById('myPostActionStyles')) return;
+  const style = document.createElement('style');
+  style.id = 'myPostActionStyles';
+  style.textContent = [
+    '.my-post-card-actions{position:absolute;top:10px;right:10px;display:flex;gap:8px;z-index:5}',
+    '.my-post-icon-btn{width:34px;height:34px;border:1px solid #d1d5db;border-radius:999px;background:rgba(255,255,255,.95);color:#0f172a;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 8px 20px rgba(15,23,42,.12);transition:transform .15s ease,background .15s ease}',
+    '.my-post-icon-btn:hover{transform:translateY(-1px);background:#fff}',
+    '.my-post-icon-btn.delete{color:#dc2626}',
+    '.my-post-edit-overlay{position:fixed;inset:0;z-index:7000;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(15,23,42,.48);backdrop-filter:blur(4px)}',
+    '.my-post-edit-overlay.active{display:flex}',
+    '.my-post-edit-dialog{width:min(100%,520px);background:#fff;border-radius:16px;border:1px solid #e5e7eb;box-shadow:0 24px 70px rgba(15,23,42,.22);padding:26px;font-family:Poppins,Arial,sans-serif}',
+    '.my-post-edit-dialog h2{margin:0 0 8px;font-size:22px;font-weight:800}',
+    '.my-post-edit-dialog p{margin:0 0 18px;color:#6b7280;font-size:14px;line-height:1.5}',
+    '.my-post-edit-dialog label{display:block;margin:14px 0 6px;font-size:13px;font-weight:700}',
+    '.my-post-edit-dialog input,.my-post-edit-dialog textarea{width:100%;border:1px solid #d1d5db;border-radius:10px;padding:12px 14px;font-family:inherit;font-size:14px;outline:none}',
+    '.my-post-edit-dialog textarea{min-height:120px;resize:vertical}',
+    '.my-post-edit-actions{display:flex;gap:12px;margin-top:22px}',
+    '.my-post-edit-actions button{border:0;border-radius:10px;padding:12px 18px;font-family:inherit;font-weight:800;cursor:pointer}',
+    '.my-post-edit-cancel{background:#f3f4f6;color:#374151}',
+    '.my-post-edit-save{flex:1;background:#166534;color:#fff}'
+  ].join('');
+  document.head.appendChild(style);
+}
+
+function ensureAdminMyPostEditModal() {
+  ensureAdminMyPostActionStyles();
+  let overlay = document.getElementById('myPostEditOverlay');
+  if (overlay) return overlay;
+  overlay = document.createElement('div');
+  overlay.id = 'myPostEditOverlay';
+  overlay.className = 'my-post-edit-overlay';
+  overlay.innerHTML = '<div class="my-post-edit-dialog" role="dialog" aria-modal="true"><h2>Edit Post</h2><p>Update the details saved for this post.</p><input type="hidden" id="myPostEditID"><label for="myPostEditTitleInput">Item Title</label><input type="text" id="myPostEditTitleInput" maxlength="120"><label for="myPostEditDescInput">Description</label><textarea id="myPostEditDescInput" maxlength="2000"></textarea><div class="my-post-edit-actions"><button type="button" class="my-post-edit-cancel" onclick="closeAdminMyPostEditModal()">Cancel</button><button type="button" class="my-post-edit-save" onclick="saveAdminMyPostEdit()">Save Changes</button></div></div>';
+  overlay.addEventListener('click', event => { if (event.target === overlay) closeAdminMyPostEditModal(); });
+  document.body.appendChild(overlay);
+  return overlay;
+}
+
+function openAdminMyPostEditModal(item) {
+  const overlay = ensureAdminMyPostEditModal();
+  document.getElementById('myPostEditID').value = item.itemID || '';
+  document.getElementById('myPostEditTitleInput').value = item.title || '';
+  document.getElementById('myPostEditDescInput').value = item.description || '';
+  overlay.classList.add('active');
+}
+
+function closeAdminMyPostEditModal() {
+  document.getElementById('myPostEditOverlay')?.classList.remove('active');
+}
+
+async function saveAdminMyPostEdit() {
+  const itemID = document.getElementById('myPostEditID')?.value;
+  const title = document.getElementById('myPostEditTitleInput')?.value.trim();
+  const description = document.getElementById('myPostEditDescInput')?.value.trim();
+  if (!itemID || !title || !description) {
+    showToast('warning', 'Missing Details', 'Please enter both a title and description.');
+    return;
+  }
+  try {
+    await ItemsAPI.updateMyPost(itemID, { title, description });
+    closeAdminMyPostEditModal();
+    showToast('success', 'Post Updated', 'Your post was updated in the database.');
+    await loadAdminMyPosts();
+    await loadAdminItems();
+    await loadAdminStats();
+  } catch (err) {
+    showToast('error', 'Update Failed', err.message || 'Could not update your post.');
+  }
+}
+
+async function deleteAdminMyPost(item) {
+  if (!item?.itemID) return;
+  if (!window.confirm('Delete "' + (item.title || 'this post') + '"? This cannot be undone.')) return;
+  try {
+    await ItemsAPI.deleteMyPost(item.itemID);
+    showToast('success', 'Post Deleted', 'Your post was removed from the database.');
+    await loadAdminMyPosts();
+    await loadAdminItems();
+    await loadAdminStats();
+  } catch (err) {
+    showToast('error', 'Delete Failed', err.message || 'Could not delete your post.');
+  }
 }
 
 function filterAdminMyPosts() {
