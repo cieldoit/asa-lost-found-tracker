@@ -1433,6 +1433,30 @@ function toggleOtherLoc(otherId, selectEl) {
 let allItems = [];
 const VISITOR_ITEMS_CACHE_KEY = 'asa_visitor_items_cache';
 
+function applyGlobalItemStats(stats = {}) {
+  const set = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = Number(value || 0);
+  };
+  set('statLost', stats.totalLost);
+  set('statFound', stats.totalFound);
+  set('statResolved', stats.totalClaimed ?? stats.resolvedItems);
+  set('statClaimed', stats.totalClaimed ?? stats.resolvedItems);
+}
+
+async function loadGlobalItemStats() {
+  try {
+    const stats = await ItemsAPI.stats();
+    applyGlobalItemStats(stats);
+    localStorage.setItem('asa_item_stats_cache', JSON.stringify(stats));
+  } catch (err) {
+    try {
+      const cached = JSON.parse(localStorage.getItem('asa_item_stats_cache') || 'null');
+      if (cached) applyGlobalItemStats(cached);
+    } catch (_) {}
+    console.warn('Could not load item stats:', err.message);
+  }
+}
 function applyVisitorItems(items, shouldCache = true) {
   const itemList = Array.isArray(items) ? items : [];
   allItems = itemList;
@@ -1443,14 +1467,6 @@ function applyVisitorItems(items, shouldCache = true) {
 
   const lostItems = itemList.filter(i => i.itemType === 'lost');
   const foundItems = itemList.filter(i => i.itemType === 'found');
-  const claimedItems = itemList.filter(i => String(i.itemStatus || '').toLowerCase() === 'claimed');
-
-  const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
-  set('statLost', lostItems.length);
-  set('statFound', foundItems.length);
-  set('statResolved', claimedItems.length);
-  set('statClaimed', claimedItems.length);
-
   renderItemGrid('allItemsGrid', itemList);
   renderItemGrid('lostItemsGrid', lostItems);
   renderItemGrid('foundItemsGrid', foundItems);
@@ -1461,6 +1477,8 @@ function hydrateVisitorItemsFromCache() {
   try {
     const cached = JSON.parse(localStorage.getItem(VISITOR_ITEMS_CACHE_KEY) || 'null');
     if (cached) applyVisitorItems(cached, false);
+    const cachedStats = JSON.parse(localStorage.getItem('asa_item_stats_cache') || 'null');
+    if (cachedStats) applyGlobalItemStats(cachedStats);
   } catch (err) {
     localStorage.removeItem(VISITOR_ITEMS_CACHE_KEY);
   }
@@ -1470,6 +1488,7 @@ async function loadItems() {
   try {
     const items = window.ASA_ITEMS_PRELOAD ? await window.ASA_ITEMS_PRELOAD : await ItemsAPI.browse();
     applyVisitorItems(items);
+    await loadGlobalItemStats();
     window.ASA_ITEMS_PRELOAD = null;
   } catch (err) {
     console.error('Failed to load items:', err);

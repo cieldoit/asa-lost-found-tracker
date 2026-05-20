@@ -4,6 +4,15 @@ document.addEventListener("DOMContentLoaded", () => {
   loadStudentItems();
 });
 
+async function loadStudentStats() {
+  const response = await fetch(`${API_URL}/items/stats`);
+  const stats = await response.json();
+  if (!response.ok) throw new Error(stats.error || 'Failed to load item statistics.');
+
+  document.getElementById("statLost").textContent = Number(stats.totalLost || 0);
+  document.getElementById("statFound").textContent = Number(stats.totalFound || 0);
+  document.getElementById("statClaimed").textContent = Number(stats.totalClaimed || 0);
+}
 async function loadStudentItems() {
   const lostGrid = document.getElementById("lostItemsGrid");
   const foundGrid = document.getElementById("foundItemsGrid");
@@ -17,9 +26,7 @@ async function loadStudentItems() {
     const lostItems = items.filter(item => item.itemType === "lost");
     const foundItems = items.filter(item => item.itemType === "found");
 
-    document.getElementById("statLost").textContent = lostItems.length;
-    document.getElementById("statFound").textContent = foundItems.length;
-    document.getElementById("statClaimed").textContent = "0";
+    await loadStudentStats();
 
     lostGrid.innerHTML = lostItems.map(createItemCard).join("");
     foundGrid.innerHTML = foundItems.map(createItemCard).join("");
