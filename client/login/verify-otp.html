@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Verify OTP — ASA Lost & Found</title>
-  <link rel="icon" type="image/png" sizes="any" href="/ASA_logo/logo-asa-top.png?v=2" />
+  <title>Verify OTP - ASA Lost & Found</title>
+  <link rel="icon" type="image/png" sizes="any" href="/ASA_logo/logo-asa-top.png?v=2" />`r`n  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', system-ui, sans-serif; background: linear-gradient(135deg, #1a4d2e 0%, #2d7a47 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
     .card { background: #fff; border-radius: 24px; padding: 48px 40px; max-width: 420px; width: 90%; box-shadow: 0 25px 60px rgba(0,0,0,0.25); text-align: center; }
-    .logo { width: 72px; height: 72px; background: linear-gradient(135deg,#1a4d2e,#2d7a47); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 32px; }
+    .logo { width: 72px; height: 72px; background: linear-gradient(135deg,#1a4d2e,#2d7a47); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 32px;  color: #fff;}
     h1 { font-size: 24px; color: #111; margin-bottom: 8px; }
     p { color: #6b7280; font-size: 14px; margin-bottom: 28px; }
     .otp-input { display: flex; gap: 10px; justify-content: center; margin-bottom: 24px; }
@@ -28,7 +28,7 @@
 </head>
 <body>
   <div class="card">
-    <div class="logo">📧</div>
+    <div class="logo"><i class="fa-solid fa-envelope" aria-hidden="true"></i></div>
     <h1>Verify your email</h1>
     <p>We sent a 6-digit code to <strong id="emailDisplay">your email</strong>. Enter it below to activate your account.</p>
     <div class="otp-input">
@@ -40,12 +40,14 @@
       <input type="text" maxlength="1" id="o6" inputmode="numeric">
     </div>
     <button class="btn" id="verifyBtn" onclick="verifyOtp()">Verify & Continue</button>
-    <div class="resend">Didn't receive it? <a onclick="resendOtp()">Resend code</a></div>
+    <div class="resend">Didn't receive it? <a id="resendLink" onclick="resendOtp()">Resend code</a></div>
   </div>
 
   <script>
     const API = window.ASA_API_BASE || `${window.location.origin}/api`;
     const email = localStorage.getItem('pendingEmail') || '';
+    const RESEND_COOLDOWN_SECONDS = 60;
+    let resendTimer = null;
     if (email) document.getElementById('emailDisplay').textContent = email;
 
     // Auto-focus next input
@@ -73,7 +75,7 @@
       if (otpCode.length < 6) { toast('Please enter the full 6-digit code.', 'error'); return; }
 
       const btn = document.getElementById('verifyBtn');
-      btn.disabled = true; btn.textContent = 'Verifying…';
+      btn.disabled = true; btn.textContent = 'Verifying...';
 
       try {
         const res = await fetch(`${API}/verify-otp`, {
@@ -84,7 +86,7 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Verification failed');
 
-        toast('Email verified! Redirecting to login…', 'success');
+        toast('Email verified! Redirecting to login...', 'success');
         setTimeout(() => { window.location.href = '/login/landing.html'; }, 1800);
       } catch (err) {
         toast(err.message, 'error');
@@ -92,7 +94,30 @@
       }
     }
 
+    function startResendCooldown(seconds = RESEND_COOLDOWN_SECONDS) {
+      const link = document.getElementById('resendLink');
+      if (!link) return;
+      clearInterval(resendTimer);
+      let remaining = Math.max(1, Number(seconds) || RESEND_COOLDOWN_SECONDS);
+      link.style.pointerEvents = 'none';
+      link.style.opacity = '0.55';
+      link.textContent = `Resend in ${remaining}s`;
+      resendTimer = setInterval(() => {
+        remaining -= 1;
+        if (remaining <= 0) {
+          clearInterval(resendTimer);
+          link.style.pointerEvents = '';
+          link.style.opacity = '';
+          link.textContent = 'Resend code';
+          return;
+        }
+        link.textContent = `Resend in ${remaining}s`;
+      }, 1000);
+    }
+
     async function resendOtp() {
+      const link = document.getElementById('resendLink');
+      if (link?.style.pointerEvents === 'none') return;
       try {
         const res = await fetch(`${API}/resend-otp`, {
           method: 'POST',
@@ -100,12 +125,20 @@
           body: JSON.stringify({ email })
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to resend');
+        if (!res.ok) {
+          if (res.status === 429 && data.retryAfterSeconds) startResendCooldown(data.retryAfterSeconds);
+          throw new Error(data.error || 'Failed to resend');
+        }
+        inputs.forEach(input => { input.value = ''; });
+        inputs[0]?.focus();
         toast('A new code has been sent to your email.', 'success');
+        startResendCooldown();
       } catch (err) {
         toast(err.message, 'error');
       }
     }
+
+    startResendCooldown();
   </script>
 </body>
 </html>

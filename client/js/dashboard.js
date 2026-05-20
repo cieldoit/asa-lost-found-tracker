@@ -107,7 +107,7 @@ async function openDashboardNotification(notifID, itemID) {
   }
   closeAllDropdowns();
   if (itemID) {
-    window.location.href = `/admin?itemID=${encodeURIComponent(itemID)}`;
+    window.location.href = `/admin<i class="fa-solid fa-check" aria-hidden="true"></i>itemID=${encodeURIComponent(itemID)}`;
   } else {
     window.location.href = '/admin#claims';
   }
@@ -212,12 +212,12 @@ function buildBuildingGrid() {
   grid.innerHTML = PICKUP_LOCATIONS.map(loc =>
     `<div class="building-card">
       <div class="building-photo-wrap" onclick="triggerBuildingUpload('${loc}')">
-        ${buildingPhotos[loc] ? `<img src="${buildingPhotos[loc]}">` : '<span style="font-size:36px">🏢</span>'}
+        ${buildingPhotos[loc] ? `<img src="${buildingPhotos[loc]}">` : '<span style="font-size:36px"><i class="fa-solid fa-building" aria-hidden="true"></i></span>'}
         <div class="building-overlay"><i class="fa-solid fa-camera"></i> ${buildingPhotos[loc] ? 'Change' : 'Add'}</div>
       </div>
       <div class="building-card-info">
         <p>${loc}</p>
-        ${buildingPhotos[loc] ? '<span style="color:green">✓ Photo set</span>' : '<span>No photo</span>'}
+        ${buildingPhotos[loc] ? '<span style="color:green"><i class="fa-solid fa-check" aria-hidden="true"></i> Photo set</span>' : '<span>No photo</span>'}
       </div>
     </div>`
   ).join('');
@@ -575,7 +575,7 @@ function renderItemRows(tbodyId, items) {
 }
 
 function openDashboardItem(itemID) {
-  window.location.href = `/admin?itemID=${encodeURIComponent(itemID)}`;
+  window.location.href = `/admin<i class="fa-solid fa-check" aria-hidden="true"></i>itemID=${encodeURIComponent(itemID)}`;
 }
 
 function formatLogDate(value) {

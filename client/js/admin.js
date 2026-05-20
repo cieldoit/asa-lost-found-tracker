@@ -44,7 +44,7 @@ function clearErr(id) { const el = document.getElementById(id); if(el) el.style.
 function setFieldError(inputId, errId, msg) { document.getElementById(inputId)?.classList.add('error'); showErr(errId, msg); }
 function clearFieldError(inputId, errId) { document.getElementById(inputId)?.classList.remove('error'); clearErr(errId); }
 function populateSelect(selectId, items) { const sel = document.getElementById(selectId); if(!sel) return; const cur = sel.value; sel.innerHTML = `<option value="">Select…</option>` + items.map(i => `<option value="${i}">${i}</option>`).join(''); if(cur && items.includes(cur)) sel.value = cur; }
-function populateAllSelects() { ['lostCat','foundCat'].forEach(id => populateSelect(id, categories)); ['lostCatFilter','foundCatFilter'].forEach(id => { const sel = document.getElementById(id); if(sel) sel.innerHTML = '<option value="">All Categories</option>' + categories.map(c => `<option value="${c}">${c}</option>`).join(''); }); ['lostLoc','foundLoc'].forEach(id => { const sel = document.getElementById(id); if(sel) sel.innerHTML = '<option value="">Select Location</option>' + locations.map(l => `<option value="${l}">${l}</option>`).join(''); }); const pickup = document.getElementById('foundPickup'); if (pickup) { const cur = pickup.value; pickup.innerHTML = '<option value="">Where is the item kept now?</option>' + pickupLocations.map(l => `<option value="${l}">${l}</option>`).join(''); if (cur && pickupLocations.includes(cur)) pickup.value = cur; } updateFoundPickupPreview(); }
+function populateAllSelects() { ['lostCat','foundCat'].forEach(id => populateSelect(id, categories)); ['lostCatFilter','foundCatFilter'].forEach(id => { const sel = document.getElementById(id); if(sel) sel.innerHTML = '<option value="">All Categories</option>' + categories.map(c => `<option value="${c}">${c}</option>`).join(''); }); ['lostLoc','foundLoc'].forEach(id => { const sel = document.getElementById(id); if(sel) sel.innerHTML = '<option value="">Select Location</option>' + locations.map(l => `<option value="${l}">${l}</option>`).join(''); }); const pickup = document.getElementById('foundPickup'); if (pickup) { const cur = pickup.value; pickup.innerHTML = '<option value="">Where is the item kept now<i class="fa-solid fa-check" aria-hidden="true"></i></option>' + pickupLocations.map(l => `<option value="${l}">${l}</option>`).join(''); if (cur && pickupLocations.includes(cur)) pickup.value = cur; } updateFoundPickupPreview(); }
 async function loadAdminMeta() {
   try {
     const [dbCategories, dbLocations] = await Promise.all([MetaAPI.getCategories(), MetaAPI.getLocations()]);
@@ -310,13 +310,13 @@ async function resolveItem(btn) {
         b.textContent = 'RESOLVED'; b.classList.remove('badge-pending'); b.classList.add('badge-claimed');
       }
     });
-    btn.textContent = '✓ Resolved'; btn.style.opacity = '0.5';
+    btn.textContent = 'Resolved'; btn.style.opacity = '0.5';
     const statResolved = document.getElementById('statResolved');
     if (statResolved) statResolved.textContent = parseInt(statResolved.textContent || 0) + 1;
     showToast('success', 'Resolved', `"${title}" marked as resolved.`);
     if (typeof loadAdminNotifications === 'function') await loadAdminNotifications();
   } catch (err) {
-    showToast('error', 'Error', 'Could not resolve item.'); btn.disabled = false; btn.textContent = '✓ Resolve';
+    showToast('error', 'Error', 'Could not resolve item.'); btn.disabled = false; btn.textContent = 'Resolve';
   }
 }
 
@@ -548,7 +548,7 @@ function ensureAdminMyPostDeleteModal() {
   overlay = document.createElement('div');
   overlay.id = 'myPostDeleteOverlay';
   overlay.className = 'my-post-delete-overlay';
-  overlay.innerHTML = '<div class="my-post-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="myPostDeleteTitle"><div class="my-post-delete-icon"><i class="fa-solid fa-trash"></i></div><h2 id="myPostDeleteTitle">Delete this post?</h2><p id="myPostDeleteMessage">This post will be removed from the database. This action cannot be undone.</p><input type="hidden" id="myPostDeleteID"><div class="my-post-delete-actions"><button type="button" class="my-post-delete-cancel" onclick="closeAdminMyPostDeleteModal()">Cancel</button><button type="button" class="my-post-delete-confirm" onclick="confirmAdminMyPostDelete()">Delete Post</button></div></div>';
+  overlay.innerHTML = '<div class="my-post-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="myPostDeleteTitle"><div class="my-post-delete-icon"><i class="fa-solid fa-trash"></i></div><h2 id="myPostDeleteTitle">Delete this post<i class="fa-solid fa-check" aria-hidden="true"></i></h2><p id="myPostDeleteMessage">This post will be removed from the database. This action cannot be undone.</p><input type="hidden" id="myPostDeleteID"><div class="my-post-delete-actions"><button type="button" class="my-post-delete-cancel" onclick="closeAdminMyPostDeleteModal()">Cancel</button><button type="button" class="my-post-delete-confirm" onclick="confirmAdminMyPostDelete()">Delete Post</button></div></div>';
   overlay.addEventListener('click', event => {
     if (event.target === overlay) closeAdminMyPostDeleteModal();
   });
@@ -619,8 +619,8 @@ function openItemModal(card) {
   document.getElementById('modalTypeBadge').className = `badge badge-${type}`;
   document.getElementById('modalTitle').textContent = title;
   document.getElementById('modalCat').innerHTML = `<span class="category-tag">${cat}</span>`;
-  document.getElementById('modalLoc').textContent = `📍 ${loc}`;
-  document.getElementById('modalDate').textContent = `🗓 ${date}`;
+  document.getElementById('modalLoc').textContent = `Location: ${loc}`;
+  document.getElementById('modalDate').textContent = `Date: ${date}`;
   document.getElementById('modalDesc').textContent = desc;
 
   document.getElementById('modalReporterName').textContent = reporterName;
@@ -1520,7 +1520,7 @@ function renderAdminModalActions(item) {
 
   const resolve = document.createElement('button');
   resolve.className = 'btn-modal-resolve';
-  resolve.textContent = '✓ Mark as Resolved';
+  resolve.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i> Mark as Resolved';
   resolve.onclick = resolveFromModal;
   actionBox.appendChild(resolve);
 
@@ -1590,8 +1590,8 @@ function openAdminItemModal(item) {
 
   document.getElementById("modalTitle").textContent = item.title;
   document.getElementById("modalCat").innerHTML = `<span class="category-tag">${item.category || "General"}</span>`;
-  document.getElementById("modalLoc").textContent = `📍 ${item.locationDetail || item.location || "Campus"}`;
-  document.getElementById("modalDate").textContent = `🗓 ${formatNotifDate(item.createdAt)}`;
+  document.getElementById("modalLoc").textContent = `Location: ${item.locationDetail || item.location || "Campus"}`;
+  document.getElementById("modalDate").textContent = `Date: ${formatNotifDate(item.createdAt)}`;
   document.getElementById("modalDesc").textContent = item.description || "No description";
 
   document.getElementById("modalReporterName").textContent = item.reporterName || "Unknown User";
@@ -1623,7 +1623,7 @@ function openAdminItemModal(item) {
       justify-content:center;
       font-size:80px;
     ">
-      ${isLost ? "👛" : "📦"}
+      ${isLost ? `<i class="fa-solid fa-wallet" aria-hidden="true"></i>` : `<i class="fa-solid fa-box" aria-hidden="true"></i>`}
     </div>
   `;
 

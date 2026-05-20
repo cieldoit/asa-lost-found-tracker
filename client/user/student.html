@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ASA Lost & Found — Student</title>
-  <link rel="icon" type="image/png" sizes="any" href="/ASA_logo/logo-asa-top.png?v=2" />
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/png" sizes="any" href="/ASA_logo/logo-asa-top.png<i class="fa-solid fa-check" aria-hidden="true"></i>v=2" />
+<link href="https://fonts.googleapis.com/css2<i class="fa-solid fa-check" aria-hidden="true"></i>family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="../user/css/script.css" />
 </head>
@@ -16,7 +16,7 @@
     <div class="home-container">
       <div class="welcome-banner">
         <div class="welcome-text">
-          <h1>Welcome back, <span class="welcome-name" id="welcomeName">Student</span> 👋</h1>
+          <h1>Welcome back, <span class="welcome-name" id="welcomeName">Student</span> <i class="fa-solid fa-hand" aria-hidden="true"></i></h1>
           <p>Here's what's happening with all of the reported items.</p>
         </div>
         <div class="action-btns">
@@ -55,12 +55,12 @@
       </div>
       <div class="tip-card">
         <div class="tip-content">
-          <h3>How to recover items faster?</h3>
+          <h3>How to recover items faster<i class="fa-solid fa-check" aria-hidden="true"></i></h3>
           <p>Adding clear photos and specific locations significantly increases the chance of finding your item. Our automated matching system will notify you as soon as a potential match is found.</p>
           <div class="tip-tags">
-            <div class="tip-tag">📸 Add Photos</div>
-            <div class="tip-tag">📍 Be Specific</div>
-            <div class="tip-tag">🔄 Update Daily</div>
+            <div class="tip-tag"><i class="fa-solid fa-camera" aria-hidden="true"></i> Add Photos</div>
+            <div class="tip-tag"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> Be Specific</div>
+            <div class="tip-tag"><i class="fa-solid fa-rotate" aria-hidden="true"></i> Update Daily</div>
           </div>
         </div>
       </div>
@@ -108,7 +108,7 @@
     <div class="home-container">
       <div class="dir-header">
         <h1>Found Items Directory</h1>
-        <p>Items safely turned in by our community. Have you lost something recently? Check if it has been found here to reclaim your property.</p>
+        <p>Items safely turned in by our community. Have you lost something recently<i class="fa-solid fa-check" aria-hidden="true"></i> Check if it has been found here to reclaim your property.</p>
       </div>
       <div class="dir-controls">
         <div class="search-bar">
@@ -126,7 +126,7 @@
     <div class="home-container">
       <div class="post-wrap">
         <h2>Post Item</h2>
-        <p>Lost something important or found an item that doesn't belong to you? Start by selecting whether the item is lost or found.</p>
+        <p>Lost something important or found an item that doesn't belong to you<i class="fa-solid fa-check" aria-hidden="true"></i> Start by selecting whether the item is lost or found.</p>
         <div class="post-choices">
           <button class="choice-btn choice-lost" onclick="showPage('report-lost')">Lost Item</button>
           <button class="choice-btn choice-found" onclick="showPage('report-found')">Found Item</button>
@@ -204,7 +204,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">Pick-Up Location <span style="color:var(--red-text)">*</span></label>
-          <div class="form-select-wrap"><select class="form-select" id="foundPickup"><option value="">Where is the item kept now?</option></select><div class="select-arrow">⌄</div></div>
+          <div class="form-select-wrap"><select class="form-select" id="foundPickup"><option value="">Where is the item kept now<i class="fa-solid fa-check" aria-hidden="true"></i></option></select><div class="select-arrow">⌄</div></div>
           <span class="field-error" id="foundPickupErr" style="display:none">Please select a pick-up location.</span>
         </div>
         <div class="form-group">
@@ -311,7 +311,7 @@
   <footer class="bottom-bar"></footer>
 <script>
   window.ASA_ITEMS_PRELOAD = fetch('/api/items/browse')
-    .then(function (res) { return res.ok ? res.json() : []; })
+    .then(function (res) { return res.ok <i class="fa-solid fa-check" aria-hidden="true"></i> res.json() : []; })
     .catch(function () { return []; });
 </script>
 <script src="/js/api.js"></script>

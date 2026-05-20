@@ -13,6 +13,8 @@ const app = express();
 
 const ASA_EMAIL_FROM = `"ASA" <${process.env.EMAIL_USER}>`;
 
+const OTP_EXPIRY_MS = 10 * 60 * 1000;
+const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
 function escapeEmailHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, ch => ({
     '&': '&amp;',
@@ -908,7 +910,7 @@ app.post('/api/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
 
     await db.execute(`
       INSERT INTO USERS (userName, email, password, role, userStatus)
@@ -992,7 +994,7 @@ app.post('/api/verify-otp', async (req, res) => {
     }
 
     if (new Date(otp.expiresAt) < new Date()) {
-      return res.status(400).json({ error: "OTP expired. Please register again." });
+      return res.status(400).json({ error: "OTP expired. Please request a new code." });
     }
 
     if (otp.otpCode !== otpCode) {
@@ -1045,12 +1047,37 @@ app.post('/api/resend-otp', async (req, res) => {
       return res.status(404).json({ error: "User not found." });
     }
 
-    if (users[0].userStatus === "active") {
+    const user = users[0];
+
+    if (String(user.role || '').toLowerCase().includes('admin')) {
+      return res.status(400).json({ error: "Admin accounts do not use OTP verification." });
+    }
+
+    if (user.userStatus === "active") {
       return res.status(400).json({ error: "Account already verified." });
     }
 
+    const [latestOtps] = await db.execute(`
+      SELECT otpID, createdAt
+      FROM OTP_VERIFICATIONS
+      WHERE email = ?
+      ORDER BY createdAt DESC
+      LIMIT 1
+    `, [email]);
+
+    if (latestOtps.length > 0 && latestOtps[0].createdAt) {
+      const elapsedMs = Date.now() - new Date(latestOtps[0].createdAt).getTime();
+      if (elapsedMs < OTP_RESEND_COOLDOWN_MS) {
+        const retryAfterSeconds = Math.ceil((OTP_RESEND_COOLDOWN_MS - elapsedMs) / 1000);
+        return res.status(429).json({
+          error: `Please wait ${retryAfterSeconds} seconds before requesting another OTP.`,
+          retryAfterSeconds
+        });
+      }
+    }
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
 
     await db.execute(
       "DELETE FROM OTP_VERIFICATIONS WHERE email = ?",
