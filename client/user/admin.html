@@ -6,8 +6,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ASA Lost &amp; Found — Admin</title>
-  <link rel="icon" type="image/png" sizes="any" href="/ASA_logo/logo-asa-top.png<i class="fa-solid fa-check" aria-hidden="true"></i>v=2" />
-  <link href="https://fonts.googleapis.com/css2<i class="fa-solid fa-check" aria-hidden="true"></i>family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/png" sizes="any" href="/ASA_logo/logo-asa-top.png?v=2" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="/user/css/admin.css" />
 </head>
@@ -438,7 +438,7 @@
         <div class="form-group"><label class="form-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><rect x="2" y="7" width="20" height="14" rx="2"/></svg>Category <span style="color:var(--red-text)">*</span></label><div class="form-select-wrap"><select class="form-select" id="foundCat"><option value="">Select Category</option></select><div class="select-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg></div></div><span class="field-error" id="foundCatErr" style="display:none">Please select a category.</span></div>
         <div class="form-group"><label class="form-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Location Found <span style="color:var(--red-text)">*</span></label><div class="form-select-wrap"><select class="form-select" id="foundLoc"><option value="">Select Location</option></select><div class="select-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg></div></div><span class="field-error" id="foundLocErr" style="display:none">Please select where it was found.</span></div>
       </div>
-      <div class="form-group"><label class="form-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Pick-Up Location <span style="color:var(--red-text)">*</span></label><div class="form-select-wrap"><select class="form-select" id="foundPickup"><option value="">Where is the item kept now<i class="fa-solid fa-check" aria-hidden="true"></i></option><option>CAA LSG Office</option><option>CCIS LSG Office</option><option>CED LSG Office</option><option>CEGS LSG Office</option><option>CHASS LSG Office</option><option>CMNS LSG Office</option><option>COFES LSG Office</option><option>Guard House - Main Gate</option><option>Guard House - Green Gate</option></select><div class="select-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg></div></div><span class="field-error" id="foundPickupErr" style="display:none">Please select a pick-up location.</span></div>
+      <div class="form-group"><label class="form-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Pick-Up Location <span style="color:var(--red-text)">*</span></label><div class="form-select-wrap"><select class="form-select" id="foundPickup"><option value="">Where is the item? kept now?</option><option>CAA LSG Office</option><option>CCIS LSG Office</option><option>CED LSG Office</option><option>CEGS LSG Office</option><option>CHASS LSG Office</option><option>CMNS LSG Office</option><option>COFES LSG Office</option><option>Guard House - Main Gate</option><option>Guard House - Green Gate</option></select><div class="select-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg></div></div><span class="field-error" id="foundPickupErr" style="display:none">Please select a pick-up location.</span></div>
       <!-- Reporter fields -->
       <div class="two-col">
         <div class="form-group">
@@ -491,7 +491,7 @@
       </div>
       <div class="sidebar-bottom-links">
         <a href="/dashboard" class="dashboard-link-btn"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
-        <a href="/login/landing.html" class="sidebar-logout-btn" onclick="window.Auth<i class="fa-solid fa-check" aria-hidden="true"></i>.logout<i class="fa-solid fa-check" aria-hidden="true"></i>.(); return false;"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
+        <a href="/login/landing.html" class="sidebar-logout-btn" onclick="window.Auth?.logout?.(); return false;"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
       </div>
     </div>
     <div class="settings-content-area">
@@ -533,7 +533,7 @@
 ============================================================ -->
 <div class="popup-overlay" id="deletePopup">
   <div class="popup-box confirm-popup">
-    <h3><i class="fa-solid fa-triangle-exclamation"></i> Delete Item<i class="fa-solid fa-check" aria-hidden="true"></i></h3>
+    <h3><i class="fa-solid fa-triangle-exclamation"></i> Delete Item?</h3>
     <p>This action cannot be undone. The item listing will be permanently removed from the system.</p>
     <div class="popup-actions"><button class="btn-cancel" onclick="closeDeletePopup()">Cancel</button><button class="btn-confirm-delete" onclick="executeDelete()">Yes, Delete</button></div>
   </div>
@@ -544,8 +544,8 @@
 ============================================================ -->
 <div class="popup-overlay" id="tagDeletePopup">
   <div class="popup-box confirm-popup">
-    <h3><i class="fa-solid fa-triangle-exclamation"></i> Remove Tag<i class="fa-solid fa-check" aria-hidden="true"></i></h3>
-    <p id="tagDeleteMsg">Are you sure you want to remove this item<i class="fa-solid fa-check" aria-hidden="true"></i></p>
+    <h3><i class="fa-solid fa-triangle-exclamation"></i> Remove Tag?</h3>
+    <p id="tagDeleteMsg">Are you sure you want to remove this item?</p>
     <div class="popup-actions">
       <button class="btn-cancel" onclick="closeTagDeletePopup()">Cancel</button>
       <button class="btn-confirm-delete" onclick="executeTagDelete()">Yes, Remove</button>
