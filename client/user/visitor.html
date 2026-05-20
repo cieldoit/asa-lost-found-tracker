@@ -391,34 +391,6 @@
 </div>
 
 
-<div class="page" id="page-my-posts">
-  <div class="home-container">
-    <div class="dir-header">
-      <h1>My Posts</h1>
-      <p>Manage all the items you have reported as lost or found.</p>
-    </div>
-    <div class="dir-controls">
-      <div class="search-bar">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input type="text" placeholder="Search my posts..." id="myPostsSearch" oninput="filterMyPosts()">
-      </div>
-      <select class="filter-select" id="myPostsTypeFilter" onchange="filterMyPosts()">
-        <option value="">All Posts</option>
-        <option value="lost">Lost Posts</option>
-        <option value="found">Found Posts</option>
-      </select>
-      <button class="btn-report-lost" type="button" onclick="showPage('post')">
-        <i class="fa-solid fa-circle-plus"></i> New Post
-      </button>
-    </div>
-    <div class="items-grid" id="myPostsGrid">
-      <div class="empty-state" style="grid-column:1/-1">
-        <h3>Loading your posts...</h3>
-        <p>Checking the database for your reports.</p>
-      </div>
-    </div>
-  </div>
-</div>
 
 <div class="page" id="page-settings">
   <div class="settings-page-wrap">
