@@ -1329,7 +1329,7 @@ const pageRoutes = {
   '/visitor': 'user/visitor.html',
   '/admin': 'user/admin.html',
   '/guest': 'user/guest.html',
-  '/dashboard': 'user/dashboard .html',
+  '/dashboard': 'user/dashboard.html',
   '/privacy': 'ASA_details/info.html',
   '/terms': 'ASA_details/info.html',
   '/about': 'ASA_details/about.html'

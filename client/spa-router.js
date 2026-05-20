@@ -206,7 +206,7 @@ const SPA = {
             'staff': '/user/staff.html',
             'visitor': '/user/visitor.html',
             'admin': '/user/admin.html',
-            'dashboard': '/user/dashboard .html',
+            'dashboard': '/user/dashboard.html',
             'guest': '/user/guest.html',
             'privacy': '/ASA_details/info.html'
         };
