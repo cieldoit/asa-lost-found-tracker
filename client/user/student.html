@@ -226,45 +226,6 @@
       </div>
     </div>
   </div>
-
-  <!--My Post-->
-  <div class="page" id="page-mypost">
-    <div class="home-container">
-      <div class="dir-header">
-        <h1>My Posts</h1>
-        <p>Manage all the items you have reported as lost or found.</p>
-      </div>
-      
-      <div class="dir-controls">
-        <div class="search-bar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <input type="text" placeholder="Search my posts..." id="myPostsSearch" oninput="filterMyPosts()">
-        </div>
-        <select class="filter-select" id="myPostsTypeFilter" onchange="filterMyPosts()">
-          <option value="">All Posts</option>
-          <option value="lost">Lost Items</option>
-          <option value="found">Found Items</option>
-        </select>
-        <button class="btn-report-lost" onclick="showPage('post')" style="padding: 10px 20px;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
-          New Post
-        </button>
-      </div>
-      
-      <div class="items-grid" id="myPostsGrid">
-        <!-- Posts will be dynamically loaded here -->
-      </div>
-      
-      <!-- Empty state (shown when no posts) -->
-      <div class="empty-state" id="myPostsEmpty" style="display: none;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="56" height="56"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-        <h3>No Posts Yet</h3>
-        <p>You haven't reported any items yet. Click "New Post" to get started!</p>
-      </div>
-    </div>
-  </div>
-  <!--My Post-->
-
   <div class="page" id="page-settings">
     <div class="settings-page-wrap">
       <div class="settings-sidebar-panel">
