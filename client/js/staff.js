@@ -425,12 +425,15 @@ function normalizeRoleNavState(page) {
 }
 function showPage(page) {
   if (page === 'mypost') page = 'my-posts';
+  if (page === 'my-posts') ensureMyPostsPage();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const el = document.getElementById('page-' + page);
   if (el) { el.classList.add('active'); currentPage = page; }
-  document.querySelector('staff-header')?.setActivePage(page);
+  document.querySelector('student-header, staff-header, visitor-header')?.setActivePage(page);
   normalizeRoleNavState(page);
-  syncStaffPageUrl(page);
+  if (typeof syncStudentPageUrl === 'function') syncStudentPageUrl(page);
+  if (typeof syncStaffPageUrl === 'function') syncStaffPageUrl(page);
+  if (typeof syncVisitorPageUrl === 'function') syncVisitorPageUrl(page);
   closeAllDropdowns();
   closeMobileNav();
   if (page === 'my-posts') loadMyPosts();
@@ -774,13 +777,27 @@ function getMyPostsUserKey() {
   return String(localStorage.getItem('userName') || localStorage.getItem('asa_user') || '').trim().toLowerCase();
 }
 
+function getMyPostsUserID() {
+  const token = localStorage.getItem('token') || localStorage.getItem('asa_token') || '';
+  const parts = token.split('.');
+  if (parts.length < 2) return '';
+  try {
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return String(payload.userID || payload.id || '').trim();
+  } catch (err) {
+    return '';
+  }
+}
+
 function filterOwnPostsFromList(items) {
+  const userID = getMyPostsUserID();
   const userKey = getMyPostsUserKey();
   const list = Array.isArray(items) ? items : [];
-  if (!userKey) return [];
   return list.filter(item => {
+    const itemUserID = String(item.userID || item.reporterID || '').trim();
+    if (userID && itemUserID && itemUserID === userID) return true;
     const reporter = String(item.reporterName || item.userName || '').trim().toLowerCase();
-    return reporter === userKey;
+    return !!userKey && reporter === userKey;
   });
 }
 
@@ -795,6 +812,7 @@ async function loadMyPostsFallback() {
     return [];
   }
 }
+
 async function loadMyPosts() {
   ensureMyPostsPage();
   const page = document.getElementById('page-my-posts');
