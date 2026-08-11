@@ -6,7 +6,7 @@ A full-stack web application for tracking lost and found items at Caraga State U
 - **Backend**: Node.js + Express
 - **Database**: MySQL (mysql2)
 - **Auth**: JWT + bcrypt + OTP email verification
-- **Email**: Nodemailer (Gmail)
+- **Email**: Brevo (Sendinblue) HTTP API
 - **Frontend**: Vanilla HTML/CSS/JS
 
 ---
@@ -43,8 +43,8 @@ DB_PASS=your_password
 DB_NAME=asa_db
 PORT=5000
 JWT_SECRET=your_long_random_secret
-EMAIL_USER=youremail@gmail.com
-EMAIL_PASS=your_gmail_app_password
+BREVO_API_KEY=your_brevo_api_key
+BREVO_SENDER_EMAIL=your_verified_sender@example.com
 FRONTEND_URL=http://localhost:5000
 ```
 
@@ -69,7 +69,7 @@ Open `http://localhost:5000` in your browser.
 3. Add environment variables in the Render dashboard:
    - `DB_HOST`, `DB_USER`, `DB_PASS`, `DB_NAME`
    - `JWT_SECRET` (generate a strong random string)
-   - `EMAIL_USER`, `EMAIL_PASS`
+   - `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`
    - `FRONTEND_URL` = your Render app URL (e.g., `https://asa-lost-found.onrender.com`)
    - Optional admin seed values:
      - `ADMIN_USERNAME` defaults to `ccis_admin`
@@ -103,5 +103,5 @@ ASA_FINAL/
     ├── routes/        # Route handlers
     ├── server.js      # Main Express app
     ├── db.js          # MySQL pool
-    └── mailer.js      # Nodemailer setup
+    └── mailer.js      # Brevo email API client
 ```
