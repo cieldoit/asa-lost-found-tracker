@@ -105,3 +105,11 @@ ASA_FINAL/
     ├── db.js          # MySQL pool
     └── mailer.js      # Brevo email API client
 ```
+
+## Aiven and Cloudinary setup
+
+See [storage setup and validation](server/STORAGE.md) for hosted MySQL, photo uploads, protected claim documents, and the local fallback.
+
+## Password recovery
+
+Use **Forgot Password?** on the login page. See [configuration and tests](server/PASSWORD-RECOVERY.md). Brevo credentials are required for email delivery.

@@ -720,7 +720,8 @@ window.openDashClaimDecisionModal = openDashClaimDecisionModal;
 window.closeDashClaimDecisionModal = closeDashClaimDecisionModal;
 window.submitDashClaimDecision = submitDashClaimDecision;
 function claimProofCell(claim) {
-  return claim.proof ? '<i class="fa-solid fa-paperclip" style="color:var(--green)"></i> Provided' : 'No proof';
+  const text = String(claim.proof || '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  return (text ? '<span>' + text + '</span>' : 'No written proof') + (claim.hasAttachment ? '<br><button type="button" onclick="downloadClaimAttachment(' + Number(claim.claimID) + ', this)">Download attachment</button>' : '');
 }
 
 function renderClaims(claims) {

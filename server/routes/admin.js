@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const realtime = require('../realtime');
+const deleteItem = require('../delete-item');
 
 /* ================= ADMIN STATS ================= */
 router.get('/stats', async (req, res) => {
@@ -177,9 +178,7 @@ router.put('/items/:id/resolve', async (req, res) => {
 
 router.delete('/items/:id', async (req, res) => {
   try {
-    await db.query('DELETE FROM CLAIMS WHERE itemID = ?', [req.params.id]);
-    await db.query('DELETE FROM NOTIFICATIONS WHERE itemID = ?', [req.params.id]);
-    await db.query('DELETE FROM ITEMS WHERE itemID = ?', [req.params.id]);
+    await deleteItem(req.params.id);
     realtime.emitToAll('items-changed', { reason: 'item-deleted', itemID: req.params.id });
     realtime.emitToRole('admin', 'admin-data-changed', { reason: 'item-deleted', itemID: req.params.id });
 
@@ -198,6 +197,7 @@ router.get('/claims', async (req, res) => {
         c.claimID,
         c.claimStatus,
         c.proof,
+        (c.attachment IS NOT NULL) AS hasAttachment,
         c.createdAt,
         c.pickupLocation,
         c.pickupSchedule,

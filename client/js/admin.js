@@ -1736,7 +1736,7 @@ async function loadAdminClaims() {
       <tr data-claim-id="${c.claimID}">
         <td>${c.userName}</td>
         <td>${c.email}</td>
-        <td>${c.itemTitle}</td>
+        <td>${c.itemTitle}${c.hasAttachment ? '<br><button type="button" onclick="downloadClaimAttachment(' + Number(c.claimID) + ', this)">Download attachment</button>' : ''}</td>
         <td><span class="badge badge-${c.itemType}">${c.itemType.toUpperCase()}</span></td>
         <td><span class="badge badge-${c.claimStatus === 'pending' ? 'pending' : c.claimStatus === 'approved' ? 'claimed' : 'danger'}">${c.claimStatus.toUpperCase()}</span></td>
         <td>

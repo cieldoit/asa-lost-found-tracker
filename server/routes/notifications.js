@@ -2,14 +2,16 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const jwt = require('jsonwebtoken');
+const sessionCurrent = require('../session-version');
 require('dotenv').config();
 
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   if (!token) return res.sendStatus(401);
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+  jwt.verify(token, process.env.JWT_SECRET, async (err, user) => {
     if (err) return res.sendStatus(403);
+    if (!await sessionCurrent(user, res)) return;
     req.user = user;
     next();
   });

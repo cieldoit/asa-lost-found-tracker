@@ -1132,7 +1132,7 @@ async function submitClaim() {
   if (btn) { btn.disabled = true; btn.textContent = 'Submitting...'; }
 
   try {
-    await ClaimsAPI.submit(currentItemID, evidence);
+    await ClaimsAPI.submit(currentItemID, evidence, document.getElementById('claimFile')?.files[0]);
     closeClaimForm();
     showToast('success', 'Claim Submitted!', 'Your claim request has been sent for review.');
     await loadNotifications();

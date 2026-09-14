@@ -319,8 +319,19 @@ const ItemsAPI = {
 };
 
 const ClaimsAPI = {
-  async submit(itemID, proof) {
-    return apiFetch('/claims', { method: 'POST', body: JSON.stringify({ itemID, proof }) });
+  async submit(itemID, proof, file) {
+    let attachmentData;
+    if (file) {
+      if (file.size > 4 * 1024 * 1024) throw new Error("Attachment must be at most 4 MB.");
+      if (!["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(file.type)) throw new Error("Choose a JPEG, PNG, WebP or PDF attachment.");
+      attachmentData = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error("Could not read the attachment."));
+        reader.readAsDataURL(file);
+      });
+    }
+    return apiFetch('/claims', { method: 'POST', body: JSON.stringify({ itemID, proof, attachmentData }) });
   },
   async getMyClaims() { return apiFetch('/claims/my'); }
 };
@@ -592,3 +603,22 @@ document.addEventListener('DOMContentLoaded', () => {
   startSessionSafety();
 });
 window.addEventListener('beforeunload', () => RealtimeAPI.disconnect());
+
+// Download through ASA so authorization is checked on every request.
+window.downloadClaimAttachment = async function(claimID, button) {
+  if (button) button.disabled = true;
+  try {
+    const response = await fetch(API_BASE + '/claims/' + encodeURIComponent(claimID) + '/attachment', { headers: { Authorization: 'Bearer ' + Auth.getToken() } });
+    if (!response.ok) throw new Error('Could not download attachment. Check your access or try again.');
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (response.headers.get('Content-Disposition') || '').match(/filename="([^"]+)"/)?.[1] || 'claim-attachment';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  } catch (err) {
+    if (typeof showToast === 'function') showToast('error', 'Download failed', err.message);
+    else alert(err.message);
+  } finally { if (button) button.disabled = false; }
+};
