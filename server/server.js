@@ -677,51 +677,6 @@ app.post('/api/appeals', authenticateToken, async (req, res) => {
     res.status(err.status || 500).json({ error: err.message });
   }
 });
-/* ================= NOTIFICATIONS ================= */
-
-app.get('/api/notifications', authenticateToken, async (req, res) => {
-  const userID = req.user.userID;
-
-  try {
-    const [rows] = await db.execute(
-      'SELECT * FROM NOTIFICATIONS WHERE userID = ? ORDER BY createdAt DESC',
-      [userID]
-    );
-
-    res.json(rows);
-
-  } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
-  }
-});
-
-app.put('/api/notifications/:id/read', authenticateToken, async (req, res) => {
-  const notifID = req.params.id;
-  const userID = req.user.userID;
-
-  await db.execute(
-    'UPDATE NOTIFICATIONS SET isRead = 1 WHERE notifID = ? AND userID = ?',
-    [notifID, userID]
-  );
-
-  realtime.emitToUser(userID, 'notifications-changed', { reason: 'notification-read' });
-
-  res.json({ message: "Marked as read" });
-});
-
-app.put('/api/notifications/read-all', authenticateToken, async (req, res) => {
-  const userID = req.user.userID;
-
-  await db.execute(
-    'UPDATE NOTIFICATIONS SET isRead = 1 WHERE userID = ?',
-    [userID]
-  );
-
-  realtime.emitToUser(userID, 'notifications-changed', { reason: 'notifications-read-all' });
-
-  res.json({ message: "All notifications marked as read" });
-});
-
 /* ================= SERVER ================= */
 
 app.get('/api/items/stats', async (req, res) => {
@@ -1282,6 +1237,8 @@ app.get('/api/items/details/:id', async (req, res) => {
 
 /* ================= CHANGE PASSWORD ================= */
 
+app.use('/api/profiles', authenticateToken, require('./routes/profiles').router);
+
 app.get('/api/users/me', authenticateToken, async (req, res) => {
   try {
     const [rows] = await db.execute(
@@ -1483,6 +1440,7 @@ app.use((req, res) => {
 async function startServer() {
   try {
     await ensureDatabaseColumns();
+    await require('./routes/profiles').initialize();
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });

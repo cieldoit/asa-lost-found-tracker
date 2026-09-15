@@ -1,0 +1,16 @@
+const express = require('express');
+const router = express.Router();
+const db = require('../db');
+async function initialize() {
+  await db.query(`CREATE TABLE IF NOT EXISTS PROFILE_PRIVACY (
+    userID INT NOT NULL PRIMARY KEY, discoverable BOOLEAN NOT NULL DEFAULT FALSE,
+    timeline ENUM('none','all','lost','found') NOT NULL DEFAULT 'none',
+    FOREIGN KEY (userID) REFERENCES USERS(userID) ON DELETE CASCADE)`);
+  try { await db.query('ALTER TABLE PROFILE_PRIVACY ADD COLUMN showRole BOOLEAN NOT NULL DEFAULT FALSE'); } catch (err) { if (err.code !== 'ER_DUP_FIELDNAME') throw err; }
+}
+router.use(async (req,res,next)=>{res.set('Cache-Control','no-store');try{const [u]=await db.execute("SELECT userID FROM USERS WHERE userID=? AND userStatus='active'",[req.user.userID]);if(!u.length)return res.status(403).json({error:'Active account required.'});next()}catch{res.status(503).json({error:'Profiles are temporarily unavailable.'})}});
+router.get('/settings',async(req,res)=>{try{const [r]=await db.execute('SELECT showRole,timeline FROM PROFILE_PRIVACY WHERE userID=?',[req.user.userID]);res.json(r[0]||{showRole:0,timeline:'none'})}catch{res.status(500).json({error:'Could not load privacy settings.'})}});
+router.put('/settings',async(req,res)=>{const {showRole,timeline}=req.body;if(typeof showRole!=='boolean'||!['none','all','lost','found'].includes(timeline))return res.status(400).json({error:'Invalid privacy settings.'});try{await db.execute('INSERT INTO PROFILE_PRIVACY(userID,showRole,timeline) VALUES(?,?,?) ON DUPLICATE KEY UPDATE showRole=VALUES(showRole),timeline=VALUES(timeline)',[req.user.userID,showRole,timeline]);res.json({showRole,timeline})}catch{res.status(500).json({error:'Could not save privacy settings.'})}});
+router.get('/',async(req,res)=>{const q=String(req.query.q||'').trim().slice(0,100);try{const [r]=await db.execute(`SELECT u.userID,u.userName,u.profilePhotoData FROM USERS u WHERE u.userStatus='active' AND LOCATE(?,u.userName)>0 ORDER BY u.userName LIMIT 50`,[q]);res.json(r)}catch{res.status(500).json({error:'Could not find profiles.'})}});
+router.get('/:id',async(req,res)=>{if(!/^\d+$/.test(req.params.id))return res.status(404).json({error:'Profile unavailable.'});try{const owner=Number(req.params.id)===Number(req.user.userID);const [r]=await db.execute(`SELECT u.userID,u.userName,u.role,u.profilePhotoData,COALESCE(p.showRole,0) AS showRole,COALESCE(p.timeline,'none') AS timeline FROM USERS u LEFT JOIN PROFILE_PRIVACY p ON p.userID=u.userID WHERE u.userID=? AND u.userStatus='active'`,[req.params.id]);const u=r[0];if(!u)return res.status(404).json({error:'Profile unavailable.'});let posts=[];if(owner||u.timeline!=='none'){const [items]=await db.execute(`SELECT i.itemID,i.title,i.description,i.itemType,i.itemStatus,i.itemPhotoData,i.createdAt,c.categoryName FROM ITEMS i LEFT JOIN CATEGORIES c ON c.categoryID=i.categoryID WHERE i.userID=? AND (?=1 OR (i.itemStatus IN ('approved','claimed') AND (?='all' OR i.itemType=?))) ORDER BY i.createdAt DESC`,[u.userID,owner?1:0,u.timeline,u.timeline]);posts=items}res.json({user:{userID:u.userID,userName:u.userName,...(owner||u.showRole?{role:u.role}:{}),profilePhotoData:u.profilePhotoData},posts,owner,timelineVisible:owner||u.timeline!=='none'})}catch{res.status(500).json({error:'Could not load profile.'})}});
+module.exports={router,initialize};

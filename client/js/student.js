@@ -79,7 +79,7 @@ class StudentHeader extends HTMLElement {
                 </button>
                 
 
-                <button class="dropdown-item" onclick="showPage('settings');closeAllDropdowns();">
+                <a class="dropdown-item" href="/user/profile.html">My profile &amp; avatar</a><button class="dropdown-item" onclick="showPage('settings');closeAllDropdowns();">
                   <i class="fa-solid fa-gear" style="width:16px;color:var(--text-muted)"></i> Settings
                 </button>
                 <button class="dropdown-item logout-item" onclick="Auth.logout()">
@@ -101,7 +101,7 @@ class StudentHeader extends HTMLElement {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
             Dashboard
           </button>
-          <button class="mnav-item" id="smnav-lost" onclick="showPage('lost');closeMobileNav()">
+          <a class="mnav-item" href="/user/profile.html">My profile &amp; avatar</a><button class="mnav-item" id="smnav-lost" onclick="showPage('lost');closeMobileNav()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
             Lost Items
           </button>
@@ -163,7 +163,7 @@ class StudentHeader extends HTMLElement {
     seeAllBtn?.addEventListener('click', e => {
       e.preventDefault();
       e.stopPropagation();
-      openStudentNotificationsModal();
+      if (document.getElementById('studentNotificationsModal')) openStudentNotificationsModal();
       notifDropdown.classList.remove('show');
     });
  
@@ -197,6 +197,7 @@ class StudentHeader extends HTMLElement {
     window.studentNotifications = Array.isArray(notifs) ? notifs : [];
     const list = this.querySelector('#headerNotifList');
     const dot  = this.querySelector('#headerNotifDot');
+    if (list) list.onclick = event => { const item = event.target.closest('[data-notif-id]'); if (item) studentMarkNotificationRead(item.dataset.notifId); };
     if (!list) return;
  
     if (!window.studentNotifications.length) {
@@ -1691,7 +1692,7 @@ const refreshStudentRealtime = (window.asaRealtimeDebounce || ((fn) => fn))(asyn
   const tasks = [];
   if (['items-changed', 'claims-changed', 'admin-data-changed'].includes(type) && typeof loadItems === 'function') tasks.push(loadItems());
   if (currentPage === 'my-posts' && ['items-changed', 'claims-changed', 'admin-data-changed'].includes(type)) tasks.push(loadMyPosts());
-  if (['notifications-changed', 'items-changed', 'claims-changed'].includes(type) && typeof loadNotifications === 'function') tasks.push(loadNotifications());
+  if (['connected', 'notifications-changed', 'items-changed', 'claims-changed'].includes(type) && typeof loadNotifications === 'function') tasks.push(loadNotifications());
 
   await Promise.allSettled(tasks);
 }, 300);
