@@ -54,4 +54,7 @@ function emitToAll(type, payload = {}) {
   }
 }
 
-module.exports = { addClient, emitToUser, emitToRole, emitToAll };
+function disconnectUser(userID) {
+  for (const client of clients) if (String(client.user?.userID) === String(userID)) { client.res.end(); clients.delete(client); }
+}
+module.exports = { addClient, emitToUser, emitToRole, emitToAll, disconnectUser };

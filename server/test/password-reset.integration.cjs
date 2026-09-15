@@ -1,0 +1,30 @@
+const assert=require('node:assert/strict');
+if(process.env.RUN_PASSWORD_RESET_TEST!=='1')throw new Error('Set RUN_PASSWORD_RESET_TEST=1 to create and remove a temporary account.');
+require('dotenv').config({quiet:true});const express=require('express'),bcrypt=require('bcrypt'),crypto=require('crypto'),db=require('../db'),routes=require('../routes/password-reset');
+const outbox=[];let server,email,id;let count=0;
+const check=(ok,label)=>{assert.ok(ok,label);console.log('PASS '+label);count++;};
+(async()=>{try{
+try{await db.execute('ALTER TABLE USERS ADD COLUMN authVersion INT NOT NULL DEFAULT 0');}catch(e){if(e.code!=='ER_DUP_FIELDNAME')throw e;}
+email='reset_test_'+crypto.randomBytes(5).toString('hex')+'@example.invalid';
+const [user]=await db.execute("INSERT INTO USERS(userName,email,password,role,userStatus) VALUES(?,?,?,'Visitor','active')",[email,email,await bcrypt.hash('original-password',10)]);id=user.insertId;
+const app=express();app.use(express.json());app.use('/api',routes({db,mailer:{sendMail:async m=>outbox.push(m)},configured:()=>true,origin:()=> 'http://localhost:5000'}));
+app.use('/unconfigured',routes({db,mailer:{},configured:()=>false,origin:()=> 'http://localhost:5000'}));
+app.use('/failure',routes({db,mailer:{sendMail:async()=>{throw new Error('Test provider failure')}},configured:()=>true,origin:()=> 'http://localhost:5000'}));
+server=app.listen(0,'127.0.0.1');await new Promise(resolve=>server.once('listening',resolve));const base='http://127.0.0.1:'+server.address().port;
+const post=async(p,body)=>{const r=await fetch(base+p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});return {status:r.status,data:await r.json()};};
+const token=()=>outbox.at(-1).html.match(/token=([a-f0-9]{64})/)[1];
+let r=await post('/unconfigured/forgot-password',{email});check(r.status===503,'Missing email configuration reported');
+r=await post('/api/forgot-password',{email:'invalid'});check(r.status===400,'Invalid email rejected');
+const unknown=await post('/api/forgot-password',{email:'unknown_'+email});r=await post('/api/forgot-password',{email});check(r.status===202&&JSON.stringify(r)===JSON.stringify(unknown),'Known and unknown accounts get identical responses');
+let t=token();let [rows]=await db.execute('SELECT token FROM PASSWORD_RESETS WHERE email=?',[email]);check(rows[0].token!==t&&rows[0].token===crypto.createHash('sha256').update(t).digest('hex'),'Only hashed token stored');
+r=await post('/api/reset-password',{token:t,password:'short'});check(r.status===400,'Short password rejected');
+r=await post('/api/reset-password',{token:t,password:'secure-new-password'});check(r.status===200,'Valid reset accepted');
+[rows]=await db.execute('SELECT password,authVersion FROM USERS WHERE userID=?',[id]);check(await bcrypt.compare('secure-new-password',rows[0].password),'New password hash verifies');check(!await bcrypt.compare('original-password',rows[0].password),'Old password no longer verifies');check(rows[0].authVersion===1,'Reset invalidates old sessions');
+let rejected=false;await require('../session-version')({userID:id},{status:()=>({json:()=>{rejected=true;}})});check(rejected,'Old session rejected by middleware');
+r=await post('/api/reset-password',{token:t,password:'another-password'});check(r.status===400,'Used token rejected');
+await post('/api/forgot-password',{email});t=token();await db.execute('UPDATE PASSWORD_RESETS SET expiresAt=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 MINUTE) WHERE email=?',[email]);r=await post('/api/reset-password',{token:t,password:'another-password'});check(r.status===400,'Expired token rejected');
+await post('/api/forgot-password',{email});t=token();const concurrent=await Promise.all([post('/api/reset-password',{token:t,password:'concurrent-one'}),post('/api/reset-password',{token:t,password:'concurrent-two'})]);check(concurrent.filter(x=>x.status===200).length===1&&concurrent.filter(x=>x.status===400).length===1,'Concurrent token use succeeds exactly once');
+r=await post('/api/forgot-password',{email});check(r.status===429,'Repeated requests throttled');
+r=await post('/failure/forgot-password',{email});check(r.status===202,'Email provider failures do not expose accounts');[rows]=await db.execute('SELECT resetID FROM PASSWORD_RESETS WHERE email=?',[email]);check(rows.length===0,'Failed-delivery token removed');
+console.log(count+' password recovery checks passed; no real email sent');
+}finally{if(id){await db.execute('DELETE FROM PASSWORD_RESETS WHERE email=?',[email]);await db.execute('DELETE FROM USERS WHERE userID=?',[id]);}if(server)await new Promise(resolve=>server.close(resolve));await db.end();}})().catch(e=>{console.error(e.message);process.exitCode=1});

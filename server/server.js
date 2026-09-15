@@ -8,6 +8,9 @@ require('dotenv').config();
 const db = require('./db');
 const transporter = require('./mailer');
 const realtime = require('./realtime');
+const media = require('./media');
+const deleteItem = require('./delete-item');
+const sessionCurrent = require('./session-version');
 
 const app = express();
 
@@ -75,6 +78,7 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json({ limit: '8mb' }));
+app.use('/api', require('./routes/password-reset')({ db, mailer: transporter }));
 
 const clientDir = path.resolve(__dirname, '../client');
 app.use(express.static(clientDir, { index: false }));
@@ -101,8 +105,9 @@ function authenticateToken(req, res, next) {
 
   if (!token) return res.sendStatus(401);
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+  jwt.verify(token, process.env.JWT_SECRET, async (err, user) => {
     if (err) return res.sendStatus(403);
+    if (!await sessionCurrent(user, res)) return;
     req.user = user;
     next();
   });
@@ -114,8 +119,9 @@ function authenticateAdmin(req, res, next) {
 
   if (!token) return res.sendStatus(401);
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+  jwt.verify(token, process.env.JWT_SECRET, async (err, user) => {
     if (err) return res.sendStatus(403);
+    if (!await sessionCurrent(user, res)) return;
 
     if (!isAdminRole(user.role)) {
       return res.status(403).json({ error: "Admin only" });
@@ -136,8 +142,9 @@ app.get('/api/events', (req, res) => {
   const token = req.query.token;
   if (!token) return res.sendStatus(401);
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+  jwt.verify(token, process.env.JWT_SECRET, async (err, user) => {
     if (err) return res.sendStatus(403);
+    if (!await sessionCurrent(user, res)) return;
     realtime.addClient(user, res);
   });
 });
@@ -211,7 +218,8 @@ async function ensureClaimPickupColumns() {
   const columns = [
     ['pickupLocation', 'VARCHAR(255) NULL'],
     ['pickupSchedule', 'VARCHAR(255) NULL'],
-    ['adminNote', 'TEXT NULL']
+    ['adminNote', 'TEXT NULL'],
+    ['attachment', 'TEXT NULL']
   ];
 
   for (const [column, definition] of columns) {
@@ -226,6 +234,8 @@ async function ensureClaimPickupColumns() {
 }
  
 async function ensureDatabaseColumns() {
+  try { await db.execute('ALTER TABLE USERS ADD COLUMN authVersion INT NOT NULL DEFAULT 0'); }
+  catch (err) { if (err.code !== 'ER_DUP_FIELDNAME') throw err; }
   await ensureStoragePhotoColumn();
   await ensureItemPhotoColumn();
   await ensureItemEditedAtColumn();
@@ -235,12 +245,7 @@ async function ensureDatabaseColumns() {
 }
 
 
-ensureStoragePhotoColumn();
-ensureItemPhotoColumn();
-ensureItemEditedAtColumn();
-ensureUserProfilePhotoColumn();
-ensureUserCreatedAtColumn();
-ensureClaimPickupColumns();
+
 
 
 function normalizeUsername(value) {
@@ -378,6 +383,7 @@ const match = await bcrypt.compare(password, user.password);
     const token = jwt.sign(
       {
         userID: user.userID,
+        authVersion: user.authVersion || 0,
         role,
         userName: user.userName
       },
@@ -392,7 +398,7 @@ const match = await bcrypt.compare(password, user.password);
     });
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 
@@ -411,7 +417,7 @@ app.post('/api/items/post', authenticateToken, async (req, res) => {
   } = req.body;
 
   const userID = req.user.userID;
-  const cleanItemPhoto = typeof itemPhotoData === 'string' && itemPhotoData.startsWith('data:image/') ? itemPhotoData : null;
+  let cleanItemPhoto = itemPhotoData || null;
 
   if (cleanItemPhoto && cleanItemPhoto.length > 6_000_000) {
     return res.status(413).json({ error: "Item photo is too large. Please upload a smaller image." });
@@ -421,7 +427,11 @@ app.post('/api/items/post', authenticateToken, async (req, res) => {
     return res.status(400).json({ error: "All fields are required." });
   }
 
+  let uploadedPhoto;
+  let itemSaved = false;
   try {
+    uploadedPhoto = await media.photo(cleanItemPhoto, 'items');
+    cleanItemPhoto = uploadedPhoto?.url || null;
     const [result] = await db.execute(`
       INSERT INTO ITEMS
       (userID, title, description, dateOccured, itemType, categoryID, locationID, locationDetail, itemPhotoData, itemStatus)
@@ -437,6 +447,7 @@ app.post('/api/items/post', authenticateToken, async (req, res) => {
       locationDetail,
       cleanItemPhoto
     ]);
+    itemSaved = true;
 
     const [users] = await db.execute(
   'SELECT userName FROM USERS WHERE userID = ?',
@@ -477,9 +488,10 @@ await Promise.all(admins.map(admin => db.execute(`
     });
 
   } catch (err) {
+    if (uploadedPhoto && !itemSaved) await media.destroy(uploadedPhoto).catch(() => console.warn("Could not remove unused item upload"));
     console.error("POST ITEM ERROR:", err);
-    res.status(500).json({
-      error: "Failed to post item.",
+    res.status(err.status || 500).json({
+      error: err.status ? err.message : "Failed to post item.",
       details: err.message
     });
   }
@@ -487,8 +499,30 @@ await Promise.all(admins.map(admin => db.execute(`
 
 /* ================= CLAIM ITEM ================= */
 
+app.get('/api/claims/:id/attachment', authenticateToken, async (req, res) => {
+  try {
+    const [rows] = await db.execute('SELECT userID, attachment FROM CLAIMS WHERE claimID = ?', [req.params.id]);
+    const claim = rows[0];
+    if (!claim || !claim.attachment) return res.sendStatus(404);
+    const [users] = await db.execute('SELECT role, userStatus FROM USERS WHERE userID = ?', [req.user.userID]);
+    const user = users[0];
+    if (!user || user.userStatus !== 'active' || (String(claim.userID) !== String(req.user.userID) && !isAdminRole(user.role))) return res.sendStatus(403);
+    const asset = JSON.parse(claim.attachment);
+    const upstream = await fetch(media.downloadURL(asset), { signal: AbortSignal.timeout(30000) });
+    if (!upstream.ok) return res.status(502).json({ error: 'Document download failed. Please contact the administrator.' });
+    res.set('Cache-Control', 'private, no-store');
+    res.set('X-Content-Type-Options', 'nosniff');
+    res.set('Content-Type', asset.mime);
+    res.set('Content-Disposition', 'attachment; filename="claim-' + Number(req.params.id) + '.' + asset.ext + '"');
+    res.send(Buffer.from(await upstream.arrayBuffer()));
+  } catch (err) {
+    res.status(err.status || 500).json({ error: 'Could not download claim attachment.' });
+  }
+});
+
 app.post('/api/claims', authenticateToken, async (req, res) => {
-  const { itemID, proof } = req.body;
+  const { itemID, proof, attachmentData } = req.body;
+  if (typeof proof !== "string" || !proof.trim() || proof.length > 300) return res.status(400).json({ error: "Describe your evidence in 1–300 characters." });
   const userID = req.user.userID;
   const isAdmin = String(req.user.role || "").toLowerCase() === "admin";
 
@@ -527,10 +561,21 @@ app.post('/api/claims', authenticateToken, async (req, res) => {
     const itemTitle = items[0]?.title || 'an item';
     const itemType = items[0]?.itemType || 'item';
 
-    await db.execute(`
-      INSERT INTO CLAIMS (userID, itemID, proof, claimStatus)
-      VALUES (?, ?, ?, 'pending')
-    `, [userID, itemID, proof || '']);
+    if (!items.length) return res.status(404).json({ error: 'Item not found.' });
+    let attachment;
+    try {
+      if (attachmentData) {
+        attachment = await media.upload(attachmentData, 'claims', true);
+        delete attachment.url;
+      }
+      await db.execute(`
+        INSERT INTO CLAIMS (userID, itemID, proof, claimStatus, attachment)
+        VALUES (?, ?, ?, 'pending', ?)
+      `, [userID, itemID, proof || '', attachment ? JSON.stringify(attachment) : null]);
+    } catch (err) {
+      if (attachment) await media.destroy(attachment).catch(() => console.warn('Could not remove unused claim upload'));
+      throw err;
+    }
 
     await db.execute(`
       INSERT INTO NOTIFICATIONS (userID, itemID, message)
@@ -560,7 +605,7 @@ app.post('/api/claims', authenticateToken, async (req, res) => {
     res.json({ message: "Claim submitted" });
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 
@@ -629,54 +674,9 @@ app.post('/api/appeals', authenticateToken, async (req, res) => {
 
   } catch (err) {
     console.error('APPEAL ERROR:', err);
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
-/* ================= NOTIFICATIONS ================= */
-
-app.get('/api/notifications', authenticateToken, async (req, res) => {
-  const userID = req.user.userID;
-
-  try {
-    const [rows] = await db.execute(
-      'SELECT * FROM NOTIFICATIONS WHERE userID = ? ORDER BY createdAt DESC',
-      [userID]
-    );
-
-    res.json(rows);
-
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.put('/api/notifications/:id/read', authenticateToken, async (req, res) => {
-  const notifID = req.params.id;
-  const userID = req.user.userID;
-
-  await db.execute(
-    'UPDATE NOTIFICATIONS SET isRead = 1 WHERE notifID = ? AND userID = ?',
-    [notifID, userID]
-  );
-
-  realtime.emitToUser(userID, 'notifications-changed', { reason: 'notification-read' });
-
-  res.json({ message: "Marked as read" });
-});
-
-app.put('/api/notifications/read-all', authenticateToken, async (req, res) => {
-  const userID = req.user.userID;
-
-  await db.execute(
-    'UPDATE NOTIFICATIONS SET isRead = 1 WHERE userID = ?',
-    [userID]
-  );
-
-  realtime.emitToUser(userID, 'notifications-changed', { reason: 'notifications-read-all' });
-
-  res.json({ message: "All notifications marked as read" });
-});
-
 /* ================= SERVER ================= */
 
 app.get('/api/items/stats', async (req, res) => {
@@ -828,9 +828,7 @@ app.delete('/api/items/my/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Post not found or not owned by this account.' });
     }
 
-    await db.execute('DELETE FROM CLAIMS WHERE itemID = ?', [itemID]);
-    await db.execute('DELETE FROM NOTIFICATIONS WHERE itemID = ?', [itemID]);
-    await db.execute('DELETE FROM ITEMS WHERE itemID = ? AND userID = ?', [itemID, userID]);
+    await deleteItem(itemID, userID);
 
     realtime.emitToAll('items-changed', { reason: 'item-deleted', itemID });
     realtime.emitToRole('admin', 'admin-data-changed', { reason: 'item-deleted', itemID });
@@ -1170,14 +1168,14 @@ app.post('/api/admin/login', async (req, res) => {
       return res.status(401).json({ error: "Invalid admin credentials" });
 
     const token = jwt.sign(
-      { userID: user.userID, role: "Admin", userName: user.userName },
+      { userID: user.userID, authVersion: user.authVersion || 0, role: "Admin", userName: user.userName },
       process.env.JWT_SECRET,
       { expiresIn: '1d' }
     );
 
     res.json({ token, role: "Admin", userName: user.userName, managedBy: user.userName });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 
@@ -1192,6 +1190,7 @@ app.get('/api/claims/my', authenticateToken, async (req, res) => {
       SELECT
         c.claimID,
         c.claimStatus,
+        (c.attachment IS NOT NULL) AS hasAttachment,
         c.createdAt,
         i.title AS itemTitle,
         i.itemType,
@@ -1203,7 +1202,7 @@ app.get('/api/claims/my', authenticateToken, async (req, res) => {
     `, [userID]);
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 
@@ -1232,11 +1231,13 @@ app.get('/api/items/details/:id', async (req, res) => {
       accountUsername: normalizeUsername(rows[0].userName)
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 
 /* ================= CHANGE PASSWORD ================= */
+
+app.use('/api/profiles', authenticateToken, require('./routes/profiles').router);
 
 app.get('/api/users/me', authenticateToken, async (req, res) => {
   try {
@@ -1251,12 +1252,13 @@ app.get('/api/users/me', authenticateToken, async (req, res) => {
 
     res.json(rows[0]);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 
 app.put('/api/locations/photo', authenticateAdmin, async (req, res) => {
-  const { storageName, photoData } = req.body;
+  const { storageName } = req.body;
+  let { photoData } = req.body;
 
   if (!storageName || typeof storageName !== 'string') {
     return res.status(400).json({ error: "Pick-up location is required." });
@@ -1270,10 +1272,14 @@ app.put('/api/locations/photo', authenticateAdmin, async (req, res) => {
     return res.status(413).json({ error: "Image is too large. Please upload a smaller photo." });
   }
 
+  let uploadedPhoto;
+  let photoSaved = false;
   try {
+    uploadedPhoto = await media.photo(photoData, 'locations');
+    photoData = uploadedPhoto.url;
     const cleanName = storageName.trim();
     const [existing] = await db.execute(
-      `SELECT locationID FROM STORAGE_LOCATIONS WHERE storageName = ? OR building = ? LIMIT 1`,
+      `SELECT locationID, photoData FROM STORAGE_LOCATIONS WHERE storageName = ? OR building = ? LIMIT 1`,
       [cleanName, cleanName]
     );
 
@@ -1292,10 +1298,13 @@ app.put('/api/locations/photo', authenticateAdmin, async (req, res) => {
       locationID = result.insertId;
     }
 
+    photoSaved = true;
+    await media.cleanup([media.publicAsset(existing[0]?.photoData)]);
     res.json({ message: "Building photo saved.", locationID, storageName: cleanName, photoData });
   } catch (err) {
+    if (uploadedPhoto && !photoSaved) await media.destroy(uploadedPhoto).catch(() => console.warn("Could not remove unused location upload"));
     console.error("LOCATION PHOTO SAVE ERROR:", err);
-    res.status(500).json({ error: "Could not save building photo.", details: err.message });
+    res.status(err.status || 500).json({ error: err.status ? err.message : "Could not save building photo.", details: err.message });
   }
 });
 
@@ -1315,7 +1324,7 @@ app.put('/api/users/change-password', authenticateToken, async (req, res) => {
 
     res.json({ message: "Password updated successfully." });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 
@@ -1352,9 +1361,9 @@ app.put('/api/users/profile', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: "Name is required." });
     }
 
-    const cleanPhoto = typeof profilePhotoData === 'string' && profilePhotoData.startsWith('data:image/')
-      ? profilePhotoData
-      : null;
+    const [current] = await db.execute('SELECT profilePhotoData FROM USERS WHERE userID = ?', [userID]);
+    const unchangedPhoto = profilePhotoData && profilePhotoData === current[0]?.profilePhotoData;
+    let cleanPhoto = unchangedPhoto ? profilePhotoData : (typeof profilePhotoData === 'string' && profilePhotoData.startsWith('data:image/') ? profilePhotoData : null);
 
     if (profilePhotoData !== undefined && profilePhotoData !== null && !cleanPhoto) {
       return res.status(400).json({ error: "A valid profile image is required." });
@@ -1365,7 +1374,18 @@ app.put('/api/users/profile', authenticateToken, async (req, res) => {
     }
 
     if (profilePhotoData !== undefined) {
-      await db.execute('UPDATE USERS SET userName = ?, profilePhotoData = ? WHERE userID = ?', [userName.trim(), cleanPhoto, userID]);
+      let uploaded;
+      try {
+        if (cleanPhoto && !unchangedPhoto) {
+          uploaded = await media.photo(cleanPhoto, 'profiles');
+          cleanPhoto = uploaded.url;
+        }
+        await db.execute('UPDATE USERS SET userName = ?, profilePhotoData = ? WHERE userID = ?', [userName.trim(), cleanPhoto, userID]);
+        if (!unchangedPhoto) await media.cleanup([media.publicAsset(current[0]?.profilePhotoData)]);
+      } catch (err) {
+        if (uploaded) await media.destroy(uploaded).catch(() => console.warn('Could not remove unused profile upload'));
+        throw err;
+      }
     } else {
       await db.execute('UPDATE USERS SET userName = ? WHERE userID = ?', [userName.trim(), userID]);
     }
@@ -1379,7 +1399,7 @@ app.put('/api/users/profile', authenticateToken, async (req, res) => {
       user: rows[0] ? { ...rows[0], accountUsername: normalizeUsername(rows[0].userName) } : null
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 
@@ -1420,6 +1440,7 @@ app.use((req, res) => {
 async function startServer() {
   try {
     await ensureDatabaseColumns();
+    await require('./routes/profiles').initialize();
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });

@@ -81,7 +81,7 @@ class VisitorHeader extends HTMLElement {
                 <button class="dropdown-item" onclick="showPage('my-posts');closeAllDropdowns();">
                   <i class="fa-solid fa-pen-to-square" style="width:16px;color:var(--text-muted)"></i> My Post
                 </button>
-                <button class="dropdown-item" onclick="showPage('settings');closeAllDropdowns();">
+                <a class="dropdown-item" href="/user/profile.html">My profile &amp; avatar</a><button class="dropdown-item" onclick="showPage('settings');closeAllDropdowns();">
                   <i class="fa-solid fa-gear" style="width:16px;color:var(--text-muted)"></i> Settings
                 </button>
                 <a href="/login/landing.html" class="dropdown-item logout-item" onclick="window.Auth?.logout?.(); return false;">
@@ -99,7 +99,7 @@ class VisitorHeader extends HTMLElement {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
             Dashboard
           </button>
-          <button class="mnav-item" id="smnav-lost" onclick="showPage('lost');closeMobileNav()">
+          <a class="mnav-item" href="/user/profile.html">My profile &amp; avatar</a><button class="mnav-item" id="smnav-lost" onclick="showPage('lost');closeMobileNav()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
             Lost Items
           </button>
@@ -270,6 +270,7 @@ async function visitorMarkNotificationRead(notifID) {
   try {
     await NotifAPI.markRead(notifID);
     await loadNotifications();
+    if (document.getElementById('visitorNotificationsModal')) openVisitorNotificationsModal();
   } catch (err) {
     console.warn('Could not mark notification read:', err.message);
   }
@@ -1132,7 +1133,7 @@ async function submitClaim() {
   if (btn) { btn.disabled = true; btn.textContent = 'Submitting...'; }
 
   try {
-    await ClaimsAPI.submit(currentItemID, evidence);
+    await ClaimsAPI.submit(currentItemID, evidence, document.getElementById('claimFile')?.files[0]);
     closeClaimForm();
     showToast('success', 'Claim Submitted!', 'Your claim request has been sent for review.');
     await loadNotifications();
@@ -1660,7 +1661,7 @@ const refreshVisitorRealtime = (window.asaRealtimeDebounce || ((fn) => fn))(asyn
   const tasks = [];
   if (['items-changed', 'claims-changed', 'admin-data-changed'].includes(type) && typeof loadItems === 'function') tasks.push(loadItems());
   if (currentPage === 'my-posts' && ['items-changed', 'claims-changed', 'admin-data-changed'].includes(type)) tasks.push(loadMyPosts());
-  if (['notifications-changed', 'items-changed', 'claims-changed'].includes(type) && typeof loadNotifications === 'function') tasks.push(loadNotifications());
+  if (['connected', 'notifications-changed', 'items-changed', 'claims-changed'].includes(type) && typeof loadNotifications === 'function') tasks.push(loadNotifications());
 
   await Promise.allSettled(tasks);
 }, 300);
