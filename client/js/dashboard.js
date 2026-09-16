@@ -107,7 +107,8 @@ async function openDashboardNotification(notifID, itemID) {
   }
   closeAllDropdowns();
   if (itemID) {
-    window.location.href = `/admin<i class="fa-solid fa-check" aria-hidden="true"></i>itemID=${encodeURIComponent(itemID)}`;
+    if (!/^\d+$/.test(String(itemID))) return;
+  window.location.href = `/admin?itemID=${encodeURIComponent(itemID)}`;
   } else {
     window.location.href = '/admin#claims';
   }
@@ -575,7 +576,8 @@ function renderItemRows(tbodyId, items) {
 }
 
 function openDashboardItem(itemID) {
-  window.location.href = `/admin<i class="fa-solid fa-check" aria-hidden="true"></i>itemID=${encodeURIComponent(itemID)}`;
+  if (!/^\d+$/.test(String(itemID))) return;
+  window.location.href = '/admin?itemID=' + encodeURIComponent(itemID);
 }
 
 function formatLogDate(value) {
