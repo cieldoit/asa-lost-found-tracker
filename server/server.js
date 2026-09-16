@@ -1242,7 +1242,7 @@ app.use('/api/profiles', authenticateToken, require('./routes/profiles').router)
 app.get('/api/users/me', authenticateToken, async (req, res) => {
   try {
     const [rows] = await db.execute(
-      'SELECT userID, userName, email, role, userStatus, profilePhotoData FROM USERS WHERE userID = ?',
+      'SELECT userID, userName, email, role, userStatus, profilePhotoData, createdAt FROM USERS WHERE userID = ?',
       [req.user.userID]
     );
 
@@ -1391,7 +1391,7 @@ app.put('/api/users/profile', authenticateToken, async (req, res) => {
     }
 
     const [rows] = await db.execute(
-      'SELECT userID, userName, email, role, userStatus, profilePhotoData FROM USERS WHERE userID = ?',
+      'SELECT userID, userName, email, role, userStatus, profilePhotoData, createdAt FROM USERS WHERE userID = ?',
       [userID]
     );
     res.json({
