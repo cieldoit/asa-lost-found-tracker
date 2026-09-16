@@ -121,6 +121,7 @@ router.put('/items/:id/approve', async (req, res) => {
     realtime.emitToAll('items-changed', { reason: 'item-approved', itemID: req.params.id });
     realtime.emitToRole('admin', 'admin-data-changed', { reason: 'item-approved', itemID: req.params.id });
 
+    require('../matching').scan();
     res.json({ message: 'Item approved successfully' });
   } catch (err) {
     console.error(err);

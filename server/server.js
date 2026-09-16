@@ -1441,6 +1441,9 @@ async function startServer() {
   try {
     await ensureDatabaseColumns();
     await require('./routes/profiles').initialize();
+    await require('./matching').initialize();
+    require('./matching').scan();
+    setInterval(() => require('./matching').scan(), 60000).unref();
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });

@@ -1611,7 +1611,7 @@ function openAdminItemModal(item) {
 
   const isLost = item.itemType === "lost";
   const itemPhoto = item.itemPhotoData || "";
-  document.getElementById("modalImgSec").innerHTML = itemPhoto && isLost
+  document.getElementById("modalImgSec").innerHTML = itemPhoto
     ? `<img src="${itemPhoto}" alt="${item.title} photo" style="width:100%;height:300px;object-fit:cover;border-radius:12px">`
     : `
     <div style="
