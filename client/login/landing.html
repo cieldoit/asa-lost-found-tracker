@@ -410,8 +410,8 @@
 </p>
 
           <p class="legal-text">
-            By logging in, you agree to CSU Services and 
-            <a href="/ASA_details/info.html" id="privacyLink">Privacy Policy</a>
+            Read our
+            <a href="/ASA_details/info.html" id="privacyLink">Privacy &amp; Community Guidelines</a>.
           </p>
         </div>
       </div>
@@ -438,7 +438,9 @@
       return;
     }
 
-    window.location.href = "/user/student.html";
+    const role = (localStorage.getItem('asa_role') || localStorage.getItem('role') || '').toLowerCase();
+    const pages = {student:'student', staff:'staff', visitor:'visitor', admin:'admin', administrator:'admin'};
+    window.location.href = pages[role] ? '/user/' + pages[role] + '.html#post' : '/login/landing.html';
   });
 </script>
 
