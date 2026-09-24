@@ -71,6 +71,7 @@ main{max-width:1240px;margin:24px auto;padding:0 28px 40px}
  .card{padding:20px}
  .post .badge{margin-left:60px}
 }
+ feat/profile-management-and-recovery
 
 .report-actions{display:flex;flex-wrap:wrap;gap:8px;width:100%;padding-left:60px}.post{flex-wrap:wrap}.report-actions button{font-size:12px;padding:7px 12px}.profile-header nav a[aria-current=page]{background:#e8f5ed;color:#1a5c2a}#postDialog input,#postDialog textarea{width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;font:inherit}#postPhoto{max-width:100%;max-height:240px;object-fit:contain}#postMessage{color:#dc2626}#reportSections{border-bottom:1px solid #e5e7eb;padding-bottom:12px}
 
@@ -104,3 +105,5 @@ main{max-width:1240px;margin:24px auto;padding:0 28px 40px}
 .profile-header .account-menu>.profile-dropdown{width:220px;padding:0;top:calc(100% + 10px);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);overflow:hidden;z-index:1001}
 .profile-dropdown .user-info{padding:16px 16px 12px}
 .profile-header .profile-dropdown .dropdown-item{gap:10px;padding:11px 16px;line-height:inherit}
+=======
+ main
