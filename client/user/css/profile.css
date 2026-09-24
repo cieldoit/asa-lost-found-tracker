@@ -71,3 +71,39 @@ main{max-width:1240px;margin:24px auto;padding:0 28px 40px}
  .card{padding:20px}
  .post .badge{margin-left:60px}
 }
+ feat/profile-management-and-recovery
+
+.report-actions{display:flex;flex-wrap:wrap;gap:8px;width:100%;padding-left:60px}.post{flex-wrap:wrap}.report-actions button{font-size:12px;padding:7px 12px}.profile-header nav a[aria-current=page]{background:#e8f5ed;color:#1a5c2a}#postDialog input,#postDialog textarea{width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;font:inherit}#postPhoto{max-width:100%;max-height:240px;object-fit:contain}#postMessage{color:#dc2626}#reportSections{border-bottom:1px solid #e5e7eb;padding-bottom:12px}
+
+.account-menu>div a svg{vertical-align:middle;margin-right:8px;color:var(--text-muted)}
+
+.profile-header .account-menu>.profile-dropdown{width:240px;padding:8px 0;border-radius:16px}.profile-dropdown .user-info{padding:12px 16px}.profile-header .profile-dropdown .dropdown-item{display:flex;align-items:center;gap:12px;font-size:13px;font-weight:600;color:#374151;padding:12px 16px;border-radius:0;background:transparent}.profile-header .profile-dropdown .dropdown-item svg{margin:0;color:#6b7280;flex-shrink:0}.profile-header .profile-dropdown .dropdown-item:hover{background:#e8f5ed;color:#1a5c2a}.profile-header .profile-dropdown .logout-item,.profile-header .profile-dropdown .logout-item svg{color:#dc2626}
+
+/* Match the dashboard's profile-btn and notif-btn dimensions and states. */
+.profile-header .header-actions{gap:10px}
+.profile-header .account-menu:not(.notification-menu)>summary{
+ height:auto;display:flex;align-items:center;gap:8px;background:none;
+ border:1.5px solid var(--border);border-radius:var(--radius-md);
+ padding:6px 12px 6px 6px;cursor:pointer;
+ transition:border-color .2s,background .2s;font-family:'Poppins',sans-serif;
+}
+.profile-header .account-menu:not(.notification-menu)>summary:hover{
+ border-color:var(--green);background:var(--green-light);
+}
+.profile-header .account-menu summary #navAvatar{width:30px;height:30px;display:block;border-radius:50%;object-fit:cover}
+.profile-header #navName{font-size:13px;font-weight:600;color:var(--text-primary)}
+.profile-header #notifications{
+ width:40px;height:40px;padding:0;gap:0;background:none;
+ border:1.5px solid var(--border);border-radius:var(--radius-sm);
+ display:flex;align-items:center;justify-content:center;color:var(--text-mid);
+ transition:border-color .2s,color .2s,background .2s;
+}
+.profile-header #notifications:hover{border-color:var(--green);color:var(--green);background:var(--green-light)}
+.profile-header #notificationCount{min-width:18px;height:18px;padding:0 4px;border:2px solid var(--surface);background:#ef4444;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
+
+/* Dashboard dropdown spacing, width and positioning. */
+.profile-header .account-menu>.profile-dropdown{width:220px;padding:0;top:calc(100% + 10px);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);overflow:hidden;z-index:1001}
+.profile-dropdown .user-info{padding:16px 16px 12px}
+.profile-header .profile-dropdown .dropdown-item{gap:10px;padding:11px 16px;line-height:inherit}
+=======
+ main

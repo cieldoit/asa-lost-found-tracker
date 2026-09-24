@@ -780,6 +780,8 @@ app.get('/api/items/my', authenticateToken, async (req, res) => {
   }
 });
 
+app.put('/api/items/my/:id/recover', authenticateToken, require('./recover-item')(db, realtime));
+
 app.put('/api/items/my/:id', authenticateToken, async (req, res) => {
   const itemID = req.params.id;
   const userID = req.user.userID;

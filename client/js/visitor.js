@@ -33,10 +33,7 @@ class VisitorHeader extends HTMLElement {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
               Post Item
             </button>
-            <button class="nav-item" id="snav-my-posts" onclick="showPage('my-posts')">
-              <i class="fa-solid fa-pen-to-square"></i>
-              My Posts
-            </button>
+
           </nav>
           <div class="header-right">
             <div class="notif-container">
@@ -78,10 +75,8 @@ class VisitorHeader extends HTMLElement {
                   <div class="pd-role">Visitor</div>
                 </div>
                 <div class="dropdown-divider"></div>
-                <button class="dropdown-item" onclick="showPage('my-posts');closeAllDropdowns();">
-                  <i class="fa-solid fa-pen-to-square" style="width:16px;color:var(--text-muted)"></i> My Post
-                </button>
-                <a class="dropdown-item" href="/user/profile.html">My profile &amp; avatar</a><button class="dropdown-item" onclick="showPage('settings');closeAllDropdowns();">
+
+                <a class="dropdown-item" href="/user/profile.html"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg> My Profile</a><button class="dropdown-item" onclick="showPage('settings');closeAllDropdowns();">
                   <i class="fa-solid fa-gear" style="width:16px;color:var(--text-muted)"></i> Settings
                 </button>
                 <a href="/login/landing.html" class="dropdown-item logout-item" onclick="window.Auth?.logout?.(); return false;">
@@ -99,7 +94,7 @@ class VisitorHeader extends HTMLElement {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
             Dashboard
           </button>
-          <a class="mnav-item" href="/user/profile.html">My profile &amp; avatar</a><button class="mnav-item" id="smnav-lost" onclick="showPage('lost');closeMobileNav()">
+          <a class="mnav-item" href="/user/profile.html"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg> My Profile</a><button class="mnav-item" id="smnav-lost" onclick="showPage('lost');closeMobileNav()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
             Lost Items
           </button>
@@ -111,10 +106,7 @@ class VisitorHeader extends HTMLElement {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
             Post Item
           </button>
-          <button class="mnav-item" id="smnav-my-posts" onclick="showPage('my-posts');closeMobileNav()">
-            <i class="fa-solid fa-pen-to-square" style="width:16px"></i>
-            My Posts
-          </button>
+
           <button class="mnav-item" onclick="showPage('settings');closeMobileNav()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="3"/><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/></svg>
             Settings
@@ -430,6 +422,7 @@ function normalizeRoleNavState(page) {
   });
 }
 function showPage(page) {
+  if (page === 'my-posts' || page === 'mypost') { location.assign('/user/profile.html'); return; }
   if (page === 'mypost') page = 'my-posts';
   if (page === 'my-posts') ensureMyPostsPage();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -758,7 +751,7 @@ function ensureMyPostsPage(forceFresh = false) {
   page.className = page.classList.contains('active') ? 'page active' : 'page';
   page.innerHTML = [
     '<div class="home-container">',
-    '<div class="dir-header"><h1>My Posts</h1><p>Manage all the items you have reported as lost or found.</p></div>',
+    '<div class="dir-header"><h1>My Profile</h1><p>Manage all the items you have reported as lost or found.</p></div>',
     '<div class="dir-controls">',
     '<div class="search-bar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input type="text" placeholder="Search my posts..." id="myPostsSearch" oninput="filterMyPosts()"></div>',
     '<select class="filter-select" id="myPostsTypeFilter" onchange="filterMyPosts()"><option value="">All Posts</option><option value="lost">Lost Posts</option><option value="found">Found Posts</option></select>',
@@ -774,7 +767,7 @@ function ensureMyPostsPage(forceFresh = false) {
 function withMyPostsTimeout(promise) {
   return Promise.race([
     promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error('My Posts took too long to load.')), 4000))
+    new Promise((_, reject) => setTimeout(() => reject(new Error('My Profile took too long to load.')), 4000))
   ]);
 }
 
@@ -813,7 +806,7 @@ async function loadMyPostsFallback() {
     const items = await withMyPostsTimeout(ItemsAPI.browse());
     return filterOwnPostsFromList(items);
   } catch (err) {
-    console.warn('My Posts fallback failed:', err.message);
+    console.warn('My Profile fallback failed:', err.message);
     return [];
   }
 }
@@ -844,7 +837,7 @@ async function loadMyPosts() {
     myPosts = fallbackPosts;
     renderMyPosts(myPosts);
     if (!fallbackPosts.length) {
-      showToast('error', 'My Posts Error', err.message || 'Could not load your posts.');
+      showToast('error', 'My Profile Error', err.message || 'Could not load your posts.');
     }
   }
 }
