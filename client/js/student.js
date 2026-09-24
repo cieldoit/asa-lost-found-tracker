@@ -6,7 +6,7 @@ class StudentHeader extends HTMLElement {
     this.render();
     this.initListeners();
   }
- 
+
   render() {
     this.innerHTML = `
       <div>
@@ -33,10 +33,7 @@ class StudentHeader extends HTMLElement {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
               Post Item
             </button>
-            <button class="nav-item" id="snav-my-posts" onclick="showPage('my-posts')">
-              <i class="fa-solid fa-pen-to-square"></i>
-              My Posts
-            </button>
+
           </nav>
           <div class="header-right">
             <!-- Notifications -->
@@ -74,12 +71,10 @@ class StudentHeader extends HTMLElement {
                   <div class="pd-role" id="headerDropRole">Student</div>
                 </div>
                 <div class="dropdown-divider"></div>
-                <button class="dropdown-item" onclick="showPage('my-posts');closeAllDropdowns();">
-                  <i class="fa-solid fa-pen-to-square" style="width:16px;color:var(--text-muted)"></i> My Post
-                </button>
-                
 
-                <a class="dropdown-item" href="/user/profile.html">My profile &amp; avatar</a><button class="dropdown-item" onclick="showPage('settings');closeAllDropdowns();">
+
+
+                <a class="dropdown-item" href="/user/profile.html"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg> My Profile</a><button class="dropdown-item" onclick="showPage('settings');closeAllDropdowns();">
                   <i class="fa-solid fa-gear" style="width:16px;color:var(--text-muted)"></i> Settings
                 </button>
                 <button class="dropdown-item logout-item" onclick="Auth.logout()">
@@ -94,14 +89,14 @@ class StudentHeader extends HTMLElement {
             </button>
           </div>
         </header>
- 
+
         <!-- Mobile Nav -->
         <div class="mobile-nav" id="mobileNav">
           <button class="mnav-item active" id="smnav-dashboard" onclick="showPage('dashboard');closeMobileNav()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
             Dashboard
           </button>
-          <a class="mnav-item" href="/user/profile.html">My profile &amp; avatar</a><button class="mnav-item" id="smnav-lost" onclick="showPage('lost');closeMobileNav()">
+          <a class="mnav-item" href="/user/profile.html"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg> My Profile</a><button class="mnav-item" id="smnav-lost" onclick="showPage('lost');closeMobileNav()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
             Lost Items
           </button>
@@ -113,10 +108,7 @@ class StudentHeader extends HTMLElement {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
             Post Item
           </button>
-          <button class="mnav-item" id="smnav-my-posts" onclick="showPage('my-posts');closeMobileNav()">
-            <i class="fa-solid fa-pen-to-square" style="width:16px"></i>
-            My Posts
-          </button>
+
           <button class="mnav-item" onclick="showPage('settings');closeMobileNav()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="3"/></svg>
             Settings
@@ -125,7 +117,7 @@ class StudentHeader extends HTMLElement {
       </div>
     `;
   }
- 
+
   initListeners() {
     const profileBtn      = this.querySelector('#headerProfileBtn');
     const profileDropdown = this.querySelector('#headerProfileDropdown');
@@ -139,7 +131,7 @@ class StudentHeader extends HTMLElement {
       profileDropdown.classList.toggle('show');
       notifDropdown.classList.remove('show');
     });
- 
+
     notifBtn.addEventListener('click', e => {
   e.stopPropagation();
 
@@ -150,7 +142,7 @@ class StudentHeader extends HTMLElement {
     loadNotifications();
   }
 });
-  
+
    markReadBtn.addEventListener('click', async e => {
   e.preventDefault();
   e.stopPropagation();
@@ -166,7 +158,7 @@ class StudentHeader extends HTMLElement {
       if (document.getElementById('studentNotificationsModal')) openStudentNotificationsModal();
       notifDropdown.classList.remove('show');
     });
- 
+
     window.addEventListener('click', event => {
       if (!this.contains(event.target)) {
         profileDropdown.classList.remove('show');
@@ -174,7 +166,7 @@ class StudentHeader extends HTMLElement {
       }
     });
   }
- 
+
   setActivePage(page) {
     ['dashboard','lost','found','post','my-posts'].forEach(p => {
       this.querySelector(`#snav-${p}`)?.classList.remove('active');
@@ -183,7 +175,7 @@ class StudentHeader extends HTMLElement {
     this.querySelector(`#snav-${page}`)?.classList.add('active');
     this.querySelector(`#smnav-${page}`)?.classList.add('active');
   }
- 
+
   setUsername(name, role) {
     const n1 = this.querySelector('#headerProfileName');
     const n2 = this.querySelector('#headerDropName');
@@ -192,24 +184,24 @@ class StudentHeader extends HTMLElement {
     if (n2) n2.textContent = name;
     if (r1 && role) r1.textContent = role;
   }
- 
+
   renderNotifications(notifs) {
     window.studentNotifications = Array.isArray(notifs) ? notifs : [];
     const list = this.querySelector('#headerNotifList');
     const dot  = this.querySelector('#headerNotifDot');
     if (list) list.onclick = event => { const item = event.target.closest('[data-notif-id]'); if (item) studentMarkNotificationRead(item.dataset.notifId); };
     if (!list) return;
- 
+
     if (!window.studentNotifications.length) {
       list.innerHTML = `<div style="padding:20px;text-align:center;color:#9ca3af;font-size:13px">No notifications yet.</div>`;
       dot.classList.add('hidden');
       return;
     }
- 
+
     const unread = window.studentNotifications.filter(isUnreadNotification);
     dot.textContent = unread.length;
     dot.classList.toggle('hidden', unread.length === 0);
- 
+
     list.innerHTML = window.studentNotifications.slice(0, 5).map(n => `
       <div class="notif-item ${isUnreadNotification(n) ? 'unread' : ''}" data-notif-id="${n.notifID}">
         <div class="notif-icon-box welcome-bg">
@@ -226,7 +218,7 @@ class StudentHeader extends HTMLElement {
     `).join('');
   }
 }
- 
+
 customElements.define('student-header', StudentHeader);
 
 window.studentNotifications = [];
@@ -307,19 +299,19 @@ function closeAllDropdowns() {
   hdr.querySelector('#headerProfileDropdown')?.classList.remove('show');
   hdr.querySelector('#headerNotifDropdown')?.classList.remove('show');
 }
- 
+
 function toggleMobileNav() {
   document.getElementById('mobileNav')?.classList.toggle('open');
 }
 function closeMobileNav() {
   document.getElementById('mobileNav')?.classList.remove('open');
 }
- 
+
 /* ============================================================
    PAGE NAVIGATION
 ============================================================ */
 let currentPage = 'dashboard';
- 
+
 function syncStudentPageUrl(page) {
   const hashPages = new Set(['lost', 'found', 'post', 'my-posts', 'settings']);
   const target = hashPages.has(page) ? `${window.location.pathname}#${page}` : window.location.pathname;
@@ -351,6 +343,7 @@ function normalizeRoleNavState(page) {
   });
 }
 function showPage(page) {
+  if (page === 'my-posts' || page === 'mypost') { location.assign('/user/profile.html'); return; }
   if (page === 'mypost') page = 'my-posts';
   if (page === 'my-posts') ensureMyPostsPage();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -367,7 +360,7 @@ function showPage(page) {
   requestAnimationFrame(() => normalizeRoleNavState(page));
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
- 
+
 /* ============================================================
    TOAST
 ============================================================ */
@@ -395,13 +388,13 @@ function showToast(type, title, message) {
   container.appendChild(toast);
   setTimeout(() => dismissToast(toast), 4200);
 }
- 
+
 function dismissToast(toast) {
   if (!toast || !toast.parentElement) return;
   toast.style.animation = 'toastOut 0.3s ease forwards';
   setTimeout(() => toast.remove(), 300);
 }
- 
+
 /* ============================================================
    LOAD ITEMS FROM API
 ============================================================ */
@@ -465,7 +458,7 @@ function updateFoundPickupPreview() {
     noteEl.textContent = pickup ? 'No photo is saved yet, but this office name is the official pick-up point.' : 'Choose a pick-up location to see the saved office photo and where the item should be claimed.';
   }
 }
- 
+
 function applyGlobalItemStats(stats = {}) {
   const set = (id, value) => {
     const el = document.getElementById(id);
@@ -538,7 +531,7 @@ function getCategoryEmoji(cat) {
   };
   return map[cat.toLowerCase()] || '<i class="fa-solid fa-box" aria-hidden="true"></i>';
 }
- 
+
 function buildItemCard(item) {
   const data = item || {};
   const itemType = String(data.itemType || 'lost').toLowerCase();
@@ -593,12 +586,12 @@ function buildItemCard(item) {
   `;
   return div;
 }
- 
+
 function renderItemGrid(gridId, items) {
   const grid = document.getElementById(gridId);
   if (!grid) return;
   grid.innerHTML = '';
- 
+
   if (items.length === 0) {
     grid.innerHTML = `
       <div class="empty-state" style="grid-column:1/-1">
@@ -613,7 +606,7 @@ function renderItemGrid(gridId, items) {
   }
   items.forEach(item => grid.appendChild(buildItemCard(item)));
 }
- 
+
 function renderRecentItems(items) {
   const dashboard = document.getElementById('page-dashboard');
   if (!dashboard) return;
@@ -643,7 +636,7 @@ function renderRecentItems(items) {
   box.style.display = '';
   items.forEach(item => box.appendChild(buildItemCard(item)));
 }
- 
+
 /* ============================================================
    LOAD CATEGORY & LOCATION DROPDOWNS FROM API
 ============================================================ */
@@ -708,7 +701,7 @@ async function loadFormDropdowns() {
     showToast("error", "Dropdown Error", "Could not load categories or locations.");
   }
 }
- 
+
 /* ============================================================
    LOAD NOTIFICATIONS FROM API
 ============================================================ */
@@ -720,7 +713,7 @@ async function loadNotifications() {
     console.warn('Could not load notifications:', err.message);
   }
 }
- 
+
 async function markAllNotifsRead() {
   try {
     await NotifAPI.markAllRead();
@@ -733,7 +726,7 @@ async function markAllNotifsRead() {
 
 // Alias so the header component's markAllNotificationsRead call works
 const markAllNotificationsRead = markAllNotifsRead;
- 
+
 /* ============================================================
    FORM HELPERS
 ============================================================ */
@@ -755,13 +748,13 @@ function clearFieldError(inputId, errId) {
   document.getElementById(inputId)?.classList.remove('error');
   clearErr(errId);
 }
- 
+
 function syncPreviewTitle() {
   const val  = document.getElementById('lostTitle')?.value.trim();
   const prev = document.getElementById('lostPreviewTitle');
   if (prev) prev.textContent = val || 'Item Title';
 }
- 
+
 function toggleOtherLoc(otherId, selectEl) {
   const otherInput = document.getElementById(otherId);
   if (!otherInput) return;
@@ -774,7 +767,7 @@ function toggleOtherLoc(otherId, selectEl) {
     otherInput.classList.remove('error');
   }
 }
- 
+
 function previewImage(input, areaId) {
   const area = document.getElementById(areaId);
   if (!input.files || !input.files[0] || !area) return;
@@ -790,7 +783,7 @@ function previewImage(input, areaId) {
   };
   reader.readAsDataURL(input.files[0]);
 }
- 
+
 function removePreview(areaId, inputId) {
   const area = document.getElementById(areaId);
   if (area) {
@@ -842,7 +835,7 @@ async function getLostItemPhotoData() {
   return await readImageInputData('lostImgInput') || getPreviewImageData('lostImgArea');
 }
 
- 
+
 /* ============================================================
    SUBMIT: LOST REPORT  →  POST /api/items/post
 ============================================================ */
@@ -915,7 +908,7 @@ async function submitLostItem() {
     }
   }
 }
- 
+
 /* ============================================================
    SUBMIT: FOUND REPORT  →  POST /api/items/post
 ============================================================ */
@@ -987,7 +980,7 @@ async function submitFoundItem() {
     showToast('error', 'Submission Failed', err.message || 'Could not submit found item.');
   }
 }
- 
+
 /* ============================================================
    SUCCESS POPUP
 ============================================================ */
@@ -995,7 +988,7 @@ function closeSuccessPopup() {
   document.getElementById('successPopup').classList.remove('active');
   showPage('dashboard');
 }
- 
+
 
 /* ============================================================
    MY POSTS
@@ -1019,7 +1012,7 @@ function ensureMyPostsPage(forceFresh = false) {
   page.className = page.classList.contains('active') ? 'page active' : 'page';
   page.innerHTML = [
     '<div class="home-container">',
-    '<div class="dir-header"><h1>My Posts</h1><p>Manage all the items you have reported as lost or found.</p></div>',
+    '<div class="dir-header"><h1>My Profile</h1><p>Manage all the items you have reported as lost or found.</p></div>',
     '<div class="dir-controls">',
     '<div class="search-bar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input type="text" placeholder="Search my posts..." id="myPostsSearch" oninput="filterMyPosts()"></div>',
     '<select class="filter-select" id="myPostsTypeFilter" onchange="filterMyPosts()"><option value="">All Posts</option><option value="lost">Lost Posts</option><option value="found">Found Posts</option></select>',
@@ -1035,7 +1028,7 @@ function ensureMyPostsPage(forceFresh = false) {
 function withMyPostsTimeout(promise) {
   return Promise.race([
     promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error('My Posts took too long to load.')), 4000))
+    new Promise((_, reject) => setTimeout(() => reject(new Error('My Profile took too long to load.')), 4000))
   ]);
 }
 
@@ -1074,7 +1067,7 @@ async function loadMyPostsFallback() {
     const items = await withMyPostsTimeout(ItemsAPI.browse());
     return filterOwnPostsFromList(items);
   } catch (err) {
-    console.warn('My Posts fallback failed:', err.message);
+    console.warn('My Profile fallback failed:', err.message);
     return [];
   }
 }
@@ -1105,7 +1098,7 @@ async function loadMyPosts() {
     myPosts = fallbackPosts;
     renderMyPosts(myPosts);
     if (!fallbackPosts.length) {
-      showToast('error', 'My Posts Error', err.message || 'Could not load your posts.');
+      showToast('error', 'My Profile Error', err.message || 'Could not load your posts.');
     }
   }
 }
@@ -1304,16 +1297,16 @@ function openItemModal(card) {
   const date  = card.dataset.date;
   const photo = card.dataset.photo || '';
   const itemPhoto = card.dataset.itemPhoto || '';
- 
+
   currentItemID = card.dataset.itemId || null;
- 
+
   const imgSec = document.getElementById('modalImgSec');
   const isLost = type === 'lost';
   const gradient = isLost
     ? 'linear-gradient(135deg,#dbeafe,#bfdbfe)'
     : 'linear-gradient(135deg,#dcfce7,#bbf7d0)';
   const emoji = isLost ? '<i class="fa-solid fa-wallet" aria-hidden="true"></i>' : getCategoryEmoji(cat);
- 
+
   imgSec.style.background   = gradient;
   imgSec.style.minHeight    = '240px';
   imgSec.style.borderRadius = '12px';
@@ -1321,7 +1314,7 @@ function openItemModal(card) {
   imgSec.innerHTML = isLost && itemPhoto
     ? `<img src="${itemPhoto}" alt="${title} photo" style="width:100%;height:100%;min-height:240px;object-fit:cover;border-radius:12px">`
     : `<span style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-height:240px">${emoji}</span>`;
- 
+
   document.getElementById('modalTypeBadge').textContent = type.toUpperCase();
   document.getElementById('modalTypeBadge').className   = `badge badge-${type}`;
   document.getElementById('modalTitle').textContent = title;
@@ -1343,7 +1336,7 @@ function openItemModal(card) {
   document.getElementById('modalCat').innerHTML  = `<span class="category-tag">${cat}</span>`;
   document.getElementById('modalLoc').textContent = `Location: ${loc}`;
   document.getElementById('modalDate').textContent = `Date: ${date}`;
- 
+
   // Show claim button only for found items
   const claimBtn  = document.getElementById('claimBtn');
   const reportBtn = document.getElementById('reportItemBtn');
@@ -1353,17 +1346,17 @@ function openItemModal(card) {
     if (claimBtn) claimBtn.style.display = 'none';
   }
   if (reportBtn) reportBtn.style.display = 'block';
- 
+
   document.getElementById('itemModal').classList.add('active');
   document.body.style.overflow = 'hidden';
 }
- 
+
 function closeItemModal() {
   document.getElementById('itemModal').classList.remove('active');
   document.body.style.overflow = '';
   currentItemID = null;
 }
- 
+
 /* ============================================================
    CLAIM FORM  →  POST /api/claims
 ============================================================ */
@@ -1373,71 +1366,71 @@ function openClaimForm() {
   currentItemID = selectedItemID;
   document.getElementById('claimFormPopup').classList.add('active');
 }
- 
+
 function closeClaimForm() {
   document.getElementById('claimFormPopup').classList.remove('active');
   document.getElementById('claimEvidence').value = '';
   clearErr('claimEvidenceErr');
 }
- 
+
 async function submitClaim() {
   const evidence = document.getElementById('claimEvidence').value.trim();
   clearErr('claimEvidenceErr');
- 
+
   if (!evidence) {
     showErr('claimEvidenceErr', 'Please provide your proof of ownership.');
     document.getElementById('claimEvidence').classList.add('error');
     showToast('error', 'Missing Evidence', 'Please describe your proof before submitting.');
     return;
   }
- 
+
   if (!currentItemID) {
     showToast('error', 'Error', 'No item selected. Please try again.');
     closeClaimForm();
     return;
   }
- 
+
   const btn = document.querySelector('#claimFormPopup .btn-submit-evidence');
   if (btn) { btn.disabled = true; btn.textContent = 'Submitting...'; }
- 
+
   try {
     await ClaimsAPI.submit(currentItemID, evidence, document.getElementById('claimFile')?.files[0]);
- 
+
     closeClaimForm();
     showToast('success', 'Claim Submitted!', 'Your claim is under review by the admin.');
     await loadNotifications();
- 
+
   } catch (err) {
     showToast('error', 'Claim Failed', err.message || 'Could not submit claim.');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Submit Evidence'; }
   }
 }
- 
+
 /* ============================================================
    REPORT ITEM POPUP (dispute)
 ============================================================ */
 function openReportItemForm() {
   document.getElementById('reportItemPopup').classList.add('active');
 }
- 
+
 function closeReportItemForm() {
   document.getElementById('reportItemPopup').classList.remove('active');
   document.getElementById('reportReason').value = '';
   clearErr('reportReasonErr');
 }
- 
+
 async function submitItemReport() {
   const reason = document.getElementById('reportReason').value.trim();
   clearErr('reportReasonErr');
- 
+
   if (!reason) {
     showErr('reportReasonErr', 'Please provide a reason for your report.');
     document.getElementById('reportReason').classList.add('error');
     showToast('error', 'Missing Reason', 'Please explain why you believe this item is yours.');
     return;
   }
- 
+
   if (!currentItemID) {
     showToast('error', 'No Item Selected', 'Please open an item again before submitting a report.');
     return;
@@ -1452,7 +1445,7 @@ async function submitItemReport() {
     showToast('error', 'Report Failed', err.message || 'Could not submit report.');
   }
 }
- 
+
 /* ============================================================
    FILTER
 ============================================================ */
@@ -1460,7 +1453,7 @@ function filterItems(type) {
   const query  = document.getElementById(`${type}Search`).value.toLowerCase();
   const catVal = document.getElementById(`${type}CatFilter`).value.toLowerCase();
   const cards  = document.querySelectorAll(`#${type}ItemsGrid .item-card`);
- 
+
   cards.forEach(card => {
     const matchQuery = !query  ||
       (card.dataset.title || '').toLowerCase().includes(query) ||
@@ -1481,7 +1474,7 @@ function filterAllItems() {
     card.style.display = matchQuery && matchType ? '' : 'none';
   });
 }
- 
+
 /* ============================================================
    SETTINGS
 ============================================================ */
@@ -1491,7 +1484,7 @@ function switchSettingsTab(tab, btn) {
   document.getElementById(`set-${tab}`)?.classList.add('active');
   if (btn) btn.classList.add('active');
 }
- 
+
 
 function splitFullName(name) {
   const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
@@ -1595,7 +1588,7 @@ async function submitAccountInfo(e) {
   const first = document.getElementById('accFirstName').value.trim();
   const last  = document.getElementById('accLastName').value.trim();
   const email = document.getElementById('accEmail').value.trim();
- 
+
   if (!first || !last || !email) {
     showToast('error', 'Incomplete Form', 'Please fill in all required fields.');
     return;
@@ -1612,24 +1605,24 @@ async function submitAccountInfo(e) {
     showToast('error', 'Update Failed', err.message || 'Could not update account.');
   }
 }
- 
+
 async function submitPasswordChange(e) {
   e.preventDefault();
   const current = document.getElementById('currentPass').value;
   const newP    = document.getElementById('newPass').value;
   const confirm = document.getElementById('confirmPass').value;
   let valid = true;
- 
+
   clearFieldError('currentPass', 'currentPassErr');
   clearFieldError('newPass',     'newPassErr');
   clearFieldError('confirmPass', 'confirmPassErr');
- 
+
   if (!current) { setFieldError('currentPass','currentPassErr','Current password is required.'); valid = false; }
   if (newP.length < 8) { setFieldError('newPass','newPassErr','Password must be at least 8 characters.'); valid = false; }
   if (newP !== confirm) { setFieldError('confirmPass','confirmPassErr','Passwords do not match.'); valid = false; }
- 
+
   if (!valid) { showToast('error', 'Fix Errors', 'Please correct the errors before submitting.'); return; }
- 
+
   try {
     await UserAPI.changePassword(current, newP);
     document.getElementById('currentPass').value = '';
@@ -1640,7 +1633,7 @@ async function submitPasswordChange(e) {
     showToast('error', 'Password Failed', err.message || 'Could not update password.');
   }
 }
- 
+
 async function handleAvatarChange(input) {
   if (!input.files || !input.files[0]) return;
   const file = input.files[0];
@@ -1657,7 +1650,7 @@ async function handleAvatarChange(input) {
     showToast('error', 'Upload Failed', err.message || 'Could not update display picture.');
   }
 }
- 
+
 /* ============================================================
    MODAL OVERLAY CLICKS
 ============================================================ */
@@ -1673,14 +1666,14 @@ document.getElementById('successPopup').addEventListener('click', function(e) {
 document.getElementById('reportItemPopup').addEventListener('click', function(e) {
   if (e.target === this) closeReportItemForm();
 });
- 
+
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if (document.getElementById('claimFormPopup').classList.contains('active')) closeClaimForm();
   else if (document.getElementById('itemModal').classList.contains('active')) closeItemModal();
   else if (document.getElementById('reportItemPopup').classList.contains('active')) closeReportItemForm();
 });
- 
+
 /* ============================================================
    INIT — runs on page load
 ============================================================ */
@@ -1702,14 +1695,14 @@ window.addEventListener('asa:realtime', refreshStudentRealtime);
 document.addEventListener('DOMContentLoaded', async () => {
   // 1. Guard — redirect to login if not logged in
   if (!requireAuth('/login/landing.html')) return;
- 
+
   // 2. Sync the header and settings form with the current account.
   ensureMyPostsPage();
   dedupeMyPostDropdown(document.getElementById('headerProfileDropdown'));
   showPage(getInitialStudentPage());
   hydrateStudentItemsFromCache();
   await syncCurrentUserProfile();
- 
+
   // 3. Load data
   await Promise.all([
     loadItems(),
@@ -1720,7 +1713,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 setTimeout(loadFormDropdowns, 500);
 
- 
+
 
 
 
