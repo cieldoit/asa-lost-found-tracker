@@ -184,6 +184,7 @@ async function submitLostItem() {
         description,
         dateOccured: new Date().toISOString().slice(0, 10),
         itemType: "lost",
+        reservationID: (await ReportReservation.get("lost")).reservationID,
         categoryID,
         locationID: null,
         locationDetail,
@@ -194,6 +195,7 @@ async function submitLostItem() {
     const data = await res.json();
 
     if (!res.ok) throw new Error(data.error || "Failed to post lost item");
+    ReportReservation.clear("lost");
 
    showToast(
   "success",
@@ -227,6 +229,9 @@ setTimeout(() => {
   }
 }
 async function submitFoundItem() {
+  if(submitFoundItem.pending)return;
+  const finderName=document.getElementById("foundFinderName").value.trim();
+  const finderContact=document.getElementById("foundFinderContact").value.trim();
   const title = document.getElementById('foundTitle').value.trim();
   const description = document.getElementById('foundDesc').value.trim();
   const categoryID = categoryIdByName[document.getElementById('foundCat').value];
@@ -234,11 +239,12 @@ async function submitFoundItem() {
   const pickupLocation = document.getElementById('foundPickup').value;
   const locationID = locationIdByName[pickupLocation] || null;
 
-  if (!title || !description || !categoryID || !foundLocation || !pickupLocation) {
+  if (!title || !description || !categoryID || !foundLocation || !pickupLocation || !finderName || !finderContact) {
     showToast('error', 'Incomplete', 'Fill all required fields');
     return;
   }
 
+  submitFoundItem.pending=true;
   try {
     const res = await fetch(`${ADMIN_API_BASE}/items/post`, {
       method: "POST",
@@ -251,6 +257,8 @@ async function submitFoundItem() {
         description,
         dateOccured: new Date().toISOString().slice(0, 10),
         itemType: "found",
+        reservationID: (await ReportReservation.get("found")).reservationID,
+        finderName, finderContact,
         categoryID,
         locationID,
         locationDetail: pickupLocation
@@ -261,6 +269,9 @@ async function submitFoundItem() {
 
     if (!res.ok) throw new Error(data.error || "Failed to post found item");
 
+    ReportReservation.clear("found");
+    document.getElementById("foundFinderName").value="";
+    document.getElementById("foundFinderContact").value="";
     showToast(
   "success",
   "Found Item",
@@ -290,7 +301,7 @@ setTimeout(() => {
   } catch (err) {
     console.error("POST FOUND ERROR:", err);
     showToast("error", "Post Failed", err.message);
-  }
+  } finally { submitFoundItem.pending=false; }
 }
 async function resolveItem(btn) {
   const card = btn.closest('.item-card');
@@ -612,11 +623,13 @@ function openItemModal(card) {
   const reporterRole = card.dataset.reporterRole || '—';
 
   const imgSec = document.getElementById('modalImgSec');
+  imgSec.closest('.modal-content-layout')?.classList.toggle('found-details', type === 'found');
   const cardImgDiv = card.querySelector('.card-img-wrap > div');
   imgSec.innerHTML = cardImgDiv ? `<div style="height:300px;border-radius:12px;overflow:hidden">${cardImgDiv.outerHTML}</div>` : '';
 
   document.getElementById('modalTypeBadge').textContent = type.toUpperCase();
   document.getElementById('modalTypeBadge').className = `badge badge-${type}`;
+  showReportHeader(card.dataset);
   document.getElementById('modalTitle').textContent = title;
   document.getElementById('modalCat').innerHTML = `<span class="category-tag">${cat}</span>`;
   document.getElementById('modalLoc').textContent = `Location: ${loc}`;
@@ -630,6 +643,7 @@ function openItemModal(card) {
   const buildingImg = document.getElementById('modalBuildingImg');
   if (type === 'found' && buildingPhotos[loc]) {
     buildingImg.src = buildingPhotos[loc];
+    labelStoragePhoto(buildingImg);
     buildingPhotoContainer.style.display = 'block';
   } else {
     buildingPhotoContainer.style.display = 'none';
@@ -1540,8 +1554,10 @@ function buildAdminItemCard(item) {
   const card = document.createElement("div");
   card.className = "item-card";
   card.dataset.itemId = item.itemID;
+  card.dataset.reportCode = reportCode(item);
   card.dataset.title  = item.title;
   card.dataset.cat    = categoryName;
+  card.dataset.editedAt=item.editedAt||'';
   card.dataset.desc   = item.description || '';
   card.dataset.loc    = item.location || item.locationName || item.locationDetail || 'Campus';
   card.dataset.type   = item.itemType;
@@ -1568,13 +1584,15 @@ function buildAdminItemCard(item) {
       <div class="reporter-info"><i class="fa-solid fa-user"></i> <span class="reporter-name">${item.reporterName || "Unknown"}</span> <span>(${item.reporterRole || "Student"})</span></div>
       <p class="card-desc">${(item.description || "No description").substring(0, 80)}</p>
       ${editedDate ? `<div class="post-edited-stamp"><i class="fa-regular fa-clock"></i> Edited ${editedDate}</div>` : ""}
-      <div class="card-footer-row"><span>${!isLost ? `<img class="building-thumb" src="${pickupPhoto || "data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='1.5' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 21h18M3 7v1a4 4 0 004 4h10a4 4 0 004-4V7M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16'/%3E%3C/svg%3E"}" alt="${pickupName} building photo">` : '\u{1F4CD}'} ${pickupName}</span><button class="view-btn" onclick='openAdminItemModal(${JSON.stringify(item)})'>View Details</button></div>
+      <div class="card-footer-row"><span>${!isLost ? `<img class="building-thumb" src="${pickupPhoto || "data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='1.5' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 21h18M3 7v1a4 4 0 004 4h10a4 4 0 004-4V7M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16'/%3E%3C/svg%3E"}" alt="${pickupName} building photo">` : '\u{1F4CD}'} ${pickupName}</span><button class="view-btn">View Details</button></div>
     </div>
     <div class="card-admin-actions">
       <button class="btn-card-action btn-card-resolve">\u2713 Resolve</button>
       <button class="btn-card-action btn-card-delete">\u{1F5D1} Delete</button>
     </div>
   `;
+  card.querySelector('.view-btn').addEventListener('click',()=>openAdminItemModal(item));
+  const attribution=document.createElement('p');attribution.className='report-attribution';const reference=document.createElement('strong');reference.textContent=reportCode(item);attribution.append(reference,document.createTextNode(' · Posted by '+(item.reporterName||'Former member')));card.querySelector('.card-info').append(attribution);
   card.querySelector('.btn-card-resolve').addEventListener('click', function(e) { e.stopPropagation(); resolveItem(this); });
   card.querySelector('.btn-card-delete').addEventListener('click', function(e) { e.stopPropagation(); confirmDelete(this); });
   return card;
@@ -1592,7 +1610,8 @@ function openAdminItemModal(item) {
   document.getElementById("modalCat").innerHTML = `<span class="category-tag">${item.category || "General"}</span>`;
   document.getElementById("modalLoc").textContent = `Location: ${item.locationDetail || item.location || "Campus"}`;
   document.getElementById("modalDate").textContent = `Date: ${formatNotifDate(item.createdAt)}`;
-  document.getElementById("modalDesc").textContent = item.description || "No description";
+  showReportHeader({...item,reportCode:reportCode(item)});
+  document.getElementById("modalDesc").textContent = item.description||'No description';
 
   document.getElementById("modalReporterName").textContent = item.reporterName || "Unknown User";
   document.getElementById("modalReporterRole").textContent = `(${item.reporterRole || "Student"})`;
@@ -1603,6 +1622,7 @@ function openAdminItemModal(item) {
   const buildingImg = document.getElementById('modalBuildingImg');
   if (item.itemType === 'found' && pickupPhoto && buildingPhotoContainer && buildingImg) {
     buildingImg.src = pickupPhoto;
+    labelStoragePhoto(buildingImg);
     buildingImg.alt = `${pickupName} photo`;
     buildingPhotoContainer.style.display = 'block';
   } else if (buildingPhotoContainer) {
@@ -1611,6 +1631,7 @@ function openAdminItemModal(item) {
 
   const isLost = item.itemType === "lost";
   const itemPhoto = item.itemPhotoData || "";
+  document.getElementById('modalImgSec').closest('.modal-content-layout')?.classList.toggle('found-details', !isLost);
   document.getElementById("modalImgSec").innerHTML = itemPhoto
     ? `<img src="${itemPhoto}" alt="${item.title} photo" style="width:100%;height:300px;object-fit:cover;border-radius:12px">`
     : `

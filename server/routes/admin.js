@@ -62,7 +62,7 @@ router.get('/items', async (req, res) => {
     const [items] = await db.query(`
       SELECT
         i.itemID,
-        i.title,
+        i.title, i.finderName, i.finderContact,
         i.description,
         i.itemType,
         i.itemStatus,
@@ -322,10 +322,12 @@ router.get('/appeals', async (req, res) => {
   try {
     const [appeals] = await db.query(`
       SELECT
-        a.appealID,
-        a.userID,
+        a.reportID AS appealID,
+        a.reportedBy AS userID,
         a.itemID,
-        a.reason,
+        COALESCE(NULLIF(a.details, ''), a.reason) AS reason,
+        a.reason AS reasonCategory,
+        a.reportStatus,
         a.createdAt,
         u.userName,
         u.role,
@@ -333,8 +335,8 @@ router.get('/appeals', async (req, res) => {
         i.itemType,
         i.itemStatus
       FROM ITEM_APPEALS a
-      JOIN USERS u ON a.userID = u.userID
-      JOIN ITEMS i ON a.itemID = i.itemID
+      LEFT JOIN USERS u ON a.reportedBy = u.userID
+      LEFT JOIN ITEMS i ON a.itemID = i.itemID
       ORDER BY a.createdAt DESC
     `);
     res.json(appeals);

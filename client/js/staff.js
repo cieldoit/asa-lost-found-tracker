@@ -648,6 +648,8 @@ async function submitLostItem() {
    SUBMIT: FOUND REPORT  (photo upload removed)
 ============================================================ */
 async function submitFoundItem() {
+  if(!document.getElementById('finderName').value.trim() || !document.getElementById('finderContact').value.trim()){showToast('error','Finder details required','Enter the finder name and phone number or email.');return;}
+
   let valid = true;
 
   const title  = document.getElementById('foundTitle').value.trim();
@@ -681,16 +683,19 @@ async function submitFoundItem() {
   if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Submitting...'; }
 
   try {
-    await ItemsAPI.report({
+    const submittedReport = await ItemsAPI.report({
       title,
       description: desc,
       dateOccured: new Date().toISOString().split('T')[0],
       itemType: 'found',
+      finderName: document.getElementById('finderName').value.trim(),
+      finderContact: document.getElementById('finderContact').value.trim(),
       categoryID: cat,
       locationID: selectedPickup.id,
       locationDetail: selectedPickup.name
     });
 
+    ['finderName','finderContact'].forEach(id=>document.getElementById(id).value='');
     ['foundTitle','foundDesc'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
     document.getElementById('foundLoc').value = '';
     const foundLocOtherEl2 = document.getElementById('foundLocOther');
@@ -1032,6 +1037,7 @@ function openItemModal(card) {
   const itemPhoto = card.dataset.itemPhoto || '';
 
   const imgSec = document.getElementById('modalImgSec');
+  imgSec.closest('.modal-content-layout')?.classList.toggle('found-details', type === 'found');
   const cardImg = card.querySelector('.card-img-wrap > div') || card.querySelector('.card-img-wrap > img');
 
   imgSec.innerHTML = cardImg 
@@ -1044,6 +1050,7 @@ function openItemModal(card) {
   document.getElementById('modalTypeBadge').textContent = type.toUpperCase();
   document.getElementById('modalTypeBadge').className = `badge badge-${type}`;
 
+  showReportHeader(card.dataset);
   document.getElementById('modalTitle').textContent = title;
   document.getElementById('modalCat').innerHTML  = `<span class="category-tag">${cat}</span>`;
   document.getElementById('modalLoc').textContent = `Location: ${loc}`;
@@ -1058,6 +1065,7 @@ function openItemModal(card) {
   const buildingImg = document.getElementById('modalBuildingImg');
   if (String(type).toLowerCase() === 'found' && photo && buildingPhoto && buildingImg) {
     buildingImg.src = photo;
+    labelStoragePhoto(buildingImg);
     buildingImg.alt = loc ? `${loc} photo` : 'Pickup location photo';
     buildingPhoto.style.display = 'block';
   } else if (buildingPhoto) {
@@ -1523,6 +1531,8 @@ function buildItemCard(item) {
 
   const div = document.createElement('div');
   div.className = 'item-card';
+  div.dataset.editedAt=data.editedAt||'';
+  div.dataset.reportCode=reportCode(data);div.dataset.reporterName=data.reporterName||data.userName||'Former member';
   div.dataset.itemId = data.itemID || '';
   div.dataset.title = title;
   div.dataset.cat = categoryName;
@@ -1556,6 +1566,7 @@ function buildItemCard(item) {
       </div>
     </div>
   `;
+  const attribution=document.createElement('p');attribution.className='report-attribution';const reference=document.createElement('strong');reference.textContent=reportCode(data);attribution.append(reference,document.createTextNode(' · Posted by '+(data.reporterName||data.userName||'Former member')));div.querySelector('.card-info')?.append(attribution);
   return div;
 }
 

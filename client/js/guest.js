@@ -178,7 +178,7 @@ function renderGuestItems(containerId, items) {
         </div>
 
         <div class="card-info">
-          <h3>${escapeHtml(item.title)}</h3>
+          <h3>${escapeHtml(item.title)}</h3><p class="report-attribution"><strong>${escapeHtml(reportCode(item))}</strong> · Posted by ${escapeHtml(item.reporterName || "Former member")}</p>
           <span class="category-tag">${escapeHtml(item.categoryName)}</span>
           <p class="card-desc">${escapeHtml(description.substring(0, 80))}${description.length > 80 ? "..." : ""}</p>
 

@@ -1,3 +1,4 @@
+const reportCode = require('./report-code');
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
@@ -81,6 +82,7 @@ app.use(express.json({ limit: '8mb' }));
 app.use('/api', require('./routes/password-reset')({ db, mailer: transporter }));
 
 const clientDir = path.resolve(__dirname, '../client');
+app.get('/js/vendor/exceljs.min.js', (req, res) => res.sendFile(require.resolve('exceljs/dist/exceljs.min.js')));
 app.use(express.static(clientDir, { index: false }));
 
 
@@ -234,6 +236,16 @@ async function ensureClaimPickupColumns() {
 }
  
 async function ensureDatabaseColumns() {
+  await db.execute("CREATE TABLE IF NOT EXISTS REPORT_RESERVATIONS (id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,userID INT NOT NULL,itemType VARCHAR(5) NOT NULL,used BOOLEAN NOT NULL DEFAULT 0,createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)");
+  try{await db.execute('ALTER TABLE REPORT_RESERVATIONS ADD COLUMN used BOOLEAN NOT NULL DEFAULT 0')}catch(e){if(e.code!=='ER_DUP_FIELDNAME')throw e}
+  await db.execute("INSERT IGNORE INTO REPORT_RESERVATIONS(id,userID,itemType,createdAt,used) SELECT itemID,userID,itemType,createdAt,1 FROM ITEMS");
+  await db.execute('UPDATE REPORT_RESERVATIONS r JOIN ITEMS i ON i.itemID=r.id SET r.used=1');
+
+  for (const column of ['finderName VARCHAR(100) NULL','finderContact VARCHAR(160) NULL']) {
+    try { await db.execute('ALTER TABLE ITEMS ADD COLUMN '+column); }
+    catch(e) { if(e.code!=='ER_DUP_FIELDNAME') throw e; }
+  }
+
   try { await db.execute('ALTER TABLE USERS ADD COLUMN authVersion INT NOT NULL DEFAULT 0'); }
   catch (err) { if (err.code !== 'ER_DUP_FIELDNAME') throw err; }
   await ensureStoragePhotoColumn();
@@ -404,6 +416,11 @@ const match = await bcrypt.compare(password, user.password);
 
 /* ================= POST ITEM ================= */
 
+app.post('/api/items/reserve', authenticateToken, async(req,res)=>{
+  if(!['lost','found'].includes(req.body.itemType))return res.status(400).json({error:'Invalid report type.'});
+  try{const [r]=await db.execute('INSERT INTO REPORT_RESERVATIONS(userID,itemType) VALUES(?,?)',[req.user.userID,req.body.itemType]);const [[row]]=await db.execute('SELECT id AS itemID,itemType,createdAt FROM REPORT_RESERVATIONS WHERE id=?',[r.insertId]);res.json({reservationID:r.insertId,reportCode:reportCode(row)});}catch{res.status(500).json({error:'Could not reserve a report ID. Please retry.'})}
+});
+
 app.post('/api/items/post', authenticateToken, async (req, res) => {
   const {
     title,
@@ -416,6 +433,10 @@ app.post('/api/items/post', authenticateToken, async (req, res) => {
     itemPhotoData
   } = req.body;
 
+  const finderName=String(req.body.finderName||'').trim();
+  const finderContact=String(req.body.finderContact||'').trim();
+  if(!['lost','found'].includes(itemType)) return res.status(400).json({error:'Invalid item type.'});
+  if(itemType==='found' && (!finderName || finderName.length>100 || !finderContact || finderContact.length>160)) return res.status(400).json({error:'Enter the finder name (up to 100 characters) and phone or email (up to 160 characters).'});
   const userID = req.user.userID;
   let cleanItemPhoto = itemPhotoData || null;
 
@@ -429,15 +450,25 @@ app.post('/api/items/post', authenticateToken, async (req, res) => {
 
   let uploadedPhoto;
   let itemSaved = false;
+  let reportConnection;
   try {
+    let reservationID=req.body.reservationID;
+    if(!reservationID){const [r]=await db.execute('INSERT INTO REPORT_RESERVATIONS(userID,itemType) VALUES(?,?)',[userID,itemType]);reservationID=r.insertId;}
+    const [[reservation]]=await db.execute('SELECT id,createdAt FROM REPORT_RESERVATIONS WHERE id=? AND userID=? AND itemType=?',[reservationID,userID,itemType]);
+    if(!reservation)return res.status(400).json({error:'Invalid report reservation.'});
+    const [[existing]]=await db.execute('SELECT itemID FROM ITEMS WHERE itemID=?',[reservationID]);
+    if(existing)return res.status(409).json({error:'This report ID has already been submitted.'});
     uploadedPhoto = await media.photo(cleanItemPhoto, 'items');
     cleanItemPhoto = uploadedPhoto?.url || null;
-    const [result] = await db.execute(`
+    reportConnection=await db.getConnection();await reportConnection.beginTransaction();
+    const [claimed]=await reportConnection.execute('UPDATE REPORT_RESERVATIONS SET used=1 WHERE id=? AND userID=? AND used=0',[reservation.id,userID]);
+    if(!claimed.affectedRows){const error=new Error('This report ID has already been submitted.');error.status=409;throw error;}
+    const [result] = await reportConnection.execute(`
       INSERT INTO ITEMS
-      (userID, title, description, dateOccured, itemType, categoryID, locationID, locationDetail, itemPhotoData, itemStatus)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+      (itemID, createdAt, userID, title, description, dateOccured, itemType, categoryID, locationID, locationDetail, itemPhotoData, finderName, finderContact, itemStatus)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
     `, [
-      userID,
+      reservation.id, reservation.createdAt, userID,
       title,
       description,
       dateOccured,
@@ -445,9 +476,11 @@ app.post('/api/items/post', authenticateToken, async (req, res) => {
       categoryID,
       locationID || null,
       locationDetail,
-      cleanItemPhoto
+      cleanItemPhoto, itemType==='found'?finderName:null, itemType==='found'?finderContact:null
     ]);
+    await reportConnection.commit();reportConnection.release();reportConnection=null;
     itemSaved = true;
+    const [[savedReport]]=await db.execute('SELECT itemID,itemType,createdAt FROM ITEMS WHERE itemID=?',[result.insertId]);
 
     const [users] = await db.execute(
   'SELECT userName FROM USERS WHERE userID = ?',
@@ -484,10 +517,11 @@ await Promise.all(admins.map(admin => db.execute(`
 
     res.status(201).json({
       message: "Item posted successfully.",
-      itemID: result.insertId
+      itemID: result.insertId, reportCode: reportCode(savedReport)
     });
 
   } catch (err) {
+    if(reportConnection){await reportConnection.rollback();reportConnection.release();}
     if (uploadedPhoto && !itemSaved) await media.destroy(uploadedPhoto).catch(() => console.warn("Could not remove unused item upload"));
     console.error("POST ITEM ERROR:", err);
     res.status(err.status || 500).json({
@@ -623,6 +657,10 @@ app.post('/api/appeals', authenticateToken, async (req, res) => {
     return res.status(400).json({ error: "Please provide a reason for the appeal." });
   }
 
+  if (cleanReason.length > 300) {
+    return res.status(400).json({ error: "Please keep the report reason to 300 characters or fewer." });
+  }
+
   try {
     const [items] = await db.execute(
       'SELECT title FROM ITEMS WHERE itemID = ?',
@@ -641,8 +679,8 @@ app.post('/api/appeals', authenticateToken, async (req, res) => {
     const userName = users[0]?.userName || 'Someone';
 
     await db.execute(`
-      INSERT INTO ITEM_APPEALS (userID, itemID, reason)
-      VALUES (?, ?, ?)
+      INSERT INTO ITEM_APPEALS (reportedBy, itemID, reason, details)
+      VALUES (?, ?, 'other', ?)
     `, [userID, itemID, cleanReason]);
 
     await db.execute(`
@@ -732,7 +770,7 @@ app.get('/api/items/browse', async (req, res) => {
       ORDER BY i.createdAt DESC
     `);
 
-    res.json(items);
+    res.json(items.map(item=>({...item,reportCode:reportCode(item)})));
 
   } catch (err) {
     console.error("BROWSE ITEMS ERROR:", err);
@@ -749,7 +787,7 @@ app.get('/api/items/my', authenticateToken, async (req, res) => {
   try {
     const [items] = await db.execute(`
       SELECT
-        i.itemID,
+        i.itemID, i.finderName, i.finderContact,
         i.userID,
         i.title,
         i.description,
@@ -773,7 +811,7 @@ app.get('/api/items/my', authenticateToken, async (req, res) => {
       ORDER BY i.createdAt DESC
     `, [req.user.userID]);
 
-    res.json(items);
+    res.json(items.map(item=>({...item,reportCode:reportCode(item)})));
   } catch (err) {
     console.error('MY POSTS ERROR:', err);
     res.status(500).json({ error: 'Could not fetch your posts.', details: err.message });
@@ -1228,8 +1266,9 @@ app.get('/api/items/details/:id', async (req, res) => {
     `, [req.params.id]);
 
     if (rows.length === 0) return res.status(404).json({ error: "Item not found" });
+    delete rows[0].finderContact;
     res.json({
-      ...rows[0],
+      ...rows[0], reportCode:reportCode(rows[0]),
       accountUsername: normalizeUsername(rows[0].userName)
     });
   } catch (err) {

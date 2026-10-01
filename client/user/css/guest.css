@@ -596,3 +596,6 @@ body {
   .main-logo { height: 60px; }
   .gbtn { font-size: 11px; padding: 5px 12px; }
 }
+/* Compact report reference and reporter attribution. */
+.item-card .card-info .report-attribution{font-family:inherit;font-size:12px;font-weight:400;line-height:1.5;color:#6b7280;margin:8px 0 0;overflow-wrap:anywhere}
+.item-card .card-info .report-attribution strong{font-weight:700;color:#374151;white-space:nowrap}

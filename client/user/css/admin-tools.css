@@ -1,0 +1,150 @@
+/* Shared export controls and responsive admin layout. */
+.admin-export { padding:20px; margin-bottom:24px; background:#fff; border:1px solid #e5e7eb; border-radius:14px; }
+.admin-export h2 { font-size:18px; margin:0 0 6px; }
+.admin-export p { font-size:12px; color:#6b7280; margin:0 0 12px; }
+.admin-export-form { display:flex; flex-wrap:wrap; align-items:end; gap:12px; }
+.admin-export-form label { display:grid; gap:6px; font-size:13px; font-weight:600; flex:1 1 180px; }
+.admin-export-form select,.admin-export-form button { min-height:44px; padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; font:inherit; width:100%; }
+.admin-export-form button { width:auto; background:#1a5c2a; color:#fff; font-size:13px; font-weight:600; cursor:pointer; }
+.admin-export-form button:disabled { opacity:.6; cursor:wait; }
+.admin-export .export-status { margin:10px 0 0; }
+.content,.home-container,.settings-content-area,.table-card,.admin-table-wrap { min-width:0; }
+.admin-table-wrap,.table-card { max-width:100%; overflow-x:auto; }
+.admin-table { min-width:680px; }
+@media(max-width:1100px) {
+ .home-header .main-nav { display:none; }
+ .home-header .mobile-nav-toggle { display:flex; }
+}
+@media(max-width:860px) {
+ .main-container { flex-direction:column; }
+ .main-container > .sidebar { display:flex; position:static; width:100%; height:auto; padding:12px; }
+ .sidebar .sidebar-category { font-size:15px; margin-bottom:8px; }
+ .sidebar .menu { flex-direction:row; overflow-x:auto; gap:6px; }
+ .sidebar .menu-item { white-space:nowrap; flex-shrink:0; font-size:12px; min-height:44px; }
+ .sidebar .sidebar-footer { display:flex; gap:12px; padding:4px 0 0; margin:0; }
+ .sidebar-footer .menu-item { margin:0; }
+ .content { width:100%; padding:20px 16px; }
+ .settings-page-wrap { flex-direction:column; }
+ .settings-sidebar-panel { width:100%; position:static; height:auto; flex-wrap:wrap; gap:12px; padding:16px; }
+ .settings-content-area { width:100%; padding:20px 16px; }
+ .settings-nav { flex-direction:row; flex-wrap:wrap; }
+ .content-header,.table-actions,.filter-bar { flex-wrap:wrap; gap:12px; }
+}
+@media(max-width:600px) {
+ .home-header { padding:0 12px; height:72px; gap:8px; }
+ .main-logo { max-width:90px; height:70px; }
+ .header-right { gap:6px; }
+ .profile-name { display:none; }
+ .notif-btn,.mobile-nav-toggle,.list-btn { min-width:44px; min-height:44px; }
+ .notif-dropdown { position:fixed; top:76px; left:12px; right:12px; width:auto; max-height:70vh; }
+ .home-container { padding:20px 14px 60px; }
+ .stats-grid,.bottom-grid,.two-col,.settings-form-grid,.form-layout,.found-report-layout { grid-template-columns:minmax(0,1fr); }
+ .admin-export { padding:16px; }
+ .admin-export-form { flex-direction:column; align-items:stretch; }
+ .admin-export-form label { flex:auto; }
+ .admin-export-form button { width:100%; }
+ .content-header { align-items:stretch; flex-direction:column; }
+ .filter-bar { display:flex; flex-direction:column; align-items:stretch; }
+ .filter-item,.mini-search,.table-actions { width:100%; min-width:0; }
+ .filter-item input,.filter-item select,.filter-select { max-width:100%; }
+ .account-card,.form-card { padding:18px; }
+ .settings-section h1 { font-size:21px; }
+ .settings-sidebar-panel { flex-direction:column; align-items:stretch; }
+ .fb-profile-container { flex-direction:column; }
+ .modal-container,.popup-box { max-width:calc(100vw - 24px); padding:18px; max-height:90dvh; overflow-y:auto; }
+ .modal-content-layout { grid-template-columns:minmax(0,1fr); }
+ .pagination { flex-wrap:wrap; gap:8px; }
+ .table-card td { overflow-wrap:anywhere; }
+}
+
+/* Keep admin presentation aligned with the other roles. */
+.item-card .card-info .report-attribution{font-family:inherit;font-size:12px;font-weight:400;line-height:1.5;color:#6b7280;margin:8px 0 0;overflow-wrap:anywhere}
+.item-card .card-info .report-attribution strong{font-weight:700;color:#374151;white-space:nowrap}
+
+/* Found details retain only the pickup-location photo in the information section. */
+.modal-content-layout.found-details{grid-template-columns:minmax(0,1fr)}
+.modal-content-layout.found-details>.modal-image-sec{display:none}
+
+/* Compact found-item details, with readable full-location text. */
+#itemModal .modal-container:has(.found-details){max-width:640px;padding:22px;max-height:85vh}
+#reportDetailHeader{padding:10px 12px;margin:8px 0 16px;background:var(--green-light);border-radius:8px;color:var(--green);font-family:inherit;font-size:12px;line-height:1.5;grid-column:1 / -1;overflow-wrap:anywhere}
+#itemModal .found-details{gap:16px}
+#itemModal .found-details .modal-info-sec h2{font-size:20px;margin-bottom:10px}
+#itemModal .found-details .modal-meta{gap:4px;margin-bottom:14px}
+#itemModal .found-details .modal-building-photo{margin:0 0 14px}
+#itemModal .found-details .modal-building-photo img{max-height:180px;object-fit:contain}
+#itemModal .found-details .modal-description{margin-bottom:16px}
+#itemModal .found-details .modal-description p{font-size:13px;line-height:1.6}
+@media(max-width:600px){#itemModal .modal-container:has(.found-details){padding:16px;max-width:100%}}
+/* Keep edited timestamps subordinate to report content in every role. */
+.item-card .card-info .post-edited-stamp {
+  display:flex;
+  align-items:baseline;
+  gap:5px;
+  margin:6px 0 8px;
+  font-family:inherit;
+  font-size:11px;
+  font-weight:400;
+  line-height:1.5;
+  color:#6b7280;
+  overflow-wrap:anywhere;
+}
+.item-card .card-info .post-edited-stamp i {
+  font-size:11px;
+  flex-shrink:0;
+}
+
+.detail-edited-stamp{font-family:inherit;font-size:11px;font-weight:400;line-height:1.5;color:var(--text-muted);margin:2px 0 0}
+.storage-photo-label{padding:10px 12px;background:var(--green-light);color:var(--green);font-family:inherit;font-size:12px;line-height:1.5}
+.storage-photo-label strong{font-weight:700}.storage-photo-label p{font-size:11px;color:var(--text-muted);margin:2px 0 0}
+
+/* Shared Settings layout for Student, Staff, Visitor and Admin. */
+#page-settings .settings-page-wrap{max-width:1240px;margin:0 auto;align-items:flex-start;min-height:0;gap:24px;padding:24px}
+#page-settings .settings-sidebar-panel{width:230px;height:auto;min-height:0;top:100px;padding:20px 14px;border:1px solid var(--border);border-radius:12px;gap:24px}
+#page-settings .settings-sidebar-panel h2{font-size:20px;padding-left:10px;margin-bottom:16px}
+#page-settings .settings-content-area{min-width:0;padding:0;background:transparent}
+#page-settings .settings-section{min-width:0;max-width:850px}
+#page-settings .settings-section h1{font-size:22px;text-transform:none;margin-bottom:16px}
+#page-settings .account-card{padding:24px;border-color:var(--border);box-shadow:var(--shadow-sm)}
+#page-settings .settings-form-grid{gap:16px}
+#page-settings .settings-form-group{min-width:0}
+#page-settings .form-input,#page-settings .input-wrapper{min-width:0;max-width:100%;width:100%}
+#page-settings .form-input{font-family:inherit;font-size:13px;line-height:1.5;min-height:42px}
+#page-settings .s-nav-btn{width:100%;padding:10px;font-size:13px;gap:10px;line-height:1.5}
+#page-settings .s-nav-btn.active{background:var(--green-light);color:var(--green)}
+#page-settings button:focus-visible,#page-settings a:focus-visible,#page-settings input:focus-visible,#page-settings select:focus-visible{outline:2px solid var(--green);outline-offset:3px}
+#page-settings .btn-update-main{padding:11px 18px;font-size:13px;margin-top:4px}
+#page-settings .avatar-view{width:90px;height:90px;flex-shrink:0}
+#page-settings .profile-info-text{min-width:0;overflow-wrap:anywhere}
+#page-settings .profile-privacy-card{margin-top:20px}
+#page-settings .profile-privacy-card h2{font-size:18px;margin:0 0 8px}
+#page-settings .profile-privacy-card p{font-size:12px;color:var(--text-muted);line-height:1.6;margin:0}
+#page-settings .profile-privacy-card form{display:grid;gap:16px;margin-top:18px}
+#page-settings .profile-privacy-card select{display:block;width:100%;padding:10px 34px 10px 12px;border:1px solid var(--border);border-radius:8px;background-color:var(--surface);color:var(--text-primary);font-family:inherit}
+#page-settings .profile-privacy-card [role=status]:empty{display:none}
+#page-settings .profile-privacy-card button:disabled{opacity:.55;cursor:wait}
+@media(max-width:900px){
+ #page-settings .settings-page-wrap{flex-direction:column;padding:20px 16px;gap:20px}
+ #page-settings .settings-sidebar-panel{position:static;width:100%;padding:14px;height:auto;flex-direction:row;align-items:center;flex-wrap:wrap;gap:10px}
+ #page-settings .settings-sidebar-panel h2{display:block;margin:0 0 10px;padding:0;font-size:18px}
+ #page-settings .settings-nav{flex-direction:row;flex-wrap:wrap;gap:6px;margin:0}
+ #page-settings .s-nav-btn{width:auto}
+ #page-settings .sidebar-logout-btn{margin:0;padding:10px;font-size:13px}
+ #page-settings .settings-content-area{width:100%}
+}
+@media(max-width:600px){
+ #page-settings .account-card{padding:18px}
+ #page-settings .settings-form-grid{grid-template-columns:minmax(0,1fr)}
+ #page-settings .fb-profile-container{gap:14px;flex-wrap:wrap}
+ #page-settings .settings-section h1{font-size:20px}
+}
+
+.home-header .dropdown-item{display:flex;align-items:center;gap:10px;width:100%;padding:12px 16px;font:600 13px Poppins,sans-serif;text-decoration:none;color:var(--text-mid);background:none;border:0;text-align:left;min-height:44px;cursor:pointer}
+.home-header .dropdown-item i,.home-header .dropdown-item svg{width:16px;flex-shrink:0}
+.home-header .dropdown-item:hover{background:var(--green-light);color:var(--green)}
+.home-header .dropdown-item.logout-item{color:#dc2626}
+.home-header .profile-btn{min-height:44px}
+.home-header .dropdown-content{max-width:calc(100vw - 24px)}
+.field-hint{font-size:12px;color:var(--text-muted);margin:6px 0 16px}
+.item-card .reporter-info{display:none}
+#page-settings .settings-sidebar-panel{flex-shrink:0}

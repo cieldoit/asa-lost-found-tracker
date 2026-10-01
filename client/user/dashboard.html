@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="../user/css/dashboard.css">
+  <link rel="stylesheet" href="/user/css/admin-tools.css">
 </head>
 <body>
 
@@ -72,13 +73,14 @@
                 <span class="profile-name" id="headerProfileName">CCIS Admin</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="dropdown-content" id="headerProfileDropdown"><a href="/user/profile.html">My profile &amp; avatar</a>
+            <div class="dropdown-content" id="headerProfileDropdown">
                 <div class="user-info"><div class="pd-name">CCIS Admin</div><div class="pd-role">Administrator</div></div>
                 <div class="dropdown-divider"></div>
+                <a href="/user/profile.html" class="dropdown-item"><i class="fa-regular fa-user" aria-hidden="true"></i> My Profile</a>
                 <a href="/dashboard" class="dropdown-item"><i class="fa-solid fa-chart-line" style="width:16px;color:var(--text-muted)"></i> Dashboard</a>
                 <button class="dropdown-item" onclick="switchPage('settings');closeAllDropdowns();"><i class="fa-solid fa-gear" style="width:16px;color:var(--text-muted)"></i> Settings</button>
                 <div class="dropdown-divider"></div>
-                <a href="/login" class="dropdown-item logout-item"><i class="fa-solid fa-right-from-bracket" style="width:16px"></i> Log Out</a>
+                <a href="/login" class="dropdown-item logout-item" onclick="Auth.logout();return false"><i class="fa-solid fa-right-from-bracket" style="width:16px"></i> Log Out</a>
             </div>
         </div>
         <button class="mobile-nav-toggle" onclick="toggleMobileNav()">
@@ -132,10 +134,11 @@
         </div>
         <div class="sidebar-footer">
             <a href="#" class="menu-item" onclick="switchPage('settings');return false">Settings</a>
-            <a href="/login" class="logout">Log Out</a>
+            <a href="/login" class="logout" onclick="Auth.logout();return false">Log Out</a>
         </div>
     </aside>
     <main class="content">
+<section class="admin-export" data-admin-export aria-label="Export dashboard data"></section>
         <!-- PAGE: OVERVIEW -->
         <div class="dash-page active" id="page-overview">
             <div class="content-header"><h1 class="page-title">DASHBOARD</h1></div>
@@ -558,5 +561,10 @@
 
 <script src="/js/api.js"></script>
 <script src="/js/dashboard.js"></script>
+<script src="/js/report-code.js"></script>
+<script src="/js/vendor/exceljs.min.js"></script>
+<script src="/js/admin-report-format.js"></script>
+<script src="/js/admin-export.js"></script>
+<script src="/js/profile-privacy-settings.js"></script>
 </body>
 </html>
