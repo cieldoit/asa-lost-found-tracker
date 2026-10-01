@@ -314,7 +314,9 @@ const ItemsAPI = {
   },
   async getDetails(itemID) { return apiFetch(`/items/details/${itemID}`); },
   async report(itemData) {
-  return apiFetch('/items/post', { method: 'POST', body: JSON.stringify(itemData) });
+  if(window.ReportReservation)itemData.reservationID=(await ReportReservation.get(itemData.itemType)).reservationID;
+  const result=await apiFetch('/items/post', { method: 'POST', body: JSON.stringify(itemData) });
+  window.ReportReservation?.clear(itemData.itemType);return result;
 }
 };
 

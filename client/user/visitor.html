@@ -8,7 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="../user/css/script.css" />
-</head>
+<script src="/js/report-code.js"></script></head>
 
 <body>
 
@@ -297,7 +297,7 @@
       Report Found Item
     </button>
     <div class="form-card" style="max-width:640px;margin:0 auto;">
-      <div class="form-group">
+      <div class="form-group"><label for="finderName">Name of the person who found the item *</label><input class="form-input" id="finderName" maxlength="100" placeholder="Full name" required></div><div class="form-group"><label for="finderContact">Finder contact information *</label><input class="form-input" id="finderContact" maxlength="160" placeholder="Phone number or email address" required><p>Contact information is available to you and administrators, not public listings.</p></div><div class="form-group">
         <label class="form-label">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/></svg>
           Item Title <span style="color:var(--red-text)">*</span>
@@ -610,6 +610,6 @@
 </script>
 <script src="/js/api.js"></script>
 <script src="/js/visitor.js"></script>
-<script src="/js/profile-privacy-settings.js"></script></body>
+<script src="/js/profile-privacy-settings.js"></script><script src="/js/report-reservation.js"></script></body>
 </html>
 

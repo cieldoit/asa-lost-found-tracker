@@ -1,0 +1,1 @@
+module.exports=function reportCode(item){const date=new Date(item.createdAt);const year=new Intl.DateTimeFormat('en',{year:'2-digit',timeZone:'Asia/Manila'}).format(date);return (item.itemType==='lost'?'L':'F')+year+'-'+String(item.itemID).padStart(4,'0')};
