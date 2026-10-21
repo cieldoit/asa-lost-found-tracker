@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>ASA - About | Team Grid - No Border Radius, 2px Gap</title>
+    <title>About ASA | CSU Lost &amp; Found</title>
   <link rel="icon" type="image/png" sizes="any" href="/ASA_logo/logo-asa-top.png?v=2" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,400,0,0&icon_names=mail" />
 <style>
         * {
@@ -889,12 +892,13 @@
 /*footer*/
 
     </style>
+<link rel="stylesheet" href="/ASA_details/about.css">
 </head>
 <body>
 
 <nav>
         <input type="checkbox" id="sidebar-active">
-        <img src="/ASA_logo/Final logo.png" alt="" class="logo-side">
+        <a href="/" aria-label="ASA home"><img src="/ASA_logo/Final logo.png" alt="ASA Logo" class="logo-side"></a>
         <label for="sidebar-active" class="open-sidebar-button">
             <svg xmlns="http://www.w3.org/2000/svg" height="32px" viewBox="0 -960 960 960" width="32px" fill="#e3e3e3"><path d="M120-240v-80h720v80H120Zm0-200v-80h720v80H120Zm0-200v-80h720v80H120Z"/></svg>
         </label>
@@ -903,10 +907,10 @@
             <label for="sidebar-active" class="close-sidebar-button">
                 <svg xmlns="http://www.w3.org/2000/svg" height="32px" viewBox="0 -960 960 960" width="32px" fill="#e3e3e3"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
             </label>
-            <img src="/ASA_logo/Final logo.png" alt="" class="logo">
+            <a href="/" aria-label="ASA home"><img src="/ASA_logo/Final logo.png" alt="ASA Logo" class="logo"></a>
             <a href="/" class="text">Home</a>
             <a href="/ASA_details/about.html" class="text">About</a>
-            <a href="/login/landing.html" class="log-in-link">
+            <a href="/login/login.html" class="log-in-link">
                 <button class="log-in">Log-in</button>
             </a>
         </div>
@@ -931,7 +935,7 @@
             <div class="hero-buttons">
     <button 
         class="btn-primary"
-        onclick="window.location.href='../login/landing.html'">
+        onclick="window.location.href='../login/login.html'">
         Post Item
     </button>
 

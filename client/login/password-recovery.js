@@ -30,7 +30,7 @@
       report(data.message);
       if (reset) {
         form.hidden = true;
-        const link = document.querySelector('main .back'); link.href = '/login/landing.html'; link.textContent = 'Log in with your new password';
+        const link = document.querySelector('main .back'); link.href = '/login/login.html'; link.textContent = 'Log in with your new password';
       }
     } catch (err) { report(err.message || 'Could not connect. Please try again.', true); }
     finally { button.disabled = false; button.textContent = label; }

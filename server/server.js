@@ -1447,7 +1447,7 @@ app.put('/api/users/profile', authenticateToken, async (req, res) => {
 /* ================= CLIENT ROUTES ================= */
 
 const pageRoutes = {
-  '/login': 'login/landing.html',
+  '/login': 'login/login.html',
   '/selection': 'login/selection.html',
   '/signup/student': 'login/signupStud.html',
   '/signup/staff': 'login/signupStaff.html',
@@ -1467,6 +1467,11 @@ Object.entries(pageRoutes).forEach(([route, file]) => {
   app.get(route, (req, res) => {
     res.sendFile(path.join(clientDir, file));
   });
+});
+
+// Preserve existing bookmarks to the former login-page filename.
+app.get('/login/landing.html', (req, res) => {
+  res.redirect(301, '/login/login.html');
 });
 
 app.get('/', (req, res) => {

@@ -33,7 +33,7 @@ const Auth = {
     }
     window.RealtimeAPI?.disconnect?.();
     ['asa_token','asa_role','asa_user','token','role','userName'].forEach(k => localStorage.removeItem(k));
-    window.location.href = '/login/landing.html';
+    window.location.href = '/login/login.html';
   }
 };
 
@@ -384,7 +384,7 @@ const AdminAPI = {
   }
 };
 
-function requireAuth(redirectTo = '/login/landing.html', requiredRole = null) {
+function requireAuth(redirectTo = '/login/login.html', requiredRole = null) {
   if (!Auth.isLoggedIn()) {
     window.location.href = redirectTo;
     return false;
