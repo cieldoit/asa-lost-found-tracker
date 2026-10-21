@@ -197,7 +197,7 @@ const SPA = {
     loadFullPage: async function(templateName) {
         const templateMap = {
             'home': '/index.html',
-            'login': '/login/landing.html',
+            'login': '/login/login.html',
             'selection': '/login/selection.html',
             'signup-student': '/login/signupStud.html',
             'signup-staff': '/login/signupStaff.html',

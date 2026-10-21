@@ -88,7 +88,7 @@
         if (!res.ok) throw new Error(data.error || 'Verification failed');
 
         toast('Email verified! Redirecting to login...', 'success');
-        setTimeout(() => { window.location.href = '/login/landing.html'; }, 1800);
+        setTimeout(() => { window.location.href = '/login/login.html'; }, 1800);
       } catch (err) {
         toast(err.message, 'error');
         btn.disabled = false; btn.textContent = 'Verify & Continue';

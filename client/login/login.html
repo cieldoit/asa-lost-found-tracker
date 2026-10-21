@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>ASA: CSU Lost & Found — Secure Login Portal</title>
+  <link rel="icon" type="image/png" sizes="any" href="/ASA_logo/logo-asa-top.png?v=2" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/login/login.css">
+</head>
+<body>
+
+<header class="landing-header">
+  <a href="/" aria-label="ASA home">
+    <!-- ORIGINAL LOGO KEPT INTACT - using your exact image path -->
+    <img src="/ASA_logo/Final logo.png" alt="ASA Logo" class="main-logo">
+  </a>
+  <nav class="header-right" aria-label="Help and account"><a href="/user/guest.html" class="top-link"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Browse items</a>
+    <a href="/ASA_details/about.html" class="top-link"><i class="fa-regular fa-circle-question" aria-hidden="true"></i> Help Center</a>
+    <a href="/ASA_details/about.html#contact" class="top-link contact-link"><i class="fa-regular fa-envelope" aria-hidden="true"></i> Contact Us</a>
+  </nav>
+</header>
+
+<main class="hero-section">
+  <div class="container">
+    
+    <div class="hero-content">
+      <div class="status-badge">
+        <i class="fa-solid fa-circle-check"></i>
+        <span>Official CSU Tracking System</span>
+      </div>
+      <h1 class="hero-title">Lost Something<br>At CSU? <span>ASA is Here</span></h1>
+      <p class="hero-subtitle">
+        Don't stress. Whether you're in the classroom or the office, we'll help 
+        you find your way back to your belongings through our secure campus network.
+      </p>
+      
+      <div class="hero-btns">
+        <button class="btn-browse" id="browseItemsBtn"><i class="fa-solid fa-magnifying-glass"></i> Browse Items</button>
+        <button class="btn-post" id="postLostBtn"><i class="fa-regular fa-pen-to-square"></i> Post Items</button>
+      </div>
+    </div>
+
+    <div class="login-container" id="login">
+      <div class="login-card">
+        <div class="card-header-accent"></div>
+        <div class="card-body">
+          <h2 class="card-title">LOGIN</h2>
+          <p class="card-subtitle">Please enter your credentials to continue.</p>
+          
+          <form id="loginForm">
+  <div class="input-group">
+    <label class="input-label" for="email">
+      <i class="fa-solid fa-user" aria-hidden="true"></i> Email/Username
+    </label>
+    <input type="text" id="email" placeholder="Enter your email or username" autocomplete="username" required>
+  </div>
+
+  <div class="input-group">
+    <label class="input-label" for="password">
+      <i class="fa-solid fa-lock" aria-hidden="true"></i> Password
+    </label>
+    <input type="password" id="password" placeholder="••••••••" required>
+  </div>
+
+  <p class="forgot-pass"><a href="/login/forgot-password.html">Forgot Password?</a></p>
+  <button type="submit" class="login-btn">
+    <i class="fa-solid fa-arrow-right-to-bracket"></i> Login
+  </button>
+</form>
+
+          <p class="footer-text">
+  Don't have an account? 
+  <a href="selection.html" class="sign-up-link" id="signupRedirectLink">
+    Sign-Up
+  </a>
+</p>
+
+          <p class="legal-text">
+            Read our
+            <a href="/ASA_details/info.html" id="privacyLink">Privacy &amp; Community Guidelines</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer class="bottom-bar"></footer>
+<div id="toastMsg" class="toast-message"><i class="fa-regular fa-bell"></i> <span></span></div>
+
+<script src="./auth.js"></script>
+
+<script>
+  document.getElementById("browseItemsBtn").addEventListener("click", () => {
+    window.location.href = "/user/guest.html";
+  });
+
+  document.getElementById("postLostBtn").addEventListener("click", () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      showToast("Please login first to post an item.", "warning");
+      document.getElementById("login")?.scrollIntoView({behavior:"smooth",block:"center"});
+      document.getElementById("email")?.focus({preventScroll:true});
+      return;
+    }
+
+    const role = (localStorage.getItem('asa_role') || localStorage.getItem('role') || '').toLowerCase();
+    const pages = {student:'student', staff:'staff', visitor:'visitor', admin:'admin', administrator:'admin'};
+    window.location.href = pages[role] ? '/user/' + pages[role] + '.html#post' : '/login/login.html';
+  });
+</script>
+
+</body>
+</html>

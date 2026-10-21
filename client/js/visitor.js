@@ -12,9 +12,9 @@ class VisitorHeader extends HTMLElement {
       <div>
         <header class="home-header">
           <div class="logo-container">
-            <span class="logo-link" onclick="showPage('dashboard')">
+            <a class="logo-link" href="/" aria-label="ASA home">
               <img src="/ASA_logo/Final logo.png" alt="ASA Logo" class="main-logo">
-            </span>
+            </a>
           </div>
           <nav class="main-nav">
             <button class="nav-item active" id="snav-dashboard" onclick="showPage('dashboard')">
@@ -79,7 +79,7 @@ class VisitorHeader extends HTMLElement {
                 <a class="dropdown-item" href="/user/profile.html"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg> My Profile</a><button class="dropdown-item" onclick="showPage('settings');closeAllDropdowns();">
                   <i class="fa-solid fa-gear" style="width:16px;color:var(--text-muted)"></i> Settings
                 </button>
-                <a href="/login/landing.html" class="dropdown-item logout-item" onclick="window.Auth?.logout?.(); return false;">
+                <a href="/login/login.html" class="dropdown-item logout-item" onclick="window.Auth?.logout?.(); return false;">
                   <i class="fa-solid fa-right-from-bracket" style="width:16px"></i> Log Out
                 </a>
               </div>
@@ -1673,7 +1673,7 @@ const refreshVisitorRealtime = (window.asaRealtimeDebounce || ((fn) => fn))(asyn
 window.addEventListener('asa:realtime', refreshVisitorRealtime);
 
 document.addEventListener('DOMContentLoaded', async () => {
-  if (typeof requireAuth === 'function' && !requireAuth('/login/landing.html')) return;
+  if (typeof requireAuth === 'function' && !requireAuth('/login/login.html')) return;
   ensureMyPostsPage();
   dedupeMyPostDropdown(document.getElementById('headerProfileDropdown'));
   showPage(getInitialVisitorPage());

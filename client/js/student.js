@@ -12,9 +12,9 @@ class StudentHeader extends HTMLElement {
       <div>
         <header class="home-header">
           <div class="logo-container">
-            <span class="logo-link" onclick="showPage('dashboard')">
+            <a class="logo-link" href="/" aria-label="ASA home">
               <img src="../ASA_logo/Final logo.png" alt="ASA Logo" class="main-logo">
-            </span>
+            </a>
           </div>
           <nav class="main-nav">
             <button class="nav-item active" id="snav-dashboard" onclick="showPage('dashboard')">
@@ -1705,7 +1705,7 @@ window.addEventListener('asa:realtime', refreshStudentRealtime);
 
 document.addEventListener('DOMContentLoaded', async () => {
   // 1. Guard — redirect to login if not logged in
-  if (!requireAuth('/login/landing.html')) return;
+  if (!requireAuth('/login/login.html')) return;
 
   // 2. Sync the header and settings form with the current account.
   ensureMyPostsPage();

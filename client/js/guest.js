@@ -13,9 +13,9 @@ class GuestHeader extends HTMLElement {
       <div>
         <header class="home-header">
           <div class="logo-container">
-            <span class="logo-link" onclick="gShowPage('browse')">
+            <a class="logo-link" href="/" aria-label="ASA home">
               <img src="/ASA_logo/Final logo.png" alt="ASA Logo" class="main-logo">
-            </span>
+            </a>
           </div>
 
           <nav class="main-nav">
@@ -37,7 +37,7 @@ class GuestHeader extends HTMLElement {
           </nav>
 
           <div class="header-right">
-            <a href="/login/landing.html" class="gbtn gbtn-primary">Login</a>
+            <a href="/login/login.html" class="gbtn gbtn-primary">Login</a>
           </div>
         </header>
       </div>
