@@ -44,7 +44,9 @@ async function sendRequest(endpoint, body) {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.error || "Request failed");
+    const error = new Error(data.error || "Request failed");
+    error.code = data.code;
+    throw error;
   }
 
   return data;
@@ -66,7 +68,7 @@ if (loginForm) {
       try {
         data = await sendRequest("/login", { identifier, password });
       } catch (loginError) {
-        const canTryAdminLogin = /invalid credentials/i.test(loginError.message || "");
+        const canTryAdminLogin = loginError.code === "ADMIN_LOGIN_REQUIRED";
         if (!canTryAdminLogin) throw loginError;
         data = await sendRequest("/admin/login", { managedBy: identifier, password });
       }

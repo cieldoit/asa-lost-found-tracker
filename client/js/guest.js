@@ -149,15 +149,17 @@ function renderGuestItems(containerId, items) {
     const pickupName = item.locationName || item.location || item.locationDetail || "Campus";
     const pickupPhoto = item.locationPhoto || "";
     const itemPhoto = item.itemPhotoData || "";
-    const emoji = getGuestEmoji(item.categoryName, item.itemType);
+    const emoji = getGuestEmoji(item.categoryName, item.itemType, item.title);
     const gradient = isLost
       ? "linear-gradient(135deg,#dbeafe,#bfdbfe)"
       : "linear-gradient(135deg,#dcfce7,#bbf7d0)";
+    const fallbackImage = window.ASAItemPlaceholder?.markup(item.title, item.categoryName, item.itemType)
+      || `<div style="width:100%;height:100%;background:${gradient};display:flex;align-items:center;justify-content:center;font-size:48px;">${emoji}</div>`;
     const imageMarkup = isLost && itemPhoto
       ? `<img src="${itemPhoto}" alt="${escapeHtml(item.title)} photo">`
       : !isLost && pickupPhoto
         ? `<img src="${pickupPhoto}" alt="${escapeHtml(pickupName)} building photo">`
-        : `<div style="width:100%;height:100%;background:${gradient};display:flex;align-items:center;justify-content:center;font-size:48px;">${emoji}</div>`;
+        : fallbackImage;
     const description = item.description || "No description available.";
 
     return `
@@ -203,7 +205,7 @@ function openItemModal(card) {
   const itemPhoto = card.dataset.itemPhoto || "";
 
   const isLost = type === "lost";
-  const emoji = getGuestEmoji(cat, type);
+  const emoji = getGuestEmoji(cat, type, title);
   const gradient = isLost
     ? "linear-gradient(135deg,#dbeafe,#bfdbfe)"
     : "linear-gradient(135deg,#dcfce7,#bbf7d0)";
@@ -217,7 +219,8 @@ function openItemModal(card) {
     ? `<img src="${itemPhoto}" alt="${title} photo">`
     : !isLost && photo
       ? `<img src="${photo}" alt="${loc} building photo">`
-      : `<span style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-height:240px">${emoji}</span>`;
+      : window.ASAItemPlaceholder?.markup(title, cat, type, { minHeight: 240, fontSize: 80 })
+        || `<span style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-height:240px">${emoji}</span>`;
 
   document.getElementById("modalTypeBadge").textContent = type.toUpperCase();
   document.getElementById("modalTypeBadge").className = `badge badge-${type}`;
@@ -292,8 +295,8 @@ function filterItems(type) {
   });
 }
 
-function getGuestEmoji(category, type) {
-  if (type === "lost") return `<i class="fa-solid fa-wallet" aria-hidden="true"></i>`;
+function getGuestEmoji(category, type, title = '') {
+  if (window.ASAItemPlaceholder) return window.ASAItemPlaceholder.icon(title, category);
 
   const key = (category || "").toLowerCase();
 

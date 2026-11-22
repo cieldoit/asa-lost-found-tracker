@@ -852,7 +852,7 @@ function updateBuildingThumbnails() {
   });
 }
 function syncAdminPageUrl(page) {
-  const hashPages = new Set(['lost', 'found', 'post', 'my-posts', 'claims', 'users', 'appeals']);
+  const hashPages = new Set(['lost', 'found', 'post', 'my-posts', 'claims', 'users', 'appeals', 'chat']);
   const target = hashPages.has(page) ? `/admin#${page}` : '/admin';
   if (window.location.pathname + window.location.hash !== target) {
     window.history.replaceState({}, '', target);
@@ -906,19 +906,38 @@ function adminNavButton(page, iconClass, label, mobile = false) {
   return `<button class="${className}" id="${idPrefix}-${page}" onclick="showPage('${page}')"><i class="${iconClass}" style="width:16px"></i>${label}</button>`;
 }
 function addAdminManagementNav(header) {
-  if (!header || header.querySelector('#anav-claims')) return;
+  if (!header) return;
   const mainNav = header.querySelector('.main-nav');
   const mobileNav = header.querySelector('#mobileNav');
   const postNav = header.querySelector('#anav-my-posts') || header.querySelector('#anav-post');
   const mobilePostNav = header.querySelector('#amnav-my-posts') || header.querySelector('#amnav-post');
-  const managementNav = [
-    adminNavButton('claims', 'fa-solid fa-clipboard-check', 'Claims')
-  ].join('');
-  const mobileManagementNav = [
-    adminNavButton('claims', 'fa-solid fa-clipboard-check', 'Claims', true)
-  ].join('');
-  if (mainNav && postNav) postNav.insertAdjacentHTML('afterend', managementNav);
-  if (mobileNav && mobilePostNav) mobilePostNav.insertAdjacentHTML('afterend', mobileManagementNav);
+  if (!header.querySelector('#anav-claims') && mainNav && postNav) {
+    postNav.insertAdjacentHTML('afterend', adminNavButton('claims', 'fa-solid fa-clipboard-check', 'Claims'));
+  }
+  if (!header.querySelector('#amnav-claims') && mobileNav && mobilePostNav) {
+    mobilePostNav.insertAdjacentHTML('afterend', adminNavButton('claims', 'fa-solid fa-clipboard-check', 'Claims', true));
+  }
+  if (!header.querySelector('#anav-chat') && mainNav) {
+    const claims = header.querySelector('#anav-claims') || postNav;
+    claims?.insertAdjacentHTML('afterend', adminNavButton('chat', 'fa-solid fa-comments', 'Chat').replace('</button>', '<span class="chat-nav-unread" id="adminChatUnreadBadge" hidden></span></button>'));
+  }
+  if (!header.querySelector('#amnav-chat') && mobileNav) {
+    const claims = header.querySelector('#amnav-claims') || mobilePostNav;
+    claims?.insertAdjacentHTML('afterend', adminNavButton('chat', 'fa-solid fa-comments', 'Chat', true).replace('</button>', '<span class="chat-nav-unread" id="adminMobileChatUnreadBadge" hidden></span></button>'));
+  }
+  refreshAdminChatUnread();
+}
+
+async function refreshAdminChatUnread() {
+  const badges = [document.getElementById('adminChatUnreadBadge'), document.getElementById('adminMobileChatUnreadBadge')].filter(Boolean);
+  if (!badges.length || !token) return;
+  try {
+    const response = await fetch(`${ADMIN_API_BASE}/chat/conversations`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+    if (!response.ok) return;
+    const conversations = await response.json();
+    const unread = conversations.reduce((sum, chat) => sum + Number(chat.unreadCount || 0), 0);
+    badges.forEach(badge => { badge.textContent = unread > 99 ? '99+' : String(unread); badge.hidden = unread < 1; });
+  } catch { /* Chat remains available if the unread count cannot be refreshed. */ }
 }
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, ch => ({
@@ -1087,7 +1106,7 @@ initListeners() {
     }
   });
 }
-  setActivePage(page) { ['dashboard','lost','found','post','my-posts','claims','users','appeals'].forEach(p=>{ this.querySelector(`#anav-${p}`)?.classList.remove('active'); this.querySelector(`#amnav-${p}`)?.classList.remove('active'); }); this.querySelector(`#anav-${page}`)?.classList.add('active'); this.querySelector(`#amnav-${page}`)?.classList.add('active'); }
+  setActivePage(page) { ['dashboard','lost','found','post','my-posts','claims','users','appeals','chat'].forEach(p=>{ this.querySelector(`#anav-${p}`)?.classList.remove('active'); this.querySelector(`#amnav-${p}`)?.classList.remove('active'); }); this.querySelector(`#anav-${page}`)?.classList.add('active'); this.querySelector(`#amnav-${page}`)?.classList.add('active'); }
   setUsername(name) { const n1=this.querySelector('#headerProfileName'), n2=this.querySelector('#headerDropName'); if(n1) n1.textContent=name; if(n2) n2.textContent=name; }
   renderNotifications(notifs) {
 
@@ -1564,6 +1583,8 @@ function buildAdminItemCard(item) {
   const pickupName = item.location || item.locationName || item.locationDetail || "Campus";
   const pickupPhoto = item.locationPhoto || buildingPhotos[pickupName] || buildingPhotos[item.locationDetail] || "";
   const itemPhoto = item.itemPhotoData || "";
+  const fallbackImage = window.ASAItemPlaceholder?.markup(item.title, categoryName, item.itemType, { fontSize: 42 })
+    || `<div style="width:100%;height:100%;background:${isLost ? 'linear-gradient(135deg,#dbeafe,#bfdbfe)' : 'linear-gradient(135deg,#dcfce7,#bbf7d0)'};display:flex;align-items:center;justify-content:center;font-size:42px;"><i class="fa-solid fa-box" aria-hidden="true"></i></div>`;
   const editedRaw = item.editedAt || null;
   const editedDate = editedRaw && !Number.isNaN(new Date(editedRaw).getTime()) ? new Date(editedRaw).toLocaleString() : "";
   card.dataset.reporterName = item.reporterName || 'Unknown';
@@ -1574,7 +1595,7 @@ function buildAdminItemCard(item) {
         ? `<img src="${itemPhoto}" alt="${item.title} photo">`
         : !isLost && pickupPhoto
           ? `<img src="${pickupPhoto}" alt="${pickupName} building photo">`
-          : `<div style="width:100%;height:120px;background:${isLost ? 'linear-gradient(135deg,#dbeafe,#bfdbfe)' : 'linear-gradient(135deg,#dcfce7,#bbf7d0)'};display:flex;align-items:center;justify-content:center;font-size:42px;">${isLost ? "\u{1F45B}" : "\u{1F4E6}"}</div>`}
+          : fallbackImage}
       <span class="badge badge-${item.itemType}">${item.itemType.toUpperCase()}</span>
       <span class="badge ${statusClass}">${item.itemStatus.toUpperCase()}</span>
     </div>
@@ -1634,19 +1655,8 @@ function openAdminItemModal(item) {
   document.getElementById('modalImgSec').closest('.modal-content-layout')?.classList.toggle('found-details', !isLost);
   document.getElementById("modalImgSec").innerHTML = itemPhoto
     ? `<img src="${itemPhoto}" alt="${item.title} photo" style="width:100%;height:300px;object-fit:cover;border-radius:12px">`
-    : `
-    <div style="
-      height:300px;
-      border-radius:12px;
-      background:${isLost ? "linear-gradient(135deg,#dbeafe,#bfdbfe)" : "linear-gradient(135deg,#dcfce7,#bbf7d0)"};
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:80px;
-    ">
-      ${isLost ? `<i class="fa-solid fa-wallet" aria-hidden="true"></i>` : `<i class="fa-solid fa-box" aria-hidden="true"></i>`}
-    </div>
-  `;
+    : window.ASAItemPlaceholder?.markup(item.title, item.category || item.categoryName, item.itemType, { minHeight: 300, fontSize: 80 })
+      || `<div style="height:300px;border-radius:12px;background:${isLost ? 'linear-gradient(135deg,#dbeafe,#bfdbfe)' : 'linear-gradient(135deg,#dcfce7,#bbf7d0)'};display:flex;align-items:center;justify-content:center;font-size:80px;"><i class="fa-solid fa-box" aria-hidden="true"></i></div>`;
 
   renderAdminModalActions(item);
   document.getElementById("itemModal").classList.add("active");
@@ -1667,6 +1677,7 @@ const refreshAdminRealtime = (window.asaRealtimeDebounce || ((fn) => fn))(async 
   if (currentPage === 'my-posts' && ['items-changed', 'claims-changed', 'admin-data-changed'].includes(type)) tasks.push(loadAdminMyPosts());
   if (type === 'admin-data-changed' && typeof loadAdminUsers === 'function') tasks.push(loadAdminUsers());
   if (type === 'admin-data-changed' && typeof loadAdminAppeals === 'function') tasks.push(loadAdminAppeals());
+  if (type === 'chat-changed') tasks.push(refreshAdminChatUnread());
 
   await Promise.allSettled(tasks);
 }, 300);
@@ -1700,8 +1711,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.adminNotificationPoll = setInterval(loadAdminNotifications, 30000);
   }
   window.addEventListener('focus', loadAdminNotifications);
+  window.addEventListener('focus', refreshAdminChatUnread);
   await adminItemsReady;
-  const hashPage = { '#lost': 'lost', '#found': 'found', '#post': 'post', '#claims': 'claims', '#users': 'users', '#appeals': 'appeals' }[window.location.hash];
+  const hashPage = { '#lost': 'lost', '#found': 'found', '#post': 'post', '#claims': 'claims', '#users': 'users', '#appeals': 'appeals', '#chat': 'chat' }[window.location.hash];
   if (hashPage) showPage(hashPage);
 
   buildTagEditor('catTagsEditor', categories, populateAllSelects);

@@ -2,7 +2,7 @@
   --asa-green: #1a5c2a;
   --asa-green-dark: #154d23;
   --asa-green-light: #e8f5ed;
-  --asa-yellow: #f5c518;
+  --asa-yellow: #F9DC07;
   --asa-bg: #f5f6fa;
   --asa-surface: #fff;
   --asa-border: #e5e7eb;
@@ -47,7 +47,7 @@ body > nav .link-container > a[aria-label="ASA home"] {
 }
 /* Crop the source asset's transparent padding so the visible wordmark reads
    clearly at header size while preserving its proportions. */
-body > nav .logo { display: block; width: 160px; height: 74px; object-fit: cover; object-position: center 52%; }
+body > nav .logo { display: block; width: 140px; height: 60px; object-fit: cover; object-position: center 52%; }
 body > nav > a[aria-label="ASA home"] { display: none; }
 body > nav a.text {
   position: static;
@@ -283,7 +283,7 @@ footer {
 @media (max-width: 640px) {
   body > nav { height: 72px; padding: 0 14px; }
   body > nav > a[aria-label="ASA home"] { display: flex; align-items: center; margin-right: auto; }
-  body > nav > a[aria-label="ASA home"] .logo-side { display: block; width: 138px; height: 64px; margin: 0; object-fit: cover; object-position: center 52%; }
+  body > nav > a[aria-label="ASA home"] .logo-side { display: block; width: 122px; height: 54px; margin: 0; object-fit: cover; object-position: center 52%; }
   body > nav .open-sidebar-button { display: block; padding: 12px; cursor: pointer; }
   body > nav .link-container {
     position: fixed;
@@ -330,3 +330,8 @@ footer {
   html { scroll-behavior: auto; }
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+/* Keep the navigation logo dimensions aligned at tablet and phone widths. */
+@media (max-width: 800px) { body > nav .logo { width: 122px; height: 54px; } }
+
+@media (max-width: 480px) { body > nav .logo, body > nav > a[aria-label='ASA home'] .logo-side { width: 110px; height: 48px; } }

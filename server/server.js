@@ -138,7 +138,9 @@ function authenticateAdmin(req, res, next) {
 /* ================= ROUTE MODULES ================= */
 const adminRoutes = require('./routes/admin');
 const notificationRoutes = require('./routes/notifications');
+const chatRoutes = require('./routes/chat');
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/chat', chatRoutes.router);
 
 app.get('/api/events', (req, res) => {
   const token = req.query.token;
@@ -283,7 +285,14 @@ function isAdminRole(role) {
 }
 
 function isAdminLoginAlias(value) {
-  return ['admin', 'administrator', 'ccisadmin'].includes(compactUsername(value));
+  const aliases = [
+    'admin',
+    'administrator',
+    'ccis_admin',
+    process.env.ADMIN_USERNAME,
+    process.env.ADMIN_EMAIL
+  ].filter(Boolean).map(compactUsername);
+  return aliases.includes(compactUsername(value));
 }
 
 function usernameFromRegistration(name, email) {
@@ -368,7 +377,10 @@ app.post('/api/login', async (req, res) => {
     );
 
    if (users.length === 0)
-  return res.status(401).json({ error: "Invalid credentials" });
+  return res.status(401).json({
+    error: "Invalid credentials",
+    ...(isAdminLoginAlias(identifier) ? { code: "ADMIN_LOGIN_REQUIRED" } : {})
+  });
 
 const user = users[0];
 const role = isAdminRole(user.role) ? "Admin" : user.role;
@@ -390,7 +402,10 @@ if (user.userStatus === "suspended") {
 const match = await bcrypt.compare(password, user.password);
 
     if (!match)
-      return res.status(401).json({ error: "Invalid credentials" });
+      return res.status(401).json({
+        error: "Invalid credentials",
+        ...(isAdminRole(user.role) && isAdminLoginAlias(identifier) ? { code: "ADMIN_LOGIN_REQUIRED" } : {})
+      });
 
     const token = jwt.sign(
       {
@@ -1487,6 +1502,7 @@ async function startServer() {
   try {
     await ensureDatabaseColumns();
     await require('./routes/profiles').initialize();
+    await chatRoutes.initialize();
     await require('./matching').initialize();
     require('./matching').scan();
     setInterval(() => require('./matching').scan(), 60000).unref();

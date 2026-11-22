@@ -4,6 +4,16 @@
 const PICKUP_LOCATIONS = ["CAA LSG Office","CCIS LSG Office","CED LSG Office","CEGS LSG Office","CHASS LSG Office","CMNS LSG Office","COFES LSG Office","Guard House - Main Gate","Guard House - Green Gate"];
 const DASH_API_BASE = window.ASA_API_BASE || `${window.location.origin}/api`;
 const DASH_TOKEN = localStorage.getItem('asa_token') || localStorage.getItem('token');
+const DASH_ROLE = window.Auth?.getRole?.() || localStorage.getItem('asa_role') || localStorage.getItem('role');
+const DASH_IS_ADMIN = String(DASH_ROLE || '').toLowerCase() === 'admin';
+
+if (!DASH_TOKEN || !DASH_IS_ADMIN) {
+  document.documentElement.style.visibility = 'hidden';
+  window.location.replace('/login/login.html');
+}
+
+const DASHBOARD_PAGE_SIZE = 10;
+const dashboardPageNumbers = new Map();
 let buildingPhotos = {};
 let dashboardProfilePhotoData = null;
 let dashboardItemsCache = [];
@@ -37,6 +47,7 @@ const headerNotifDropdown = document.getElementById('headerNotifDropdown');
 const headerProfileBtn = document.getElementById('headerProfileBtn');
 const headerProfileDropdown = document.getElementById('headerProfileDropdown');
 const headerMarkRead = document.getElementById('headerMarkRead');
+const headerSeeAllNotif = document.getElementById('headerSeeAllNotif');
 
 headerNotifBtn.addEventListener('click', e => {
   e.stopPropagation();
@@ -55,6 +66,11 @@ headerMarkRead.addEventListener('click', async () => {
   } catch (err) {
     showToast('error', 'Notification Error', err.message || 'Could not mark notifications as read.');
   }
+});
+headerSeeAllNotif?.addEventListener('click', event => {
+  event.preventDefault();
+  event.stopPropagation();
+  openDashboardNotificationsModal();
 });
 window.addEventListener('click', () => {
   headerNotifDropdown.classList.remove('show');
@@ -114,6 +130,126 @@ async function openDashboardNotification(notifID, itemID) {
   }
 }
 window.openDashboardNotification = openDashboardNotification;
+
+function ensureDashboardNotificationsModal() {
+  let modal = document.getElementById('dashboardNotificationsModal');
+  if (modal) return modal;
+
+  modal = document.createElement('div');
+  modal.className = 'dashboard-notif-overlay';
+  modal.id = 'dashboardNotificationsModal';
+  modal.innerHTML = `
+    <section class="dashboard-notif-dialog" role="dialog" aria-modal="true" aria-labelledby="dashboardNotificationsTitle" tabindex="-1">
+      <header class="dashboard-notif-dialog-header">
+        <div><h2 id="dashboardNotificationsTitle">All Notifications</h2><p>Updates for this admin account.</p></div>
+        <button type="button" class="dashboard-notif-close" aria-label="Close notifications">&times;</button>
+      </header>
+      <div class="dashboard-notif-dialog-actions"><button type="button" class="dashboard-notif-mark-read">Mark all as read</button></div>
+      <div class="dashboard-notif-list" role="region" aria-label="Notification list" aria-live="polite"></div>
+    </section>
+  `;
+
+  modal.querySelector('.dashboard-notif-close')?.addEventListener('click', closeDashboardNotificationsModal);
+  modal.querySelector('.dashboard-notif-mark-read')?.addEventListener('click', markAllDashboardNotificationsRead);
+  modal.addEventListener('click', event => {
+    if (event.target === modal) closeDashboardNotificationsModal();
+  });
+  modal.addEventListener('keydown', event => {
+    if (event.key === 'Escape') closeDashboardNotificationsModal();
+  });
+  document.body.appendChild(modal);
+  return modal;
+}
+
+async function openDashboardNotificationsModal() {
+  closeAllDropdowns();
+  const modal = ensureDashboardNotificationsModal();
+  const list = modal.querySelector('.dashboard-notif-list');
+  if (list) {
+    list.replaceChildren();
+    const loading = document.createElement('div');
+    loading.className = 'dashboard-notif-empty';
+    loading.textContent = 'Loading notifications…';
+    list.append(loading);
+  }
+  modal.classList.add('active');
+  modal.querySelector('.dashboard-notif-dialog')?.focus();
+
+  try {
+    renderDashboardNotificationsModal(await NotifAPI.getAll());
+  } catch (err) {
+    if (list) {
+      list.replaceChildren();
+      const error = document.createElement('div');
+      error.className = 'dashboard-notif-empty';
+      error.textContent = 'Could not load notifications. Please try again.';
+      list.append(error);
+    }
+    console.warn('Could not load all dashboard notifications:', err.message);
+  }
+}
+
+function renderDashboardNotificationsModal(notifs = []) {
+  const list = document.querySelector('#dashboardNotificationsModal .dashboard-notif-list');
+  if (!list) return;
+  list.replaceChildren();
+
+  if (!Array.isArray(notifs) || notifs.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'dashboard-notif-empty';
+    empty.textContent = 'No notifications yet.';
+    list.append(empty);
+    return;
+  }
+
+  notifs.forEach(notification => {
+    const unread = Number(notification.isRead) === 0 || notification.isRead === false;
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = `dashboard-notif-row${unread ? ' unread' : ''}`;
+
+    const icon = document.createElement('span');
+    icon.className = 'dashboard-notif-row-icon';
+    icon.innerHTML = '<i class="fa-solid fa-bell" aria-hidden="true"></i>';
+
+    const copy = document.createElement('span');
+    copy.className = 'dashboard-notif-row-copy';
+    const message = document.createElement('strong');
+    message.textContent = notification.message || 'Notification';
+    const time = document.createElement('small');
+    time.textContent = formatLogDate(notification.createdAt);
+    copy.append(message, time);
+    row.append(icon, copy);
+
+    if (unread) {
+      const dot = document.createElement('span');
+      dot.className = 'status-dot';
+      dot.setAttribute('aria-label', 'Unread');
+      row.append(dot);
+    }
+
+    row.addEventListener('click', () => {
+      const itemID = notification.itemID ? Number(notification.itemID) : null;
+      openDashboardNotification(Number(notification.notifID) || 0, itemID);
+    });
+    list.append(row);
+  });
+}
+
+async function markAllDashboardNotificationsRead() {
+  try {
+    await NotifAPI.markAllRead();
+    await loadDashboardNotifications();
+    renderDashboardNotificationsModal(await NotifAPI.getAll());
+  } catch (err) {
+    showToast('error', 'Notification Error', err.message || 'Could not mark notifications as read.');
+  }
+}
+
+function closeDashboardNotificationsModal() {
+  document.getElementById('dashboardNotificationsModal')?.classList.remove('active');
+  headerSeeAllNotif?.focus();
+}
 
 // ── Mobile nav toggle ──
 function toggleMobileNav() {
@@ -340,6 +476,7 @@ function searchTable(tbodyId, query) {
   if (!tbody) return;
   const page = tbody.closest('.dash-page');
   if (page) {
+    dashboardPageNumbers.set(page.id, 1);
     applyDashboardFilters(page.id);
     return;
   }
@@ -365,8 +502,65 @@ function rowMatchesFilter(row, filters) {
   return Object.entries(filters).every(([key, expected]) => {
     const wanted = normalizeFilterValue(expected);
     if (!wanted) return true;
-    return normalizeFilterValue(row.dataset[key]) === wanted;
+    const actual = normalizeFilterValue(row.dataset[key]);
+    if (actual === wanted) return true;
+    return key === 'type' && actual === wanted.replace(/\s+item$/, '');
   });
+}
+
+function dashboardDataRows(tbody) {
+  return Array.from(tbody.querySelectorAll('tr')).filter(row =>
+    row.querySelector('td') && !row.querySelector('td[colspan]')
+  );
+}
+
+function renderDashboardPagination(page, currentPage, totalPages) {
+  const pagination = page.querySelector('.pagination');
+  if (!pagination) return;
+
+  pagination.replaceChildren();
+  pagination.style.display = totalPages > 1 ? '' : 'none';
+
+  if (totalPages <= 1) return;
+
+  const addLink = (label, targetPage, className, { active = false, disabled = false } = {}) => {
+    const link = document.createElement('a');
+    link.href = '#';
+    link.className = className;
+    link.textContent = label;
+    link.dataset.pageIndex = String(targetPage);
+    if (active) {
+      link.classList.add('active');
+      link.setAttribute('aria-current', 'page');
+    }
+    if (disabled) {
+      link.setAttribute('aria-disabled', 'true');
+      link.tabIndex = -1;
+    }
+    pagination.append(link);
+  };
+
+  addLink('← Prev', currentPage - 1, 'page-nav', { disabled: currentPage === 1 });
+
+  const visiblePages = new Set([1, totalPages]);
+  for (let value = Math.max(2, currentPage - 1); value <= Math.min(totalPages - 1, currentPage + 1); value += 1) {
+    visiblePages.add(value);
+  }
+
+  let previous = 0;
+  for (const value of [...visiblePages].sort((a, b) => a - b)) {
+    if (previous && value - previous > 1) {
+      const ellipsis = document.createElement('span');
+      ellipsis.className = 'page-ellipsis';
+      ellipsis.setAttribute('aria-hidden', 'true');
+      ellipsis.textContent = '…';
+      pagination.append(ellipsis);
+    }
+    addLink(String(value), value, 'page-num', { active: value === currentPage });
+    previous = value;
+  }
+
+  addLink('Next →', currentPage + 1, 'page-nav', { disabled: currentPage === totalPages });
 }
 
 function applyDashboardFilters(pageId) {
@@ -395,18 +589,46 @@ function applyDashboardFilters(pageId) {
     filters = { type: selects[0]?.value, status: selects[1]?.value, date: dateInput?.value };
   }
 
-  let visibleCount = 0;
-  tbody.querySelectorAll('tr').forEach(row => {
-    if (!row.dataset.filterable) return;
+  const rows = dashboardDataRows(tbody);
+  const filteredRows = rows.filter(row => {
     const matchesSearch = !searchValue || normalizeFilterValue(row.textContent).includes(searchValue);
-    const visible = matchesSearch && rowMatchesFilter(row, filters);
-    row.style.display = visible ? '' : 'none';
-    if (visible) visibleCount += 1;
+    return matchesSearch && rowMatchesFilter(row, filters);
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / DASHBOARD_PAGE_SIZE));
+  const currentPage = Math.min(Math.max(1, dashboardPageNumbers.get(pageId) || 1), totalPages);
+  dashboardPageNumbers.set(pageId, currentPage);
+  const firstVisibleIndex = (currentPage - 1) * DASHBOARD_PAGE_SIZE;
+  const visibleRows = new Set(filteredRows.slice(firstVisibleIndex, firstVisibleIndex + DASHBOARD_PAGE_SIZE));
+
+  rows.forEach(row => { row.style.display = visibleRows.has(row) ? '' : 'none'; });
+  tbody.querySelectorAll('tr').forEach(row => {
+    if (!rows.includes(row)) row.style.display = filteredRows.length ? 'none' : '';
   });
 
   const empty = page.querySelector('.empty-state');
-  if (empty) empty.style.display = visibleCount ? 'none' : '';
+  if (empty) empty.style.display = filteredRows.length ? 'none' : '';
+  renderDashboardPagination(page, currentPage, totalPages);
 }
+
+document.querySelectorAll('.dash-page .pagination').forEach(pagination => {
+  pagination.addEventListener('click', event => {
+    const link = event.target.closest('a[data-page-index]');
+    if (!link || link.getAttribute('aria-disabled') === 'true') return;
+    event.preventDefault();
+    const page = pagination.closest('.dash-page');
+    if (!page) return;
+    dashboardPageNumbers.set(page.id, Number(link.dataset.pageIndex) || 1);
+    applyDashboardFilters(page.id);
+  });
+});
+
+document.querySelectorAll('.dash-page tbody').forEach(tbody => {
+  const page = tbody.closest('.dash-page');
+  if (!page) return;
+  new MutationObserver(() => applyDashboardFilters(page.id)).observe(tbody, { childList: true });
+  applyDashboardFilters(page.id);
+});
 
 // ── Delete popup ──
 let pendingDelRow = null;
@@ -438,7 +660,12 @@ document.querySelectorAll('.filter-reset').forEach(btn => {
     bar.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
     bar.querySelectorAll('input[type=date]').forEach(i => i.value = '');
     const page = btn.closest('.dash-page');
-    if (page) applyDashboardFilters(page.id);
+    if (page) {
+      const search = page.querySelector('.mini-search input');
+      if (search) search.value = '';
+      dashboardPageNumbers.set(page.id, 1);
+      applyDashboardFilters(page.id);
+    }
   });
 });
 
@@ -562,7 +789,9 @@ function renderItemRows(tbodyId, items) {
   const colspan = tbodyId === 'found-tbody' ? 7 : 6;
   tbody.innerHTML = items.length ? items.map(i => {
     const isFound = i.itemType === 'found';
-    const img = `<div style="width:40px;height:40px;background:${isFound ? '#dcfce7' : '#dbeafe'};border-radius:8px;display:flex;align-items:center;justify-content:center">${isFound ? 'F' : 'L'}</div>`;
+    const category = i.category || i.categoryName || 'General';
+    const itemIcon = window.ASAItemPlaceholder?.icon(i.title, category) || '<i class="fa-solid fa-box" aria-hidden="true"></i>';
+    const img = `<div style="width:40px;height:40px;background:${isFound ? '#dcfce7' : '#dbeafe'};border-radius:8px;display:flex;align-items:center;justify-content:center">${itemIcon}</div>`;
     const rawDate = i.createdAt || i.dateOccured;
     const date = formatLogDate(rawDate);
     const rowData = `data-filterable="1" data-category="${i.category || 'General'}" data-status="${i.itemStatus || 'pending'}" data-date="${dateKey(rawDate)}" data-type="${i.itemType || ''}" data-location="${i.locationDetail || i.location || ''}"`;

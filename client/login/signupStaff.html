@@ -139,7 +139,7 @@
     }
 
     .promo-badge i {
-      color: #f5c518;
+      color: #F9DC07;
       font-size: 13px;
     }
 
@@ -174,7 +174,7 @@
     }
 
     .promo-feature i {
-      color: #f5c518;
+      color: #F9DC07;
       width: 18px;
       text-align: center;
       font-size: 14px;
@@ -433,6 +433,10 @@
         gap: 16px;
       }
     }
+    /* Keep the ASA navigation mark consistent across account setup pages. */
+    .main-logo { width: 140px; height: 60px; object-fit: cover; object-position: center 52%; }
+    @media (max-width: 800px) { .main-logo { width: 122px; height: 54px; } }
+    @media (max-width: 480px) { .main-logo { width: 110px; height: 48px; } }
   </style>
 </head>
 <body>
