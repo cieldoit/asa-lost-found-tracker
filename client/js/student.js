@@ -168,7 +168,7 @@ class StudentHeader extends HTMLElement {
   }
 
   setActivePage(page) {
-    ['dashboard','lost','found','post','my-posts'].forEach(p => {
+    ['dashboard','lost','found','post','my-posts','chat'].forEach(p => {
       this.querySelector(`#snav-${p}`)?.classList.remove('active');
       this.querySelector(`#smnav-${p}`)?.classList.remove('active');
     });
@@ -313,7 +313,7 @@ function closeMobileNav() {
 let currentPage = 'dashboard';
 
 function syncStudentPageUrl(page) {
-  const hashPages = new Set(['lost', 'found', 'post', 'my-posts', 'settings']);
+  const hashPages = new Set(['lost', 'found', 'post', 'my-posts', 'settings', 'chat']);
   const target = hashPages.has(page) ? `${window.location.pathname}#${page}` : window.location.pathname;
   if (window.location.pathname + window.location.hash !== target) {
     window.history.replaceState({}, '', target);
@@ -322,7 +322,7 @@ function syncStudentPageUrl(page) {
 
 function getInitialStudentPage() {
   const page = window.location.hash.replace('#', '');
-  return ['lost', 'found', 'post', 'my-posts', 'settings'].includes(page) ? page : 'dashboard';
+  return ['lost', 'found', 'post', 'my-posts', 'settings', 'chat'].includes(page) ? page : 'dashboard';
 }
 
 
@@ -522,7 +522,8 @@ async function loadItems() {
   }
 }
 
-function getCategoryEmoji(cat) {
+function getCategoryEmoji(cat, title = '') {
+  if (window.ASAItemPlaceholder) return window.ASAItemPlaceholder.icon(title, cat);
   if (!cat) return '<i class="fa-solid fa-box" aria-hidden="true"></i>';
   const map = {
     'electronics': '<i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i>', 'clothing': '<i class="fa-solid fa-shirt" aria-hidden="true"></i>', 'accessories': '<i class="fa-solid fa-glasses" aria-hidden="true"></i>',
@@ -540,7 +541,7 @@ function buildItemCard(item) {
   const description = data.description || '';
   const isLost = itemType === 'lost';
   const gradient = isLost ? 'linear-gradient(135deg,#dbeafe,#bfdbfe)' : 'linear-gradient(135deg,#dcfce7,#bbf7d0)';
-  const emoji = getCategoryEmoji(categoryName);
+  const emoji = getCategoryEmoji(categoryName, title);
   const rawDate = data.createdAt || data.dateOccured || new Date().toISOString();
   const date = Number.isNaN(new Date(rawDate).getTime()) ? '' : new Date(rawDate).toLocaleString();
   const editedRaw = data.editedAt || null;
@@ -564,11 +565,13 @@ function buildItemCard(item) {
   div.dataset.itemPhoto = itemPhoto;
   div.setAttribute('onclick', 'openItemModal(this)');
 
+  const fallbackImage = window.ASAItemPlaceholder?.markup(title, categoryName, itemType)
+    || `<div style="width:100%;height:100%;background:${gradient};display:flex;align-items:center;justify-content:center;font-size:48px;">${emoji}</div>`;
   const imageMarkup = isLost && itemPhoto
     ? `<img src="${itemPhoto}" alt="${title} photo">`
     : !isLost && pickupPhoto
       ? `<img src="${pickupPhoto}" alt="${pickupName} building photo">`
-      : `<div style="width:100%;height:100%;background:${gradient};display:flex;align-items:center;justify-content:center;font-size:48px;">${isLost ? '<i class="fa-solid fa-wallet" aria-hidden="true"></i>' : emoji}</div>`;
+      : fallbackImage;
 
   div.innerHTML = `
     <div class="card-img-wrap">
@@ -1307,6 +1310,7 @@ function openItemModal(card) {
   const itemPhoto = card.dataset.itemPhoto || '';
 
   currentItemID = card.dataset.itemId || null;
+  document.getElementById('itemModal').dataset.itemId = currentItemID || '';
 
   const imgSec = document.getElementById('modalImgSec');
   imgSec.closest('.modal-content-layout')?.classList.toggle('found-details', type === 'found');
@@ -1314,7 +1318,7 @@ function openItemModal(card) {
   const gradient = isLost
     ? 'linear-gradient(135deg,#dbeafe,#bfdbfe)'
     : 'linear-gradient(135deg,#dcfce7,#bbf7d0)';
-  const emoji = isLost ? '<i class="fa-solid fa-wallet" aria-hidden="true"></i>' : getCategoryEmoji(cat);
+  const emoji = getCategoryEmoji(cat, title);
 
   imgSec.style.background   = gradient;
   imgSec.style.minHeight    = '240px';
@@ -1322,7 +1326,8 @@ function openItemModal(card) {
   imgSec.style.fontSize     = '80px';
   imgSec.innerHTML = isLost && itemPhoto
     ? `<img src="${itemPhoto}" alt="${title} photo" style="width:100%;height:100%;min-height:240px;object-fit:cover;border-radius:12px">`
-    : `<span style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-height:240px">${emoji}</span>`;
+    : window.ASAItemPlaceholder?.markup(title, cat, type, { minHeight: 240, fontSize: 80 })
+      || `<span style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-height:240px">${emoji}</span>`;
 
   document.getElementById('modalTypeBadge').textContent = type.toUpperCase();
   document.getElementById('modalTypeBadge').className   = `badge badge-${type}`;

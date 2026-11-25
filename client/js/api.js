@@ -171,7 +171,7 @@ function ensureBackNavigationWarning() {
     .back-session-overlay{position:fixed;inset:0;z-index:6500;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(15,23,42,.5);backdrop-filter:blur(4px)}
     .back-session-overlay.active{display:flex}
     .back-session-dialog{width:min(100%,440px);background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 24px 70px rgba(15,23,42,.22);padding:26px;font-family:Poppins,Arial,sans-serif;color:#111827}
-    .back-session-icon{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:#fef3c7;color:#b45309;margin-bottom:16px;font-size:20px}
+    .back-session-icon{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:#FFF8D1;color:#5C5000;margin-bottom:16px;font-size:20px}
     .back-session-dialog h2{font-size:21px;font-weight:800;margin:0 0 8px}
     .back-session-dialog p{font-size:14px;line-height:1.65;color:#6b7280;margin:0}
     .back-session-actions{display:flex;gap:12px;justify-content:flex-end;margin-top:24px}

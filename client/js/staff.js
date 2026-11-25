@@ -159,7 +159,7 @@ class StaffHeader extends HTMLElement {
   }
 
   setActivePage(page) {
-    const navPages = ['dashboard','lost','found','post','my-posts'];
+    const navPages = ['dashboard','lost','found','post','my-posts','chat'];
     navPages.forEach(p => {
       const d = this.querySelector(`#snav-${p}`);
       const m = this.querySelector(`#smnav-${p}`);
@@ -387,7 +387,7 @@ function updateFoundPickupPreview() {
 }
 
 function syncStaffPageUrl(page) {
-  const hashPages = new Set(['lost', 'found', 'post', 'my-posts', 'settings']);
+  const hashPages = new Set(['lost', 'found', 'post', 'my-posts', 'settings', 'chat']);
   const target = hashPages.has(page) ? `${window.location.pathname}#${page}` : window.location.pathname;
   if (window.location.pathname + window.location.hash !== target) {
     window.history.replaceState({}, '', target);
@@ -396,7 +396,7 @@ function syncStaffPageUrl(page) {
 
 function getInitialStaffPage() {
   const page = window.location.hash.replace('#', '');
-  return ['lost', 'found', 'post', 'my-posts', 'settings'].includes(page) ? page : 'dashboard';
+  return ['lost', 'found', 'post', 'my-posts', 'settings', 'chat'].includes(page) ? page : 'dashboard';
 }
 
 
@@ -1027,6 +1027,7 @@ function filterMyPosts() {
 ============================================================ */
 function openItemModal(card) {
   currentItemID = card.dataset.itemId || null;
+  document.getElementById('itemModal').dataset.itemId = currentItemID || '';
   const type  = card.dataset.type;
   const title = card.dataset.title;
   const cat   = card.dataset.cat;
@@ -1503,7 +1504,8 @@ async function loadItems() {
   }
 }
 
-function getCategoryEmoji(cat) {
+function getCategoryEmoji(cat, title = '') {
+  if (window.ASAItemPlaceholder) return window.ASAItemPlaceholder.icon(title, cat);
   if (!cat) return '<i class="fa-solid fa-box" aria-hidden="true"></i>';
   const map = {
     'electronics': '<i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i>', 'clothing': '<i class="fa-solid fa-shirt" aria-hidden="true"></i>', 'accessories': '<i class="fa-solid fa-glasses" aria-hidden="true"></i>',
@@ -1520,7 +1522,7 @@ function buildItemCard(item) {
   const description = data.description || '';
   const isLost = itemType === 'lost';
   const gradient = isLost ? 'linear-gradient(135deg,#dbeafe,#bfdbfe)' : 'linear-gradient(135deg,#dcfce7,#bbf7d0)';
-  const emoji = getCategoryEmoji(categoryName);
+  const emoji = getCategoryEmoji(categoryName, title);
   const rawDate = data.createdAt || data.dateOccured || new Date().toISOString();
   const date = Number.isNaN(new Date(rawDate).getTime()) ? '' : new Date(rawDate).toLocaleString();
   const editedRaw = data.editedAt || null;
@@ -1544,11 +1546,13 @@ function buildItemCard(item) {
   div.dataset.itemPhoto = itemPhoto;
   div.setAttribute('onclick', 'openItemModal(this)');
 
+  const fallbackImage = window.ASAItemPlaceholder?.markup(title, categoryName, itemType)
+    || `<div style="width:100%;height:100%;background:${gradient};display:flex;align-items:center;justify-content:center;font-size:48px;">${emoji}</div>`;
   const imageMarkup = isLost && itemPhoto
     ? `<img src="${itemPhoto}" alt="${title} photo">`
     : !isLost && pickupPhoto
       ? `<img src="${pickupPhoto}" alt="${pickupName} building photo">`
-      : `<div style="width:100%;height:100%;background:${gradient};display:flex;align-items:center;justify-content:center;font-size:48px;">${isLost ? '<i class="fa-solid fa-wallet" aria-hidden="true"></i>' : emoji}</div>`;
+      : fallbackImage;
 
   div.innerHTML = `
     <div class="card-img-wrap">

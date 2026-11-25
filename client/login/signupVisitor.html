@@ -116,7 +116,7 @@
       margin-bottom: 20px;
     }
 
-    .promo-badge i { color: #f5c518; }
+    .promo-badge i { color: #F9DC07; }
 
     .promo-title {
       font-size: 36px;
@@ -144,7 +144,7 @@
       font-weight: 500;
     }
 
-    .promo-feature i { color: #f5c518; width: 18px; text-align: center; }
+    .promo-feature i { color: #F9DC07; width: 18px; text-align: center; }
 
     .form-card {
       background: #fff;
@@ -273,6 +273,10 @@
       .promo-panel { width: 100%; }
       .form-row { flex-direction: column; }
     }
+    /* Keep the ASA navigation mark consistent across account setup pages. */
+    .main-logo { width: 140px; height: 60px; object-fit: cover; object-position: center 52%; }
+    @media (max-width: 800px) { .main-logo { width: 122px; height: 54px; } }
+    @media (max-width: 480px) { .main-logo { width: 110px; height: 48px; } }
   </style>
 </head>
 <body>

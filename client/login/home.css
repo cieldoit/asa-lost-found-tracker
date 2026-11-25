@@ -2,7 +2,7 @@
   --asa-green: #1a5c2a;
   --asa-green-dark: #154d23;
   --asa-green-light: #e8f5ed;
-  --asa-yellow: #f5c518;
+  --asa-yellow: #F9DC07;
   --asa-bg: #f5f6fa;
   --asa-border: #e5e7eb;
   --asa-text: #111827;
@@ -11,15 +11,15 @@
   --asa-radius: 16px;
 }
 
-html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+html { scroll-behavior: smooth; scroll-padding-top: 76px; }
 body { background: var(--asa-bg); color: var(--asa-text); }
 
 body > nav {
   position: sticky !important;
   top: 0 !important;
   z-index: 1000;
-  height: 88px;
-  padding: 0 max(22px, calc((100vw - 1240px) / 2));
+  height: 72px;
+  padding: 0 32px;
   justify-content: flex-start;
   background: #fff;
   border-bottom: 1px solid var(--asa-border);
@@ -27,16 +27,23 @@ body > nav {
 }
 body > nav.fixed { top: 0 !important; }
 body > nav .link-container { width: 100%; gap: 6px; }
-body > nav .link-container > a.logo { height: auto; margin: 0 auto 0 0; padding: 0; }
+body > nav .link-container > .nav-brand {
+  flex: 0 0 140px;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+}
+body > nav .nav-brand .logo { margin: 0 0 0 -24px; }
 /* The source wordmark has generous transparent padding, so crop that padding
    in the header box to give the visible mark more presence without stretching. */
-body > nav .logo { width: 160px; height: 74px; object-fit: cover; object-position: center 52%; }
+body > nav .logo { width: 140px; height: 60px; object-fit: cover; object-position: center 52%; }
 body > nav .logo-side { display: none !important; }
 body > nav .logo-side-link { display: none; }
 body > nav a.text {
   width: auto;
-  height: 44px;
-  padding: 0 14px;
+  height: 40px;
+  padding: 0 12px;
   border-radius: 8px;
   color: #374151;
   font-size: 13px;
@@ -44,11 +51,11 @@ body > nav a.text {
 }
 body > nav a.text::after { display: none; }
 body > nav a.text:hover { background: var(--asa-green-light); color: var(--asa-green); }
-body > nav .log-in-link { height: auto; margin: 0 0 0 8px; padding: 0; }
+body > nav .log-in-link { height: auto; margin: 0 0 0 auto; padding: 0; }
 body > nav .log-in {
-  min-height: 44px;
+  min-height: 40px;
   margin: 0;
-  padding: 0 20px;
+  padding: 0 18px;
   border: 1px solid var(--asa-green);
   border-radius: 8px;
   background: var(--asa-green);
@@ -62,7 +69,7 @@ body > nav .open-sidebar-button, body > nav .close-sidebar-button { color: #3741
 #asa-main { background: var(--asa-bg); }
 .hero {
   height: auto;
-  min-height: min(700px, calc(100svh - 88px));
+  min-height: min(700px, calc(100svh - 72px));
   padding: 64px 24px;
   background: var(--asa-bg);
 }
@@ -158,7 +165,7 @@ body > nav .open-sidebar-button, body > nav .close-sidebar-button { color: #3741
 }
 .grid-container {
   height: auto;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   grid-template-areas: none !important;
   gap: 16px;
   align-items: stretch;
@@ -175,6 +182,11 @@ body > nav .open-sidebar-button, body > nav .close-sidebar-button { color: #3741
   box-shadow: var(--asa-shadow);
 }
 .Item-1, .Item-3, .Item-2, .Item-4, .Item-5 { grid-area: auto !important; }
+@media (min-width: 901px) {
+  .Item-1, .Item-2, .Item-3 { grid-column: span 2 !important; }
+  .Item-4 { grid-column: 2 / span 2 !important; }
+  .Item-5 { grid-column: 4 / span 2 !important; }
+}
 .item-1-img, .item-2-img, .item-3-img, .item-4-img, .item-5-img {
   width: 100%;
   height: 150px;
@@ -268,17 +280,17 @@ body > nav .open-sidebar-button, body > nav .close-sidebar-button { color: #3741
   .legal-links { gap: 8px 16px; }
 }
 @media (max-width: 640px) {
-  body > nav { height: 72px; padding: 0 14px; }
+  body > nav { height: 64px; padding: 0 14px; }
   body > nav .logo-side {
     display: block !important;
-    width: 138px;
-    height: 64px;
+    width: 122px;
+    height: 54px;
     object-fit: cover;
     object-position: center 52%;
     margin: 0;
   }
   body > nav .logo-side-link { display: flex; align-items: center; margin-right: auto; }
-  body > nav .open-sidebar-button { display: block; padding: 12px; cursor: pointer; }
+  body > nav .open-sidebar-button { display: block; padding: 10px; cursor: pointer; }
   body > nav .link-container {
     position: fixed;
     top: 0;
@@ -334,13 +346,18 @@ body > nav .open-sidebar-button, body > nav .close-sidebar-button { color: #3741
   .content-side h1 { font-size: 34px; }
   .button-group { width: 100%; flex-wrap: wrap; }
   .button-group .btn { flex: 1; }
-  .footer-container { margin-top: 48px; }
-  .footer-top { grid-template-columns: minmax(0, 1fr); padding: 30px 22px; gap: 24px; }
-  .brand-section { grid-column: auto; }
-  .footer-bottom { align-items: flex-start; flex-direction: column; padding: 18px 22px 24px; }
+  .footer-container { margin-top: 24px; }
+  .footer-top { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 14px 14px 10px; gap: 12px 10px; }
+  .brand-section, .footer-column:last-child { grid-column: 1 / -1; }
+  .footer-bottom { align-items: flex-start; flex-direction: column; padding: 10px 14px 12px; }
   #browseSection { width: calc(100% - 36px); padding: 18px !important; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+/* Use the same compact logo box in every tablet and phone navigation. */
+@media (max-width: 800px) { body > nav .logo { width: 122px; height: 54px; } }
+
+@media (max-width: 480px) { body > nav .logo, body > nav .logo-side { width: 110px; height: 48px; } }
